@@ -16,6 +16,8 @@ import type { SubmitHandler } from "react-hook-form";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import type { RootStackParamList } from "../../../App";
+import { authService } from '../../service/authService';
+import { patientService } from '../../service/patient';
 
 type RegisterScreenNavigationProp = NativeStackNavigationProp<
     RootStackParamList,
@@ -29,7 +31,7 @@ type RegisterFormData = {
     birthdate: string;
     password: string;
     confirmPassword?: string;
-    cref?: string;
+   
 };
 
 const schema = yup.object({
@@ -41,12 +43,12 @@ const schema = yup.object({
     confirmPassword: yup
         .string()
         .oneOf([yup.ref("password")], "As senhas não coincidem"),
-    cref: yup.string().notRequired(),
 });
 
 export default function RegisterScreen() {
     const [hidePassword, setHidePassword] = useState(true);
     const [hideConfirmPassword, setHideConfirmPassword] = useState(true);
+    const [loading, setLoading] = useState(false); // Novo estado
 
     const navigation = useNavigation<RegisterScreenNavigationProp>();
 
@@ -58,11 +60,34 @@ export default function RegisterScreen() {
         resolver: yupResolver(schema) as any,
     });
 
+    const onSubmit: SubmitHandler<RegisterFormData> = async (data) => {
+        setLoading(true);
+        try {
+            // 1. Cadastro na tabela auth
+            const authPayload = {
+                username: data.name,
+                email: data.email,
+                password: data.password,
+                user_type: "Patient",
+            };
+            const createdUser = await authService.register(authPayload);
 
+            // 2. Cadastro na tabela patient
+            const patientPayload = {
+                name: data.name,
+                birthdate: data.birthdate,
+                contact: data.phone,
+                auth_id: createdUser.id,
+            };
+            await patientService.create(patientPayload);
 
-    const onSubmit: SubmitHandler<RegisterFormData> = (data) => {
-        console.log(data);
-        // Aqui você faria a chamada da API para cadastrar
+            setLoading(false);
+            alert("Cadastro realizado com sucesso!");
+            navigation.replace("Login");
+        } catch (error: any) {
+            setLoading(false);
+            alert("Erro ao cadastrar. Tente novamente.");
+        }
     };
 
     return (
@@ -102,7 +127,7 @@ export default function RegisterScreen() {
             {errors.email && <Text style={styles.error}>{errors.email.message}</Text>}
 
             {/* Telefone */}
-            <Controller
+           {/* <Controller
                 control={control}
                 name="phone"
                 render={({ field: { onChange, value } }) => (
@@ -118,7 +143,7 @@ export default function RegisterScreen() {
             {errors.phone && <Text style={styles.error}>{errors.phone.message}</Text>}
 
             {/* Data de Nascimento */}
-            <Controller
+{/*<Controller
                 control={control}
                 name="birthdate"
                 render={({ field: { onChange, value } }) => (
@@ -132,7 +157,7 @@ export default function RegisterScreen() {
             />
             {errors.birthdate && (
                 <Text style={styles.error}>{errors.birthdate.message}</Text>
-            )}
+            )}*/}
 
             {/* Senha */}
             <Controller
@@ -190,23 +215,15 @@ export default function RegisterScreen() {
                 <Text style={styles.error}>{errors.confirmPassword.message}</Text>
             )}
 
-            {/* CRN/CREF */}
-            <Controller
-                control={control}
-                name="cref"
-                render={({ field: { onChange, value } }) => (
-                    <TextInput
-                        placeholder="CRN / CREF (opcional)"
-                        style={styles.input}
-                        value={value}
-                        onChangeText={onChange}
-                    />
-                )}
-            />
-
             {/* Botão Cadastrar */}
-            <TouchableOpacity style={styles.button} onPress={handleSubmit(onSubmit)}>
-                <Text style={styles.buttonText}>Cadastrar</Text>
+            <TouchableOpacity
+                style={styles.button}
+                onPress={handleSubmit(onSubmit)}
+                disabled={loading}
+            >
+                <Text style={styles.buttonText}>
+                    {loading ? "Cadastrando..." : "Cadastrar"}
+                </Text>
             </TouchableOpacity>
 
             {/* Voltar */}

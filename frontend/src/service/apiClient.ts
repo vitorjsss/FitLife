@@ -1,5 +1,5 @@
 import { API_CONFIG } from '../config/api';
-import { authService } from './authService';
+import { authService } from '../service/authService';
 
 // Configuração global para ignorar erros de certificado SSL
 if (API_CONFIG.IGNORE_SSL_ERRORS) {

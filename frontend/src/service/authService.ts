@@ -29,13 +29,9 @@ interface LoginData {
 }
 
 class AuthService {
-    async register(data: RegisterData): Promise<string> {
+    async register(data: RegisterData): Promise<any> {
         const response = await apiClient.post(API_CONFIG.ENDPOINTS.AUTH.REGISTER, data);
-        const { token, user } = response.data;
-        await AsyncStorage.setItem(ACCESS_TOKEN_KEY, token);
-        await AsyncStorage.setItem(USERNAME_KEY, user.username);
-        await AsyncStorage.setItem(USER_ROLE_KEY, user.user_type);
-        return token;
+        return response.data; // retorna o usuário criado (com id)
     }
 
     async login(data: LoginData): Promise<string> {

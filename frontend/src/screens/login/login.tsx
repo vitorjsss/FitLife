@@ -13,6 +13,7 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useNavigation } from "@react-navigation/native";
 import { RootStackParamList } from "../../../App";
+import { authService } from '../../service/authService';
 
 type LoginFormData = {
     email: string;
@@ -34,9 +35,17 @@ export default function LoginScreen() {
         resolver: yupResolver(schema),
     });
 
-    const onSubmit = (data: LoginFormData) => {
-        console.log(data);
-        // Aqui você chamaria a API de login
+    const onSubmit = async (data: LoginFormData) => {
+        try {
+            const token = await authService.login(data);
+            if (token) {
+                // Redirecione para a tela principal ou dashboard após login bem-sucedido
+                //navigation.replace("Home"); // Altere "Home" para a tela desejada
+            }
+        } catch (error: any) {
+            // Exiba mensagem de erro para o usuário
+            alert("Falha no login. Verifique suas credenciais.");
+        }
     };
 
     return (
