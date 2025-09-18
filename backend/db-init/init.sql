@@ -100,6 +100,46 @@ CREATE TABLE medidas_nutricionais (
 );
 
 -- ----------------------------
+-- Tabela TREINO
+-- ----------------------------
+CREATE TABLE treino (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    duration INTERVAL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    patient_id INT NOT NULL REFERENCES patient(id),
+    physical_educator_id INT REFERENCES physical_educator(id) -- agora é opcional
+);
+
+-- ----------------------------
+-- Tabela EXERCICIO
+-- ----------------------------
+-- Criar o ENUM
+CREATE TYPE exercise_type_enum AS ENUM (
+    'forca',
+    'cardio',
+    'flexibilidade',
+    'esporte'
+);
+
+-- Tabela Exercicio
+CREATE TABLE exercicio (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    exercise_type exercise_type_enum NOT NULL, -- agora usa ENUM
+    series INT,
+    repetitions INT,
+    load FLOAT,
+    duration INTERVAL,
+    distance FLOAT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    treino_id INT NOT NULL REFERENCES treino(id) ON DELETE CASCADE
+);
+
+-- ----------------------------
 -- Tabela LOGS
 -- ----------------------------
 
