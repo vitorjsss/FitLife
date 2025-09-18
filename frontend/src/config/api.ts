@@ -9,7 +9,7 @@ export const API_CONFIG = {
             CREATE: "/patient/register",
             GET_ALL: "/patient/all",
             GET_BY_ID: "/patient/{id}",
-            UPDATE:  "/patient/{id}",
+            UPDATE: "/patient/{id}",
         },
         PHYSICAL_EDUCATOR: {
             CREATE: "/physical-educator/register",
@@ -20,10 +20,9 @@ export const API_CONFIG = {
         NUTRICIONIST: {
             CREATE: "/nutricionist/register",
             GET_ALL: "/nutricionist/all",
-            GET_BY_ID:  "/nutricionist/{id}",
-            UPDATE:  "/nutricionist/{id}",
+            GET_BY_ID: "/nutricionist/{id}",
+            UPDATE: "/nutricionist/{id}",
         },
-
     },
     TIMEOUT: 10000,
     IGNORE_SSL_ERRORS: true,
