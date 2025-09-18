@@ -1,0 +1,32 @@
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: fitlife
+      POSTGRES_PASSWORD: fitlife
+      POSTGRES_DB: fitlife
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./backend/db-init:/docker-entrypoint-initdb.d
+    ports:
+      - "5433:5432"
+
+  backend:
+    build: ./backend
+    command: sh -c "npm run dev"
+    volumes:
+      - ./backend:/usr/src/app
+    ports:
+      - "5001:5001"
+    environment:
+      - PORT=5001
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=fitlife
+      - DB_PASSWORD=fitlife
+      - DB_NAME=fitlife
+    depends_on:
+      - db
+
+volumes:
+  db-data:
