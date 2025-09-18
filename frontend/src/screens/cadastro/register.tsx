@@ -6,18 +6,17 @@ import {
     TouchableOpacity,
     StyleSheet,
     ScrollView,
+    Alert,
 } from "react-native";
 import Icon from "react-native-vector-icons/Feather";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, SubmitHandler } from "react-hook-form";
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useNavigation } from "@react-navigation/native";
-import type { SubmitHandler } from "react-hook-form";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import type { RootStackParamList } from "../../../App";
-import { authService } from '../../service/authService';
-import { patientService } from '../../service/patient';
+import { authService } from "../../service/authService";
 
 type RegisterScreenNavigationProp = NativeStackNavigationProp<
     RootStackParamList,
@@ -27,28 +26,23 @@ type RegisterScreenNavigationProp = NativeStackNavigationProp<
 type RegisterFormData = {
     name: string;
     email: string;
-    phone: string;
-    birthdate: string;
     password: string;
     confirmPassword?: string;
-   
 };
 
 const schema = yup.object({
     name: yup.string().required("Nome obrigatório"),
     email: yup.string().email("E-mail inválido").required("E-mail obrigatório"),
-    phone: yup.string().required("Telefone obrigatório"),
-    birthdate: yup.string().required("Data de nascimento obrigatória"),
-    password: yup.string().required("Senha obrigatória"),
+    password: yup.string().min(6, "Mínimo 6 caracteres").required("Senha obrigatória"),
     confirmPassword: yup
         .string()
         .oneOf([yup.ref("password")], "As senhas não coincidem"),
 });
 
 export default function RegisterScreen() {
+    const [loading, setLoading] = useState(false);
     const [hidePassword, setHidePassword] = useState(true);
     const [hideConfirmPassword, setHideConfirmPassword] = useState(true);
-    const [loading, setLoading] = useState(false); // Novo estado
 
     const navigation = useNavigation<RegisterScreenNavigationProp>();
 
@@ -57,36 +51,33 @@ export default function RegisterScreen() {
         handleSubmit,
         formState: { errors },
     } = useForm<RegisterFormData>({
-        resolver: yupResolver(schema) as any,
+        resolver: yupResolver(schema),
+        defaultValues: {
+            name: "",
+            email: "",
+            password: "",
+            confirmPassword: "",
+        },
     });
 
     const onSubmit: SubmitHandler<RegisterFormData> = async (data) => {
         setLoading(true);
         try {
-            // 1. Cadastro na tabela auth
-            const authPayload = {
+            const registerData = {
                 username: data.name,
                 email: data.email,
                 password: data.password,
                 user_type: "Patient",
             };
-            const createdUser = await authService.register(authPayload);
-
-            // 2. Cadastro na tabela patient
-            const patientPayload = {
-                name: data.name,
-                birthdate: data.birthdate,
-                contact: data.phone,
-                auth_id: createdUser.id,
-            };
-            await patientService.create(patientPayload);
-
-            setLoading(false);
-            alert("Cadastro realizado com sucesso!");
-            navigation.replace("Login");
+            const token = await authService.register(registerData);
+            console.log("Cadastro realizado com sucesso:", token);
+            Alert.alert("Sucesso", "Conta criada com sucesso!");
+            navigation.navigate("Login");
         } catch (error: any) {
+            console.error("Erro ao cadastrar:", error);
+            Alert.alert("Erro", "Não foi possível cadastrar. Tente novamente.");
+        } finally {
             setLoading(false);
-            alert("Erro ao cadastrar. Tente novamente.");
         }
     };
 
@@ -101,8 +92,8 @@ export default function RegisterScreen() {
                 name="name"
                 render={({ field: { onChange, value } }) => (
                     <TextInput
-                        placeholder="Nome completo"
                         style={styles.input}
+                        placeholder="Nome completo"
                         value={value}
                         onChangeText={onChange}
                     />
@@ -116,48 +107,16 @@ export default function RegisterScreen() {
                 name="email"
                 render={({ field: { onChange, value } }) => (
                     <TextInput
-                        placeholder="E-mail"
                         style={styles.input}
+                        placeholder="E-mail"
                         keyboardType="email-address"
+                        autoCapitalize="none"
                         value={value}
                         onChangeText={onChange}
                     />
                 )}
             />
             {errors.email && <Text style={styles.error}>{errors.email.message}</Text>}
-
-            {/* Telefone */}
-           {/* <Controller
-                control={control}
-                name="phone"
-                render={({ field: { onChange, value } }) => (
-                    <TextInput
-                        placeholder="Número de telefone"
-                        style={styles.input}
-                        keyboardType="phone-pad"
-                        value={value}
-                        onChangeText={onChange}
-                    />
-                )}
-            />
-            {errors.phone && <Text style={styles.error}>{errors.phone.message}</Text>}
-
-            {/* Data de Nascimento */}
-{/*<Controller
-                control={control}
-                name="birthdate"
-                render={({ field: { onChange, value } }) => (
-                    <TextInput
-                        placeholder="Data de Nascimento"
-                        style={styles.input}
-                        value={value}
-                        onChangeText={onChange}
-                    />
-                )}
-            />
-            {errors.birthdate && (
-                <Text style={styles.error}>{errors.birthdate.message}</Text>
-            )}*/}
 
             {/* Senha */}
             <Controller
@@ -166,8 +125,8 @@ export default function RegisterScreen() {
                 render={({ field: { onChange, value } }) => (
                     <View style={styles.passwordContainer}>
                         <TextInput
-                            placeholder="Crie sua senha"
                             style={styles.inputPassword}
+                            placeholder="Crie sua senha"
                             secureTextEntry={hidePassword}
                             value={value}
                             onChangeText={onChange}
@@ -193,8 +152,8 @@ export default function RegisterScreen() {
                 render={({ field: { onChange, value } }) => (
                     <View style={styles.passwordContainer}>
                         <TextInput
-                            placeholder="Confirme sua senha"
                             style={styles.inputPassword}
+                            placeholder="Confirme sua senha"
                             secureTextEntry={hideConfirmPassword}
                             value={value}
                             onChangeText={onChange}
@@ -217,7 +176,7 @@ export default function RegisterScreen() {
 
             {/* Botão Cadastrar */}
             <TouchableOpacity
-                style={styles.button}
+                style={[styles.button, loading && { opacity: 0.7 }]}
                 onPress={handleSubmit(onSubmit)}
                 disabled={loading}
             >
@@ -260,7 +219,7 @@ const styles = StyleSheet.create({
         padding: 14,
         borderRadius: 8,
         marginBottom: 10,
-        backgroundColor: "#ffffffff",
+        backgroundColor: "#fff",
     },
     passwordContainer: {
         flexDirection: "row",
@@ -270,7 +229,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
         borderRadius: 8,
         marginBottom: 10,
-        backgroundColor: "#ffffffff",
+        backgroundColor: "#fff",
     },
     inputPassword: {
         flex: 1,
@@ -295,5 +254,6 @@ const styles = StyleSheet.create({
     error: {
         color: "red",
         marginBottom: 5,
+        fontSize: 13,
     },
 });
