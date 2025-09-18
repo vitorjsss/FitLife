@@ -99,6 +99,84 @@ CREATE TABLE medidas_nutricionais (
     updated_at TIMESTAMP DEFAULT NOW()
 );
 
+-- ----------------------------
+-- Tabela LOGS
+-- ----------------------------
+
+CREATE TABLE logs (
+    id BIGSERIAL PRIMARY KEY,
+    action VARCHAR(255) NOT NULL,
+    log_type VARCHAR(50) NOT NULL CHECK (log_type IN ('AUDIT', 'ACCESS', 'ERROR', 'CHANGE')),
+    description TEXT,
+    ip_address VARCHAR(45), -- suporta IPv4 e IPv6
+    old_value VARCHAR(255),
+    new_value VARCHAR(255),
+    status VARCHAR(50) NOT NULL CHECK (status IN ('SUCCESS', 'FAILURE', 'WARNING')),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    user_id UUID NOT NULL,
+    CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- ----------------------------
+-- Tabela DAILY_MEAL_REGISTRY
+-- ----------------------------
+
+CREATE TABLE DailyMealRegistry (
+    id UUID PRIMARY KEY,
+    date DATE NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    patient_id UUID NOT NULL
+);
+
+-- ----------------------------
+-- Tabela FOOD
+-- ----------------------------
+
+CREATE TABLE Food (
+    id UUID PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    descricao TEXT,
+    image_path VARCHAR(500)
+);
+
+-- ----------------------------
+-- Tabela MEAL_RECORD
+-- ----------------------------
+
+CREATE TABLE MealRecord (
+    id UUID PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    icon_path VARCHAR(500),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    daily_meal_registry_id UUID NOT NULL,
+    CONSTRAINT fk_mealrecord_registry FOREIGN KEY (daily_meal_registry_id)
+        REFERENCES DailyMealRegistry(id) ON DELETE CASCADE
+);
+
+-- ----------------------------
+-- Tabela MEAL_ITEM
+-- ----------------------------
+
+CREATE TABLE MealItem (
+    id UUID PRIMARY KEY,
+    food_name VARCHAR(255) NOT NULL,
+    quantity VARCHAR(100),
+    calories FLOAT,
+    proteins FLOAT,
+    carbs FLOAT,
+    fats FLOAT,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    food_id UUID NOT NULL,
+    meal_id UUID NOT NULL,
+    CONSTRAINT fk_mealitem_food FOREIGN KEY (food_id)
+        REFERENCES Food(id) ON DELETE CASCADE,
+    CONSTRAINT fk_mealitem_meal FOREIGN KEY (meal_id)
+        REFERENCES MealRecord(id) ON DELETE CASCADE
+);
+
 -- =============================
 -- Dados iniciais
 -- =============================
