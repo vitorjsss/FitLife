@@ -12,7 +12,7 @@ import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useNavigation } from "@react-navigation/native";
-import { RootStackParamList } from "../../App";
+import { RootStackParamList } from "../../../App";
 
 type LoginFormData = {
     email: string;
