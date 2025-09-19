@@ -12,20 +12,11 @@ const apiClient = axios.create({
     timeout: API_CONFIG.TIMEOUT,
 });
 
-interface AuthTokens {
-    refresh_token: string;
-}
-
 interface RegisterData {
     username: string;
     email: string;
     password: string;
     user_type: string;
-}
-
-interface LoginData {
-    email: string;
-    password: string;
 }
 
 class AuthService {
@@ -34,13 +25,22 @@ class AuthService {
         return response.data; // retorna o usuário criado (com id)
     }
 
-    async login(data: LoginData): Promise<string> {
-        const response = await apiClient.post(API_CONFIG.ENDPOINTS.AUTH.LOGIN, data);
-        const { refresh_token, username, user_type } = response.data;
-        await AsyncStorage.setItem(ACCESS_TOKEN_KEY, refresh_token);
-        await AsyncStorage.setItem(USERNAME_KEY, username);
-        await AsyncStorage.setItem(USER_ROLE_KEY, user_type);
-        return refresh_token;
+    async login(data: { email: string; password: string }) {
+        try {
+            const response = await apiClient.post(API_CONFIG.ENDPOINTS.AUTH.LOGIN, data);
+            const { accessToken } = response.data;
+
+            if (!accessToken) {
+                throw new Error('Access token não recebido do backend.');
+            }
+
+            await AsyncStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
+
+            return { accessToken };
+        } catch (error: any) {
+            console.error('Erro no login:', error);
+            throw error;
+        }
     }
 
     async getAccessToken(): Promise<string | null> {
