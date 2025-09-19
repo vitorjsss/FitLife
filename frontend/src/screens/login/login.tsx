@@ -7,17 +7,19 @@ import {
     StyleSheet,
 } from "react-native";
 import Icon from "react-native-vector-icons/Feather";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, set, SubmitHandler } from "react-hook-form";
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useNavigation } from "@react-navigation/native";
 import { RootStackParamList } from "../../../App";
 import { authService } from '../../service/authService';
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 type LoginFormData = {
     email: string;
     password: string;
+
 };
 
 type LoginScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, "Login">;
@@ -29,22 +31,40 @@ const schema = yup.object({
 
 export default function LoginScreen() {
     const [hidePassword, setHidePassword] = useState(true);
+    const [loading, setLoading] = useState(false);
     const navigation = useNavigation<LoginScreenNavigationProp>();
 
     const { control, handleSubmit, formState: { errors } } = useForm<LoginFormData>({
         resolver: yupResolver(schema),
+        defaultValues: {
+            email: "",
+            password: "",
+        },
     });
 
-    const onSubmit = async (data: LoginFormData) => {
+    const onSubmit: SubmitHandler<LoginFormData> = async (data) => {
+        setLoading(true);
         try {
-            const token = await authService.login(data);
+            const loginData = {
+                email: data.email,
+                password: data.password,
+            };
+
+            // chamada pro back
+            const token = await authService.login(loginData);
+
             if (token) {
-                // Redirecione para a tela principal ou dashboard após login bem-sucedido
-                //navigation.replace("Home"); // Altere "Home" para a tela desejada
+                console.log("Login bem-sucedido:", token);
+
+                navigation.replace("Home");
+            } else {
+                alert("Credenciais inválidas.");
             }
-        } catch (error: any) {
-            // Exiba mensagem de erro para o usuário
+        } catch (error) {
+            console.error("Erro no login:", error);
             alert("Falha no login. Verifique suas credenciais.");
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -92,8 +112,8 @@ export default function LoginScreen() {
                 <Text style={styles.forgot}>Esqueceu sua senha?</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.button} onPress={handleSubmit(onSubmit)}>
-                <Text style={styles.buttonText}>Entrar</Text>
+            <TouchableOpacity style={[styles.button, loading && { opacity: 0.7 }]} onPress={handleSubmit(onSubmit)} disabled={loading}>
+                <Text style={styles.buttonText}>{loading ? "Entrando..." : "Entrar"}</Text>
             </TouchableOpacity>
 
             <View style={styles.registerContainer}>

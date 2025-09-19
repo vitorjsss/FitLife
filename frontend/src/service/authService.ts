@@ -13,7 +13,7 @@ const apiClient = axios.create({
 });
 
 interface AuthTokens {
-    token: string;
+    refresh_token: string;
 }
 
 interface RegisterData {
@@ -36,11 +36,11 @@ class AuthService {
 
     async login(data: LoginData): Promise<string> {
         const response = await apiClient.post(API_CONFIG.ENDPOINTS.AUTH.LOGIN, data);
-        const { token, user } = response.data;
-        await AsyncStorage.setItem(ACCESS_TOKEN_KEY, token);
-        await AsyncStorage.setItem(USERNAME_KEY, user.username);
-        await AsyncStorage.setItem(USER_ROLE_KEY, user.user_type);
-        return token;
+        const { refresh_token, username, user_type } = response.data;
+        await AsyncStorage.setItem(ACCESS_TOKEN_KEY, refresh_token);
+        await AsyncStorage.setItem(USERNAME_KEY, username);
+        await AsyncStorage.setItem(USER_ROLE_KEY, user_type);
+        return refresh_token;
     }
 
     async getAccessToken(): Promise<string | null> {
