@@ -43,30 +43,23 @@ export default function LoginScreen() {
     });
 
     const onSubmit: SubmitHandler<LoginFormData> = async (data) => {
-        setLoading(true);
-        try {
-            const loginData = {
-                email: data.email,
-                password: data.password,
-            };
+    setLoading(true);
+    try {
+        const tokens = await authService.login({ email: data.email, password: data.password });
 
-            // chamada pro back
-            const token = await authService.login(loginData);
-
-            if (token) {
-                console.log("Login bem-sucedido:", token);
-
-                navigation.replace("Home");
-            } else {
-                alert("Credenciais inválidas.");
-            }
-        } catch (error) {
-            console.error("Erro no login:", error);
-            alert("Falha no login. Verifique suas credenciais.");
-        } finally {
-            setLoading(false);
+        if (tokens.accessToken) {
+            console.log("Login bem-sucedido, accessToken:", tokens.accessToken);
+            navigation.replace("Home"); 
+        } else {
+            alert("Credenciais inválidas.");
         }
-    };
+    } catch (error) {
+        console.error("Erro no login:", error);
+        alert("Falha no login. Verifique suas credenciais.");
+    } finally {
+        setLoading(false);
+    }
+};
 
     return (
         <View style={styles.container}>
