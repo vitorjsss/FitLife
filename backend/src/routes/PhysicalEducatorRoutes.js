@@ -8,6 +8,6 @@ router.post("/register", authenticateToken, PhysicalEducatorController.create);
 router.get("/all", authenticateToken, PhysicalEducatorController.getAll);
 router.get("/:id", authenticateToken, PhysicalEducatorController.getById);
 router.patch("/:id", authenticateToken, PhysicalEducatorController.update);
-router.delete("/:id", authenticateToken, PhysicalEducatorController.delete);
+router.delete("/:id", authenticateToken, PhysicalEducatorController.deleteEducator);
 
 export default router;

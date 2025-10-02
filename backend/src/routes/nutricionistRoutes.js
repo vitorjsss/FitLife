@@ -8,6 +8,6 @@ router.post("/register", authenticateToken, NutricionistController.create);
 router.get("/all", authenticateToken, NutricionistController.getAll);
 router.get("/:id", authenticateToken, NutricionistController.getById);
 router.patch("/:id", authenticateToken, NutricionistController.update);
-router.delete("/:id", authenticateToken, NutricionistController.delete);
+router.delete("/:id", authenticateToken, NutricionistController.deleteNutricionist);
 
 export default router;

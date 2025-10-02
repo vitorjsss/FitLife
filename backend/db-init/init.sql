@@ -144,18 +144,22 @@ CREATE TABLE exercicio (
 -- ----------------------------
 
 CREATE TABLE logs (
-    id BIGSERIAL PRIMARY KEY,
-    action VARCHAR(255) NOT NULL,
-    log_type VARCHAR(50) NOT NULL CHECK (log_type IN ('AUDIT', 'ACCESS', 'ERROR', 'CHANGE')),
+    id SERIAL PRIMARY KEY,
+    action VARCHAR(100) NOT NULL,
+    log_type VARCHAR(50) NOT NULL,
     description TEXT,
-    ip_address VARCHAR(45), -- suporta IPv4 e IPv6
-    old_value VARCHAR(255),
-    new_value VARCHAR(255),
-    status VARCHAR(50) NOT NULL CHECK (status IN ('SUCCESS', 'FAILURE', 'WARNING')),
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    user_id UUID NOT NULL,
-    CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    ip VARCHAR(45),
+    old_value TEXT,
+    new_value TEXT,
+    status VARCHAR(20) DEFAULT 'SUCCESS',
+    user_id INT REFERENCES auth(id) ON DELETE SET NULL,
+    created_at TIMESTAMP DEFAULT NOW()
 );
+
+-- Índices para melhor performance
+CREATE INDEX idx_logs_user_id ON logs(user_id);
+CREATE INDEX idx_logs_action ON logs(action);
+CREATE INDEX idx_logs_created_at ON logs(created_at);
 
 -- ----------------------------
 -- Tabela DAILY_MEAL_REGISTRY
