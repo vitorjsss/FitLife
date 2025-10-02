@@ -5,7 +5,6 @@ import {
     Text,
     TouchableOpacity,
     StyleSheet,
-    SafeAreaView,
     ActivityIndicator,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome";
@@ -24,6 +23,7 @@ type HomeScreenNavigationProp = NativeStackNavigationProp<
 export default function HomeScreen() {
     const [token, setToken] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
+    const [showMenu, setShowMenu] = useState(false);
 
     const navigation = useNavigation<HomeScreenNavigationProp>();
 
@@ -42,6 +42,16 @@ export default function HomeScreen() {
         loadToken();
     }, []);
 
+    const handleLogout = async () => {
+        await AsyncStorage.removeItem("accessToken");
+        navigation.dispatch(
+            CommonActions.reset({
+                index: 0,
+                routes: [{ name: "Login" }],
+            })
+        );
+    };
+
     if (loading) {
         return (
             <View style={styles.container}>
@@ -54,21 +64,31 @@ export default function HomeScreen() {
         <View style={styles.container}>
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={() =>
-                        navigation.dispatch(
-                            CommonActions.reset({
-                                index: 0,
-                                routes: [{ name: 'Login' }],
-                            })
-                        )
-                    }>
-                    <Icon name="person-circle" size={24} color="#fff" style={{marginTop:27}} />
+                <TouchableOpacity onPress={() => setShowMenu(!showMenu)}>
+                    <Icon name="user-circle" size={32} color="#fff" style={{ marginTop: 25 }} />
                 </TouchableOpacity>
 
                 <Text style={styles.headerTitle}>INÍCIO</Text>
 
                 <View style={{ width: 25 }} /> 
             </View>
+
+            {/* Dropdown Menu */}
+            {showMenu && (
+                <View style={styles.menu}>
+                    <Text style={styles.menuTitle}>NOME DO USUÁRIO</Text>
+                    
+                    <TouchableOpacity style={styles.menuItem}>
+                        <Icon name="cog" size={16} color="#1976D2" />
+                        <Text style={styles.menuText}>Minha Conta</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.menuItem} onPress={handleLogout}>
+                        <Icon name="sign-out" size={16} color="#1976D2" />
+                        <Text style={styles.menuText}>Sair</Text>
+                    </TouchableOpacity>
+                </View>
+            )}
 
 
             {/* Conteúdo */}
@@ -93,7 +113,7 @@ export default function HomeScreen() {
             {/* Bottom Navigation */}
             <View style={styles.bottomNav}>
                 <TouchableOpacity style={styles.navItem}>
-                    <Icon name="bar-chart-2" size={20} color="#fff" />
+                    <Icon name="bar-chart" size={20} color="#fff" />
                     <Text style={styles.navText}>Relatórios</Text>
                 </TouchableOpacity>
 
@@ -144,6 +164,38 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: "bold",
         paddingTop: 30,
+    },
+    menu: {
+        position: "absolute",
+        top: 90,
+        left: 20,
+        width: 200,
+        backgroundColor: "#fff",
+        borderRadius: 8,
+        padding: 10,
+        elevation: 10,
+        shadowColor: "#000",
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+        shadowOffset: { width: 0, height: 2 },
+        zIndex: 999,
+    },
+    menuTitle: {
+        fontWeight: "bold",
+        marginBottom: 10,
+        borderBottomWidth: 1,
+        borderBottomColor: "#ccc",
+        paddingBottom: 5,
+    },
+    menuItem: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingVertical: 8,
+    },
+    menuText: {
+        marginLeft: 8,
+        color: "#1976D2",
+        fontWeight: "600",
     },
     content: {
         flex: 1,
