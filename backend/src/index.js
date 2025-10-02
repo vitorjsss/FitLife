@@ -9,6 +9,10 @@ import { authenticateToken } from "./middlewares/authMiddleware.js";
 import physicalEducatorRoutes from "./routes/PhysicalEducatorRoutes.js";
 import nutricionistRoutes from "./routes/nutricionistRoutes.js";
 import patientRoutes from "./routes/patientRoutes.js";
+import dailyMealRegistryRoutes from "./routes/dailyMealRegistryRoutes.js";
+import foodRoutes from "./routes/foodRoutes.js";
+import mealRecordRoutes from "./routes/mealRecordRoutes.js";
+import mealItemRoutes from "./routes/mealItemRoutes.js";
 
 const app = express();
 app.use(cors());
@@ -19,6 +23,10 @@ app.use("/patient", patientRoutes);
 app.use("/physical-educator", physicalEducatorRoutes);
 app.use("/nutricionist", nutricionistRoutes);
 app.use("/logs", authenticateToken, logRoutes);
+app.use("/daily-meal-registry", dailyMealRegistryRoutes);
+app.use("/food", foodRoutes);
+app.use("/meal-record", mealRecordRoutes);
+app.use("/meal-item", mealItemRoutes);
 
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => {

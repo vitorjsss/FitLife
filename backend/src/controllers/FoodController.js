@@ -1,40 +1,40 @@
-import { DailyMealRegistryService } from "../services/DailyMealRegistryService.js";
+import { FoodService } from "../services/FoodService.js";
 import { LogService } from "../services/LogService.js";
 
-export const DailyMealRegistryController = {
+export const FoodController = {
     create: async (req, res) => {
-        const registryData = req.body;
+        const foodData = req.body;
         const ip = req.ip;
         const userId = req.user?.id;
 
         try {
-            const registry = await DailyMealRegistryService.create(registryData);
+            const food = await FoodService.create(foodData);
 
             await LogService.createLog({
-                action: "CREATE_DAILY_MEAL_REGISTRY",
+                action: "CREATE_FOOD",
                 logType: "CREATE",
-                description: `Registro diário de refeições criado para data ${registry.date}`,
+                description: `Alimento ${food.name} criado com sucesso`,
                 ip,
                 oldValue: null,
-                newValue: registry,
+                newValue: food,
                 status: "SUCCESS",
                 userId: userId
             });
 
-            res.status(201).json(registry);
+            res.status(201).json(food);
         } catch (err) {
             await LogService.createLog({
-                action: "CREATE_DAILY_MEAL_REGISTRY",
+                action: "CREATE_FOOD",
                 logType: "ERROR",
                 description: err.message,
                 ip,
                 oldValue: null,
-                newValue: registryData,
+                newValue: foodData,
                 status: "FAILURE",
                 userId: userId
             });
 
-            res.status(500).json({ message: "Erro ao criar registro diário", error: err });
+            res.status(500).json({ message: "Erro ao criar alimento", error: err });
         }
     },
 
@@ -43,12 +43,12 @@ export const DailyMealRegistryController = {
         const userId = req.user?.id;
 
         try {
-            const registries = await DailyMealRegistryService.getAll();
+            const foods = await FoodService.getAll();
 
             await LogService.createLog({
-                action: "GET_ALL_DAILY_MEAL_REGISTRIES",
+                action: "GET_ALL_FOODS",
                 logType: "read",
-                description: `Lista de ${registries.length} registros diários recuperada`,
+                description: `Lista de ${foods.length} alimentos recuperada`,
                 ip,
                 oldValue: null,
                 newValue: null,
@@ -56,10 +56,10 @@ export const DailyMealRegistryController = {
                 userId: userId
             });
 
-            res.json(registries);
+            res.json(foods);
         } catch (err) {
             await LogService.createLog({
-                action: "GET_ALL_DAILY_MEAL_REGISTRIES",
+                action: "GET_ALL_FOODS",
                 logType: "ERROR",
                 description: err.message,
                 ip,
@@ -69,7 +69,7 @@ export const DailyMealRegistryController = {
                 userId: userId
             });
 
-            res.status(500).json({ message: "Erro ao buscar registros diários", error: err });
+            res.status(500).json({ message: "Erro ao buscar alimentos", error: err });
         }
     },
 
@@ -79,37 +79,37 @@ export const DailyMealRegistryController = {
         const userId = req.user?.id;
 
         try {
-            const registry = await DailyMealRegistryService.getById(id);
+            const food = await FoodService.getById(id);
 
-            if (!registry) {
+            if (!food) {
                 await LogService.createLog({
-                    action: "GET_DAILY_MEAL_REGISTRY_BY_ID",
+                    action: "GET_FOOD_BY_ID",
                     logType: "read",
-                    description: `Registro diário com ID ${id} não encontrado`,
+                    description: `Alimento com ID ${id} não encontrado`,
                     ip,
                     oldValue: null,
                     newValue: null,
                     status: "NOT_FOUND",
                     userId: userId
                 });
-                return res.status(404).json({ message: "Registro diário não encontrado" });
+                return res.status(404).json({ message: "Alimento não encontrado" });
             }
 
             await LogService.createLog({
-                action: "GET_DAILY_MEAL_REGISTRY_BY_ID",
+                action: "GET_FOOD_BY_ID",
                 logType: "read",
-                description: `Registro diário para data ${registry.date} recuperado com sucesso`,
+                description: `Alimento ${food.name} recuperado com sucesso`,
                 ip,
                 oldValue: null,
-                newValue: { id: registry.id, date: registry.date },
+                newValue: { id: food.id, name: food.name },
                 status: "SUCCESS",
                 userId: userId
             });
 
-            res.json(registry);
+            res.json(food);
         } catch (err) {
             await LogService.createLog({
-                action: "GET_DAILY_MEAL_REGISTRY_BY_ID",
+                action: "GET_FOOD_BY_ID",
                 logType: "ERROR",
                 description: err.message,
                 ip,
@@ -119,43 +119,43 @@ export const DailyMealRegistryController = {
                 userId: userId
             });
 
-            res.status(500).json({ message: "Erro ao buscar registro diário", error: err });
+            res.status(500).json({ message: "Erro ao buscar alimento", error: err });
         }
     },
 
-    getByPatientId: async (req, res) => {
-        const { patientId } = req.params;
+    searchByName: async (req, res) => {
+        const { name } = req.query;
         const ip = req.ip;
         const userId = req.user?.id;
 
         try {
-            const registries = await DailyMealRegistryService.getByPatientId(patientId);
+            const foods = await FoodService.searchByName(name);
 
             await LogService.createLog({
-                action: "GET_DAILY_MEAL_REGISTRIES_BY_PATIENT",
+                action: "SEARCH_FOODS_BY_NAME",
                 logType: "read",
-                description: `${registries.length} registros diários do paciente ${patientId} recuperados`,
+                description: `Busca por alimentos com nome "${name}" retornou ${foods.length} resultados`,
                 ip,
                 oldValue: null,
-                newValue: { patientId, count: registries.length },
+                newValue: { searchTerm: name, resultCount: foods.length },
                 status: "SUCCESS",
                 userId: userId
             });
 
-            res.json(registries);
+            res.json(foods);
         } catch (err) {
             await LogService.createLog({
-                action: "GET_DAILY_MEAL_REGISTRIES_BY_PATIENT",
+                action: "SEARCH_FOODS_BY_NAME",
                 logType: "ERROR",
                 description: err.message,
                 ip,
                 oldValue: null,
-                newValue: { patientId },
+                newValue: { searchTerm: name },
                 status: "FAILURE",
                 userId: userId
             });
 
-            res.status(500).json({ message: "Erro ao buscar registros do paciente", error: err });
+            res.status(500).json({ message: "Erro ao buscar alimentos", error: err });
         }
     },
 
@@ -166,30 +166,30 @@ export const DailyMealRegistryController = {
         const userId = req.user?.id;
 
         try {
-            const oldRegistry = await DailyMealRegistryService.getById(id);
+            const oldFood = await FoodService.getById(id);
 
-            if (!oldRegistry) {
+            if (!oldFood) {
                 await LogService.createLog({
-                    action: "UPDATE_DAILY_MEAL_REGISTRY",
+                    action: "UPDATE_FOOD",
                     logType: "UPDATE",
-                    description: `Tentativa de atualizar registro diário inexistente com ID ${id}`,
+                    description: `Tentativa de atualizar alimento inexistente com ID ${id}`,
                     ip,
                     oldValue: null,
                     newValue: updateData,
                     status: "NOT_FOUND",
                     userId: userId
                 });
-                return res.status(404).json({ message: "Registro diário não encontrado" });
+                return res.status(404).json({ message: "Alimento não encontrado" });
             }
 
-            const updated = await DailyMealRegistryService.update(id, updateData);
+            const updated = await FoodService.update(id, updateData);
 
             await LogService.createLog({
-                action: "UPDATE_DAILY_MEAL_REGISTRY",
+                action: "UPDATE_FOOD",
                 logType: "UPDATE",
-                description: `Registro diário para data ${updated.date} atualizado com sucesso`,
+                description: `Alimento ${updated.name} atualizado com sucesso`,
                 ip,
-                oldValue: oldRegistry,
+                oldValue: oldFood,
                 newValue: updated,
                 status: "SUCCESS",
                 userId: userId
@@ -198,7 +198,7 @@ export const DailyMealRegistryController = {
             res.json(updated);
         } catch (err) {
             await LogService.createLog({
-                action: "UPDATE_DAILY_MEAL_REGISTRY",
+                action: "UPDATE_FOOD",
                 logType: "ERROR",
                 description: err.message,
                 ip,
@@ -208,40 +208,40 @@ export const DailyMealRegistryController = {
                 userId: userId
             });
 
-            res.status(500).json({ message: "Erro ao atualizar registro diário", error: err });
+            res.status(500).json({ message: "Erro ao atualizar alimento", error: err });
         }
     },
 
-    deleteDailyMealRegistry: async (req, res) => {
+    deleteFood: async (req, res) => {
         const { id } = req.params;
         const ip = req.ip;
         const userId = req.user?.id;
 
         try {
-            const registry = await DailyMealRegistryService.getById(id);
+            const food = await FoodService.getById(id);
 
-            if (!registry) {
+            if (!food) {
                 await LogService.createLog({
-                    action: "DELETE_DAILY_MEAL_REGISTRY",
+                    action: "DELETE_FOOD",
                     logType: "DELETE",
-                    description: `Tentativa de deletar registro diário inexistente com ID ${id}`,
+                    description: `Tentativa de deletar alimento inexistente com ID ${id}`,
                     ip,
                     oldValue: null,
                     newValue: null,
                     status: "NOT_FOUND",
                     userId: userId
                 });
-                return res.status(404).json({ message: "Registro diário não encontrado" });
+                return res.status(404).json({ message: "Alimento não encontrado" });
             }
 
-            await DailyMealRegistryService.delete(id);
+            await FoodService.delete(id);
 
             await LogService.createLog({
-                action: "DELETE_DAILY_MEAL_REGISTRY",
+                action: "DELETE_FOOD",
                 logType: "DELETE",
-                description: `Registro diário para data ${registry.date} deletado com sucesso`,
+                description: `Alimento ${food.name} deletado com sucesso`,
                 ip,
-                oldValue: registry,
+                oldValue: food,
                 newValue: null,
                 status: "SUCCESS",
                 userId: userId
@@ -250,7 +250,7 @@ export const DailyMealRegistryController = {
             res.status(204).send();
         } catch (err) {
             await LogService.createLog({
-                action: "DELETE_DAILY_MEAL_REGISTRY",
+                action: "DELETE_FOOD",
                 logType: "ERROR",
                 description: err.message,
                 ip,
@@ -260,7 +260,7 @@ export const DailyMealRegistryController = {
                 userId: userId
             });
 
-            res.status(500).json({ message: "Erro ao deletar registro diário", error: err });
+            res.status(500).json({ message: "Erro ao deletar alimento", error: err });
         }
     }
 };
