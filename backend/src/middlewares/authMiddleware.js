@@ -15,3 +15,6 @@ export const authenticateToken = (req, res, next) => {
         return res.status(403).json({ message: "Token inválido ou expirado" });
     }
 };
+
+// Export alias para compatibilidade
+export const authMiddleware = authenticateToken;

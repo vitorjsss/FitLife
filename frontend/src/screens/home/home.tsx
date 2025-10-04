@@ -70,14 +70,14 @@ export default function HomeScreen() {
 
                 <Text style={styles.headerTitle}>INÍCIO</Text>
 
-                <View style={{ width: 25 }} /> 
+                <View style={{ width: 25 }} />
             </View>
 
             {/* Dropdown Menu */}
             {showMenu && (
                 <View style={styles.menu}>
                     <Text style={styles.menuTitle}>NOME DO USUÁRIO</Text>
-                    
+
                     <TouchableOpacity style={styles.menuItem}>
                         <Icon name="cog" size={16} color="#1976D2" />
                         <Text style={styles.menuText}>Minha Conta</Text>
@@ -94,7 +94,10 @@ export default function HomeScreen() {
             {/* Conteúdo */}
             <View style={styles.content}>
                 <View style={styles.row}>
-                    <TouchableOpacity style={styles.card}>
+                    <TouchableOpacity
+                        style={styles.card}
+                        onPress={() => navigation.navigate('Refeicoes')}
+                    >
                         <Icon name="clipboard" size={32} color="#fff" />
                         <Text style={styles.cardText}>Minhas Refeições</Text>
                     </TouchableOpacity>
@@ -157,7 +160,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "space-between",
         paddingHorizontal: 35,
-        
+
     },
     headerTitle: {
         color: "#fff",
