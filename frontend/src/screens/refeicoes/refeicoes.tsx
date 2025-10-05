@@ -1,40 +1,79 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     View,
     Text,
     StyleSheet,
     TouchableOpacity,
-    SafeAreaView,
     Dimensions,
+    ScrollView,
 } from 'react-native';
-import Icon from "react-native-vector-icons/FontAwesome";
-import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import Icon from 'react-native-vector-icons/FontAwesome';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { loadDailyMeals } from '../../utils/dailyMealStorage';
 
-const { width, height } = Dimensions.get('window');
+
+
+const { width } = Dimensions.get('window');
 
 interface RefeicoesProps {
     navigation?: any;
 }
 
+const STORAGE_KEY = '@fitlife_meal_records';
+
 const Refeicoes: React.FC<RefeicoesProps> = ({ navigation }) => {
     const [showMenu, setShowMenu] = useState(false);
+    const [dailyMeals, setDailyMeals] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    const todayId = 'mock_id_123';
+    const dateString = new Date().toISOString().split('T')[0];
 
     const handleCriarRefeicao = () => {
-        const dateString = new Date().toISOString().split('T')[0];
         navigation?.navigate('GerenciarRefeicoes', {
-            dailyMealRegistryId: 'mock_id_123',
-            date: dateString
+            dailyMealRegistryId: todayId,
+            date: dateString,
         });
     };
 
-    const handleGoBack = () => {
-        navigation?.goBack();
+    const handleGoBack = () => navigation?.goBack();
+
+    useEffect(() => {
+        const fetchMeals = async () => {
+            const data = await loadDailyMeals(todayId);
+            setDailyMeals(data);
+            setLoading(false);
+        };
+        const unsubscribe = navigation?.addListener('focus', fetchMeals);
+        return unsubscribe;
+    }, [navigation]);
+
+    const loadMeals = async () => {
+        try {
+            const stored = await AsyncStorage.getItem(STORAGE_KEY);
+            if (!stored) {
+                setDailyMeals([]);
+                return;
+            }
+            const allData = JSON.parse(stored);
+            setDailyMeals(allData[todayId] || []);
+        } catch (err) {
+            console.error('Erro ao carregar refeições:', err);
+            setDailyMeals([]);
+        } finally {
+            setLoading(false);
+        }
     };
+
+    // Atualiza ao abrir a tela
+    useEffect(() => {
+        const unsubscribe = navigation?.addListener('focus', loadMeals);
+        return unsubscribe;
+    }, [navigation]);
 
     return (
         <View style={styles.container}>
-            {/* Header igual ao da Home */}
+            {/* HEADER */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={handleGoBack}>
                     <Icon name="arrow-left" size={24} color="#fff" style={{ marginTop: 25 }} />
@@ -47,7 +86,7 @@ const Refeicoes: React.FC<RefeicoesProps> = ({ navigation }) => {
                 </TouchableOpacity>
             </View>
 
-            {/* Dropdown Menu */}
+            {/* MENU */}
             {showMenu && (
                 <View style={styles.menu}>
                     <Text style={styles.menuTitle}>NOME DO USUÁRIO</Text>
@@ -64,35 +103,87 @@ const Refeicoes: React.FC<RefeicoesProps> = ({ navigation }) => {
                 </View>
             )}
 
-            {/* Conteúdo */}
-            <View style={styles.content}>
-                {/* Ilustração Central */}
-                <View style={styles.illustrationContainer}>
-                    <View style={styles.iconCircle}>
-                        <Icon name="cutlery" size={60} color="#40C4FF" />
-                    </View>
-                    <Text style={styles.illustrationText}>
-                        Organize suas refeições diárias
-                    </Text>
-                </View>
+            {/* CONTEÚDO */}
+            <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+                {loading ? (
+                    <Text>Carregando...</Text>
+                ) : dailyMeals.length === 0 ? (
+                    <>
+                        {/* ILUSTRAÇÃO INICIAL */}
+                        <View style={styles.illustrationContainer}>
+                            <View style={styles.iconCircle}>
+                                <Icon name="cutlery" size={60} color="#40C4FF" />
+                            </View>
+                            <Text style={styles.illustrationText}>
+                                Organize suas refeições diárias
+                            </Text>
+                        </View>
 
-                {/* Botão Principal */}
-                <TouchableOpacity
-                    style={styles.createButton}
-                    onPress={handleCriarRefeicao}
-                    activeOpacity={0.8}
-                >
-                    <Icon name="plus" size={20} color="#FFFFFF" />
-                    <Text style={styles.createButtonText}>Criar Nova Refeição</Text>
-                </TouchableOpacity>
+                        {/* BOTÃO PRINCIPAL */}
+                        <TouchableOpacity
+                            style={styles.createButton}
+                            onPress={handleCriarRefeicao}
+                            activeOpacity={0.8}
+                        >
+                            <Icon name="plus" size={20} color="#FFFFFF" />
+                            <Text style={styles.createButtonText}>Criar Nova Refeição</Text>
+                        </TouchableOpacity>
 
-                {/* Informação adicional */}
-                <View style={styles.infoContainer}>
-                    <Text style={styles.infoText}>
-                        Comece criando sua primeira refeição para acompanhar sua alimentação diária
-                    </Text>
-                </View>
-            </View>
+                        <View style={styles.infoContainer}>
+                            <Text style={styles.infoText}>
+                                Comece criando sua primeira refeição para acompanhar sua alimentação diária
+                            </Text>
+                        </View>
+                    </>
+                ) : (
+                    <>
+                        {/* LISTA DE REFEIÇÕES */}
+                        <Text style={styles.listTitle}>
+                            Refeições de {new Date().toLocaleDateString('pt-BR')}
+                        </Text>
+
+                        {dailyMeals.map((meal) => (
+                            <TouchableOpacity
+                                key={meal.id}
+                                style={{
+                                    backgroundColor: '#FFF',
+                                    borderRadius: 8,
+                                    padding: 16,
+                                    marginBottom: 12,
+                                    flexDirection: 'row',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between'
+                                }}
+                                onPress={() =>
+                                    navigation.navigate('AdicionarAlimentos', {
+                                        mealRecordId: meal.id,
+                                        mealName: meal.name,
+                                        dailyMealRegistryId: todayId,
+                                    })
+                                }
+                            >
+                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                    <Icon name="cutlery" size={22} color="#40C4FF" />
+                                    <Text style={styles.mealName}>{meal.name}</Text>
+                                </View>
+                                <Text style={styles.mealInfo}>
+                                    {meal.itemCount || 0} alimentos
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+
+                        {/* ➕ NOVA REFEIÇÃO (DEPOIS DA LISTA) */}
+                        <TouchableOpacity
+                            style={[styles.createButton, { marginTop: 20, marginBottom: 50 }]}
+                            onPress={handleCriarRefeicao}
+                            activeOpacity={0.8}
+                        >
+                            <Icon name="plus" size={20} color="#FFFFFF" />
+                            <Text style={styles.createButtonText}>Nova Refeição</Text>
+                        </TouchableOpacity>
+                    </>
+                )}
+            </ScrollView>
         </View>
     );
 };
@@ -100,60 +191,59 @@ const Refeicoes: React.FC<RefeicoesProps> = ({ navigation }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+        backgroundColor: '#E0E0E0',
         marginTop: 0,
-        backgroundColor: "#E0E0E0",
     },
     header: {
-        backgroundColor: "#1976D2",
+        backgroundColor: '#1976D2',
         height: 90,
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
         paddingHorizontal: 35,
     },
     headerTitle: {
-        color: "#fff",
+        color: '#fff',
         fontSize: 18,
-        fontWeight: "bold",
+        fontWeight: 'bold',
         paddingTop: 30,
     },
     menu: {
-        position: "absolute",
+        position: 'absolute',
         top: 90,
         right: 20,
         width: 200,
-        backgroundColor: "#fff",
+        backgroundColor: '#fff',
         borderRadius: 8,
         padding: 10,
         elevation: 10,
-        shadowColor: "#000",
+        shadowColor: '#000',
         shadowOpacity: 0.2,
         shadowRadius: 4,
         shadowOffset: { width: 0, height: 2 },
         zIndex: 999,
     },
     menuTitle: {
-        fontWeight: "bold",
+        fontWeight: 'bold',
         marginBottom: 10,
         borderBottomWidth: 1,
-        borderBottomColor: "#ccc",
+        borderBottomColor: '#ccc',
         paddingBottom: 5,
     },
     menuItem: {
-        flexDirection: "row",
-        alignItems: "center",
+        flexDirection: 'row',
+        alignItems: 'center',
         paddingVertical: 8,
     },
     menuText: {
         marginLeft: 8,
-        color: "#1976D2",
-        fontWeight: "600",
+        color: '#1976D2',
+        fontWeight: '600',
     },
     content: {
         flex: 1,
         padding: 20,
-        justifyContent: 'center',
-        alignItems: 'center',
+        marginTop: 150,
     },
     illustrationContainer: {
         alignItems: 'center',
@@ -167,6 +257,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 20,
+        elevation: 5,
         shadowColor: '#000',
         shadowOffset: {
             width: 0,
@@ -174,7 +265,6 @@ const styles = StyleSheet.create({
         },
         shadowOpacity: 0.1,
         shadowRadius: 8,
-        elevation: 5,
     },
     illustrationText: {
         fontSize: 16,
@@ -190,17 +280,10 @@ const styles = StyleSheet.create({
         paddingVertical: 15,
         paddingHorizontal: 30,
         borderRadius: 12,
-        shadowColor: '#40C4FF',
-        shadowOffset: {
-            width: 0,
-            height: 4,
-        },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 8,
-        marginBottom: 30,
-        minWidth: width * 0.7,
         justifyContent: 'center',
+        elevation: 8,
+        minWidth: width * 0.7,
+        alignSelf: 'center',
     },
     createButtonText: {
         color: '#FFFFFF',
@@ -215,8 +298,34 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#666',
         textAlign: 'center',
-        lineHeight: 20,
-        maxWidth: width * 0.8,
+        marginTop: 25,
+    },
+    listTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#1976D2',
+        marginBottom: 16,
+        top: -10,
+        
+    },
+    mealCard: {
+        backgroundColor: '#FFF',
+        borderRadius: 8,
+        padding: 16,
+        marginBottom: 12,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        borderLeftWidth: 4,
+        borderLeftColor: '#40C4FF',
+    },
+    mealName: {
+        fontSize: 16,
+        fontWeight: '600',
+        marginLeft: 12,
+    },
+    mealInfo: {
+        color: '#888',
     },
 });
 

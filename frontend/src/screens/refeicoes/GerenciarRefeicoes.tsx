@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     View,
     Text,
@@ -12,6 +12,8 @@ import {
     FlatList,
 } from 'react-native';
 import Icon from "react-native-vector-icons/FontAwesome";
+import { saveMealRecordLocal, loadMealRecordsLocal } from '../../utils/mealRecordStorage';
+import { apiClient } from '../../service/apiClient';
 
 interface MealRecord {
     id: string;
@@ -48,6 +50,15 @@ const GerenciarRefeicoes: React.FC<GerenciarRefeicoesProps> = ({ navigation, rou
         navigation?.goBack();
     };
 
+    useEffect(() => {
+        const loadLocalRecords = async () => {
+            const localRecords = await loadMealRecordsLocal(dailyMealRegistryId);
+            setMealRecords(localRecords);
+        };
+        loadLocalRecords();
+    }, [dailyMealRegistryId]);
+
+
     const handleAddMealRecord = async () => {
         if (!mealName.trim()) {
             Alert.alert('Atenção', 'Por favor, insira o nome da refeição');
@@ -58,11 +69,11 @@ const GerenciarRefeicoes: React.FC<GerenciarRefeicoesProps> = ({ navigation, rou
             setLoading(true);
 
             // Aqui você faria a chamada para a API
-            // const response = await api.post('/meal-record', {
-            //     name: mealName,
-            //     icon_path: `/icons/${selectedIcon}.png`,
-            //     daily_meal_registry_id: dailyMealRegistryId
-            // });
+            //const response = await apiClient.post('/meal-record', {
+                // name: mealName,
+                // icon_path: `/icons/${selectedIcon}.png`,
+                 //daily_meal_registry_id: dailyMealRegistryId
+             //});
 
             const newMealRecord: MealRecord = {
                 id: `meal_${Date.now()}`,
@@ -71,7 +82,13 @@ const GerenciarRefeicoes: React.FC<GerenciarRefeicoesProps> = ({ navigation, rou
                 itemCount: 0
             };
 
-            setMealRecords([...mealRecords, newMealRecord]);
+            
+            const updatedRecords = [...mealRecords, newMealRecord];
+            setMealRecords(updatedRecords);
+
+            // salva localmente
+            await saveMealRecordLocal(dailyMealRegistryId, updatedRecords);
+
             setMealName('');
 
             Alert.alert('Sucesso!', 'Refeição adicionada com sucesso!');

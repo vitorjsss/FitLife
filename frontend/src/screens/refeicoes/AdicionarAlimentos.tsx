@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     View,
     Text,
@@ -12,6 +12,8 @@ import {
     FlatList,
 } from 'react-native';
 import Icon from "react-native-vector-icons/FontAwesome";
+import { saveMeal, loadMeal } from '../../utils/mealStorage';
+
 
 interface MealItem {
     id: string;
@@ -55,8 +57,17 @@ const AdicionarAlimentos: React.FC<AdicionarAlimentosProps> = ({ navigation, rou
         setFats('');
     };
 
+    useEffect(() => {
+        const loadLocalData = async () => {
+            const items = await loadMeal(mealRecordId);
+            setMealItems(items);
+        };
+        loadLocalData();
+    }, []);
+
+
     const handleAddMealItem = async () => {
-        if (!foodName.trim()) {
+        if (!foodName.trim() || !quantity.trim()) {
             Alert.alert('Atenção', 'Por favor, insira o nome do alimento');
             return;
         }
@@ -91,7 +102,9 @@ const AdicionarAlimentos: React.FC<AdicionarAlimentosProps> = ({ navigation, rou
                 fats: parseFloat(fats) || 0,
             };
 
-            setMealItems([...mealItems, newMealItem]);
+            const updatedList = [...mealItems, newMealItem];
+            setMealItems(updatedList);
+            await saveMeal(mealRecordId, updatedList); // 👈 salva localmente
             clearForm();
 
             Alert.alert('Sucesso!', 'Alimento adicionado com sucesso!');
@@ -102,7 +115,7 @@ const AdicionarAlimentos: React.FC<AdicionarAlimentosProps> = ({ navigation, rou
         }
     };
 
-    const handleRemoveMealItem = (itemId: string) => {
+    const handleRemoveMealItem = async (itemId: string) => {
         Alert.alert(
             'Confirmar Exclusão',
             'Deseja realmente remover este alimento?',

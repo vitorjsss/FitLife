@@ -10,6 +10,9 @@ import HomeScreen from './src/screens/home/home';
 import Refeicoes from './src/screens/refeicoes/refeicoes';
 import GerenciarRefeicoes from './src/screens/refeicoes/GerenciarRefeicoes';
 import AdicionarAlimentos from './src/screens/refeicoes/AdicionarAlimentos';
+import GerenciarTreinos from './src/screens/treinos/GerenciarTreinos';
+import Treinos from './src/screens/treinos/Treinos';
+import AdicionarTreinos from './src/screens/treinos/AdicionarTreinos';
 
 export type RootStackParamList = {
   Login: undefined;
@@ -55,6 +58,10 @@ export default function App() {
           component={AdicionarAlimentos}
           options={{ headerShown: false }}
         />
+        <Stack.Screen name="Treinos" component={Treinos} />
+        <Stack.Screen name="GerenciarTreinos" component={GerenciarTreinos} />
+        <Stack.Screen name="AdicionarTreinos" component={AdicionarTreinos} />
+
       </Stack.Navigator>
     </NavigationContainer>
   );

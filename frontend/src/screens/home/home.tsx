@@ -102,7 +102,7 @@ export default function HomeScreen() {
                         <Text style={styles.cardText}>Minhas Refeições</Text>
                     </TouchableOpacity>
 
-                    <TouchableOpacity style={styles.card}>
+                    <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('Treinos')}>
                         <Icon name="check-square" size={32} color="#fff" />
                         <Text style={styles.cardText}>Meus Treinos</Text>
                     </TouchableOpacity>
