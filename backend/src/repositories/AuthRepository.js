@@ -53,5 +53,41 @@ export const AuthRepository = {
             console.error("Erro no updateLastLogin AuthRepository:", err);
             throw err;
         }
+    },
+
+    incrementFailedAttempts: async (email) => {
+        try {
+            await pool.query(
+                "UPDATE auth SET failed_attempts = failed_attempts + 1 WHERE email = $1",
+                [email]
+            );
+        } catch (err) {
+            console.error("Erro no incrementFailedAttempts:", err);
+            throw err;
+        }
+    },
+
+    resetFailedAttempts: async (email) => {
+        try {
+            await pool.query(
+                "UPDATE auth SET failed_attempts = 0, account_locked_until = NULL WHERE email = $1",
+                [email]
+            );
+        } catch (err) {
+            console.error("Erro no resetFailedAttempts:", err);
+            throw err;
+        }
+    },
+
+    lockAccount: async (email, until) => {
+        try {
+            await pool.query(
+                "UPDATE auth SET account_locked_until = $1 WHERE email = $2",
+                [until, email]
+            );
+        } catch (err) {
+            console.error("Erro no lockAccount:", err);
+            throw err;
+        }
     }
 };

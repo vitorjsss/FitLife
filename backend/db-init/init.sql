@@ -19,7 +19,9 @@ CREATE TABLE auth (
     refresh_token VARCHAR(255),
     last_login TIMESTAMP,
     created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
+    updated_at TIMESTAMP DEFAULT NOW(),
+    failed_attempts INT DEFAULT 0,
+    account_locked_until TIMESTAMP NULL
 );
 
 -- ----------------------------

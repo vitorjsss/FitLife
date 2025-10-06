@@ -1,5 +1,5 @@
 export const API_CONFIG = {
-    BASE_URL: "http://192.168.181.45:5001",
+    BASE_URL: "http://192.168.0.8:5001",
     ENDPOINTS: {
         AUTH: {
             REGISTER: "/auth/register",
@@ -24,6 +24,6 @@ export const API_CONFIG = {
             UPDATE: "/nutricionist/{id}",
         },
     },
-    TIMEOUT: 10000,
+    TIMEOUT: 30000,
     IGNORE_SSL_ERRORS: true,
 }; 
