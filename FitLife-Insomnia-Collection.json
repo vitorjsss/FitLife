@@ -1,0 +1,319 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2025-10-02T00:00:00.000Z",
+  "__export_source": "insomnia.desktop.app:v2023.5.8",
+  "resources": [
+    {
+      "_id": "wrk_fitlife",
+      "_type": "workspace",
+      "name": "FitLife API",
+      "description": "API completa do aplicativo FitLife",
+      "scope": null
+    },
+    {
+      "_id": "env_fitlife",
+      "_type": "environment",
+      "name": "Base Environment",
+      "data": {
+        "base_url": "http://localhost:5001",
+        "token": ""
+      },
+      "parentId": "wrk_fitlife"
+    },
+    {
+      "_id": "req_auth_register",
+      "_type": "request",
+      "name": "Register",
+      "url": "{{ _.base_url }}/auth/register",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"username\": \"testuser\",\n  \"email\": \"test@example.com\",\n  \"password\": \"123456\",\n  \"user_type\": \"Patient\"\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parentId": "fld_auth"
+    },
+    {
+      "_id": "req_auth_login",
+      "_type": "request",
+      "name": "Login",
+      "url": "{{ _.base_url }}/auth/login",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"username\": \"testuser\",\n  \"password\": \"123456\"\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parentId": "fld_auth"
+    },
+    {
+      "_id": "req_patient_create",
+      "_type": "request",
+      "name": "Create Patient",
+      "url": "{{ _.base_url }}/patient",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"João da Silva\",\n  \"birthdate\": \"1990-05-15\",\n  \"sex\": \"M\",\n  \"contact\": \"11999999999\",\n  \"auth_id\": 1\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "fld_patient"
+    },
+    {
+      "_id": "req_patient_get_all",
+      "_type": "request",
+      "name": "Get All Patients",
+      "url": "{{ _.base_url }}/patient",
+      "method": "GET",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "fld_patient"
+    },
+    {
+      "_id": "req_patient_get_by_id",
+      "_type": "request",
+      "name": "Get Patient by ID",
+      "url": "{{ _.base_url }}/patient/1",
+      "method": "GET",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "fld_patient"
+    },
+    {
+      "_id": "req_patient_update",
+      "_type": "request",
+      "name": "Update Patient",
+      "url": "{{ _.base_url }}/patient/1",
+      "method": "PUT",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"João Silva Santos\",\n  \"birthdate\": \"1990-05-15\",\n  \"sex\": \"M\",\n  \"contact\": \"11888888888\"\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "fld_patient"
+    },
+    {
+      "_id": "req_patient_delete",
+      "_type": "request",
+      "name": "Delete Patient",
+      "url": "{{ _.base_url }}/patient/1",
+      "method": "DELETE",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "fld_patient"
+    },
+    {
+      "_id": "req_food_create",
+      "_type": "request",
+      "name": "Create Food",
+      "url": "{{ _.base_url }}/food",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"Arroz integral\",\n  \"descricao\": \"Arroz integral rico em fibras\",\n  \"image_path\": \"/images/foods/arroz-integral.jpg\"\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "fld_food"
+    },
+    {
+      "_id": "req_food_get_all",
+      "_type": "request",
+      "name": "Get All Foods",
+      "url": "{{ _.base_url }}/food",
+      "method": "GET",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "fld_food"
+    },
+    {
+      "_id": "req_food_search",
+      "_type": "request",
+      "name": "Search Food by Name",
+      "url": "{{ _.base_url }}/food/search/arroz",
+      "method": "GET",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "fld_food"
+    },
+    {
+      "_id": "req_daily_meal_create",
+      "_type": "request",
+      "name": "Create Daily Meal Registry",
+      "url": "{{ _.base_url }}/daily-meal-registry",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"date\": \"2025-10-02\",\n  \"patient_id\": \"550e8400-e29b-41d4-a716-446655440000\"\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "fld_daily_meal"
+    },
+    {
+      "_id": "req_meal_record_create",
+      "_type": "request",
+      "name": "Create Meal Record",
+      "url": "{{ _.base_url }}/meal-record",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"Café da manhã\",\n  \"icon_path\": \"/icons/breakfast.png\",\n  \"daily_meal_registry_id\": \"550e8400-e29b-41d4-a716-446655440001\"\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "fld_meal_record"
+    },
+    {
+      "_id": "req_meal_item_create",
+      "_type": "request",
+      "name": "Create Meal Item",
+      "url": "{{ _.base_url }}/meal-item",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"food_name\": \"Aveia\",\n  \"quantity\": \"50g\",\n  \"calories\": 190.5,\n  \"proteins\": 6.8,\n  \"carbs\": 32.2,\n  \"fats\": 3.4,\n  \"food_id\": \"550e8400-e29b-41d4-a716-446655440002\",\n  \"meal_id\": \"550e8400-e29b-41d4-a716-446655440003\"\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "fld_meal_item"
+    },
+    {
+      "_id": "req_logs_get",
+      "_type": "request",
+      "name": "Get Logs",
+      "url": "{{ _.base_url }}/logs",
+      "method": "GET",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "fld_logs"
+    },
+    {
+      "_id": "fld_auth",
+      "_type": "request_group",
+      "name": "Autenticação",
+      "parentId": "wrk_fitlife"
+    },
+    {
+      "_id": "fld_patient",
+      "_type": "request_group",
+      "name": "Pacientes",
+      "parentId": "wrk_fitlife"
+    },
+    {
+      "_id": "fld_food",
+      "_type": "request_group",
+      "name": "Alimentos",
+      "parentId": "wrk_fitlife"
+    },
+    {
+      "_id": "fld_daily_meal",
+      "_type": "request_group",
+      "name": "Registro Diário de Refeições",
+      "parentId": "wrk_fitlife"
+    },
+    {
+      "_id": "fld_meal_record",
+      "_type": "request_group",
+      "name": "Registros de Refeição",
+      "parentId": "wrk_fitlife"
+    },
+    {
+      "_id": "fld_meal_item",
+      "_type": "request_group",
+      "name": "Itens de Refeição",
+      "parentId": "wrk_fitlife"
+    },
+    {
+      "_id": "fld_logs",
+      "_type": "request_group",
+      "name": "Logs",
+      "parentId": "wrk_fitlife"
+    }
+  ]
+}
