@@ -88,11 +88,31 @@ const GerenciarRefeicoes: React.FC<GerenciarRefeicoesProps> = ({ navigation, rou
         }
         try {
             setLoading(true);
-            const { dailyMealRegistryId } = route?.params || {};
+            let { dailyMealRegistryId } = route?.params || {};
+
+            // Se não houver registro diário, cria um novo
             if (!dailyMealRegistryId) {
-                Alert.alert('Erro', 'Registro diário não encontrado.');
-                return;
+                if (!date || !patientId) {
+                    Alert.alert('Erro', 'Data ou paciente não informados.');
+                    console.log('Data ou paciente não informados:', { date, patientId });
+                    setLoading(false);
+                    return;
+                }
+                const created = await DailyMealService.create({
+                    date,
+                    patient_id: patientId,
+                });
+                if (created && created.id) {
+                    dailyMealRegistryId = created.id;
+                    // Atualiza os parâmetros da navegação para manter o novo ID
+                    navigation.setParams({ dailyMealRegistryId });
+                } else {
+                    Alert.alert('Erro', 'Não foi possível criar o registro diário.');
+                    setLoading(false);
+                    return;
+                }
             }
+
             // Cria a refeição
             const newMeal: MealRecordData = {
                 name: mealName,

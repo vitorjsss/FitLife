@@ -11,6 +11,7 @@ export const API_CONFIG = {
             GET_ALL: "/patient/all",
             GET_BY_ID: "/patient/{id}",
             UPDATE: "/patient/{id}",
+            GET_BY_AUTH_ID: "/patient/auth/{auth_id}",
         },
         PHYSICAL_EDUCATOR: {
             CREATE: "/physical-educator/register",

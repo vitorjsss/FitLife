@@ -37,23 +37,7 @@ export const MealItemService = {
         }
     },
 
-    getByFoodId: async (foodId) => {
-        try {
-            return await MealItemRepository.findByFoodId(foodId);
-        } catch (error) {
-            console.error("Erro no MealItemService.getByFoodId:", error);
-            throw error;
-        }
-    },
-
-    getWithFoodDetails: async (id) => {
-        try {
-            return await MealItemRepository.findWithFoodDetails(id);
-        } catch (error) {
-            console.error("Erro no MealItemService.getWithFoodDetails:", error);
-            throw error;
-        }
-    },
+    // getByFoodId and getWithFoodDetails removed: no longer supported (food_id and Food table removed)
 
     update: async (id, data) => {
         try {

@@ -42,7 +42,7 @@ export default function LoginScreen() {
         },
     });
 
-    const onSubmit: SubmitHandler<LoginFormData> = async (data) => {
+    const onSubmit: SubmitHandler<FormData> = async (data) => {
         setLoading(true);
         try {
             const loginData = {
@@ -83,6 +83,7 @@ export default function LoginScreen() {
                         value={value}
                         onChangeText={onChange}
                         keyboardType="email-address"
+                        autoCapitalize="none"
                     />
                 )}
             />

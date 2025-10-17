@@ -7,13 +7,50 @@ export const AuthController = {
     user.email = user.email.toLowerCase();
 
     const ip = req.ip;
+    console.log("[REGISTER] Iniciando registro para:", user.email, user.username);
     try {
+      // Verifica se já existe usuário com mesmo username
+      const existingUsername = await AuthService.findByUsername?.(user.username);
+      if (existingUsername) {
+        console.log("[REGISTER] Username já existe:", user.username);
+        await LogService.createLog({
+          action: "REGISTER",
+          logType: "ERROR",
+          description: `Tentativa de registro falhou: username '${user.username}' já existe`,
+          ip,
+          oldValue: null,
+          newValue: JSON.stringify(user),
+          status: "FAILURE",
+          userId: null
+        });
+        return res.status(400).json({ message: "Username já existe" });
+      }
+
+      // Verifica se já existe usuário com mesmo email
+      const existingEmail = await AuthService.findByEmail?.(user.email);
+      if (existingEmail) {
+        console.log("[REGISTER] Email já existe:", user.email);
+        await LogService.createLog({
+          action: "REGISTER",
+          logType: "ERROR",
+          description: `Tentativa de registro falhou: email '${user.email}' já existe`,
+          ip,
+          oldValue: null,
+          newValue: JSON.stringify(user),
+          status: "FAILURE",
+          userId: null
+        });
+        return res.status(400).json({ message: "Email já existe" });
+      }
+
+      // Cria usuário
       const created = await AuthService.register(user);
+      console.log("[REGISTER] Usuário criado:", created);
 
       await LogService.createLog({
         action: "REGISTER",
         logType: "ACCESS",
-        description: `Usuário ${created.email} registrado com sucesso`,
+        description: `Usuário '${created.username}' registrado com sucesso`,
         ip,
         oldValue: null,
         newValue: JSON.stringify(created),
@@ -23,16 +60,22 @@ export const AuthController = {
 
       res.status(201).json(created);
     } catch (err) {
-      await LogService.createLog({
-        action: "REGISTER",
-        logType: "ERROR",
-        description: err.message,
-        ip,
-        oldValue: null,
-        newValue: JSON.stringify(user),
-        status: "FAILURE",
-        userId: null
-      });
+      console.error("[REGISTER] Erro ao registrar usuário:", err);
+
+      try {
+        await LogService.createLog({
+          action: "REGISTER",
+          logType: "ERROR",
+          description: err.message,
+          ip,
+          oldValue: null,
+          newValue: JSON.stringify(user),
+          status: "FAILURE",
+          userId: null
+        });
+      } catch (logErr) {
+        console.error("[REGISTER] Erro ao criar log de falha:", logErr);
+      }
 
       res.status(500).json({ message: "Erro ao criar usuário", error: err });
     }
@@ -41,12 +84,16 @@ export const AuthController = {
   login: async (req, res) => {
     const { email, password } = req.body;
     const normalizedEmail = email.toLowerCase();
-
     const ip = req.ip;
+
+    console.log("[LOGIN] Iniciando login para:", normalizedEmail);
+
     try {
       const result = await AuthService.login(normalizedEmail, password);
+      console.log("[LOGIN] Resultado do AuthService.login:", result);
 
       if (!result) {
+        console.log("[LOGIN] Credenciais inválidas para:", normalizedEmail);
         await LogService.createLog({
           action: "LOGIN",
           logType: "ERROR",
@@ -61,6 +108,7 @@ export const AuthController = {
       }
 
       if (result.locked) {
+        console.log(`[LOGIN] Conta bloqueada até ${result.until} para:`, normalizedEmail);
         await LogService.createLog({
           action: "LOGIN",
           logType: "ERROR",
@@ -82,11 +130,14 @@ export const AuthController = {
         oldValue: null,
         newValue: JSON.stringify(result),
         status: "SUCCESS",
-        userId: result.userId
+        userId: result.id
       });
 
+      console.log("[LOGIN] Login bem-sucedido para:", normalizedEmail);
       res.json(result);
+
     } catch (err) {
+      console.log("[LOGIN] Erro inesperado no login para:", normalizedEmail, err);
       await LogService.createLog({
         action: "LOGIN",
         logType: "ERROR",

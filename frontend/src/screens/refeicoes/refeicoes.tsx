@@ -43,6 +43,7 @@ const Refeicoes: React.FC<RefeicoesProps> = ({ route, navigation }) => {
             try {
                 const meals = await DailyMealService.getByDate(dateString);
                 setDailyMeals(Array.isArray(meals) ? meals : []);
+                console.log('Refeições carregadas do backend:', meals);
             } catch (err) {
                 console.error('Erro ao carregar refeições do backend:', err);
                 setDailyMeals([]);
@@ -149,10 +150,20 @@ const Refeicoes: React.FC<RefeicoesProps> = ({ route, navigation }) => {
                                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                                     <Icon name="cutlery" size={22} color="#40C4FF" />
                                     <Text style={styles.mealName}>{meal.name}</Text>
+                                    {meal.date && (
+                                        <Text style={{ marginLeft: 8, color: '#888', fontSize: 13 }}>
+                                            {(() => {
+                                                const d = new Date(meal.date);
+                                                return d instanceof Date && !isNaN(d.getTime())
+                                                    ? `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()}`
+                                                    : '';
+                                            })()}
+                                        </Text>
+                                    )}
                                 </View>
-                                <Text style={styles.mealInfo}>
+                                {/* <Text style={styles.mealInfo}>
                                     {meal.itemCount || 0} alimentos
-                                </Text>
+                                </Text> */}
                             </TouchableOpacity>
                         ))}
 

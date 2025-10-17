@@ -12,6 +12,9 @@ import { CommonActions, useNavigation } from "@react-navigation/native";
 import { RootStackParamList } from "../../../App";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { authService } from "../../services/authService";
+import { patientService } from "../../services/PatientService";
+import { nutricionistService } from "../../services/NutricionistService";
+import { physicalEducatorService } from "../../services/PhysicalEducatorService";
 
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<
@@ -24,15 +27,16 @@ export default function HomeScreen() {
     const [userRole, setUserRole] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [showMenu, setShowMenu] = useState(false);
+    const [personalData, setPersonalData] = useState<any>(null);
 
     const navigation = useNavigation<HomeScreenNavigationProp>();
 
     useEffect(() => {
         const loadUserData = async () => {
             try {
-                const userId = await AsyncStorage.getItem("userId");
+                const userId = await AsyncStorage.getItem("@fitlife:user_id");
                 setUserId(userId);
-                const userRole = await AsyncStorage.getItem("userRole");
+                const userRole = await AsyncStorage.getItem("@fitlife:role");
                 setUserRole(userRole);
             } catch (err) {
                 console.error("Erro ao buscar token:", err);
@@ -43,6 +47,30 @@ export default function HomeScreen() {
 
         loadUserData();
     }, []);
+
+    useEffect(() => {
+        const fetchPersonalData = async () => {
+            if (!userId || !userRole) return;
+            try {
+                let data = null;
+                if (userRole === "Patient") {
+                    data = await patientService.getById(userId);
+                } else if (userRole === "Nutricionist") {
+                    data = await nutricionistService.getById(userId);
+                } else if (userRole === "Physical_educator") {
+                    data = await physicalEducatorService.getById(userId);
+                }
+
+                // Agora data já é o objeto do usuário
+                setPersonalData(data || null);
+            } catch (err) {
+                console.error("Erro ao buscar dados pessoais:", err);
+                setPersonalData(null);
+            }
+        };
+
+        fetchPersonalData();
+    }, [userId, userRole]);
 
     const handleLogout = async () => {
         await authService.logout();
@@ -78,7 +106,9 @@ export default function HomeScreen() {
             {/* Dropdown Menu */}
             {showMenu && (
                 <View style={styles.menu}>
-                    <Text style={styles.menuTitle}>NOME DO USUÁRIO</Text>
+                    <Text style={styles.menuTitle}>
+                        {personalData?.name || "NOME DO USUÁRIO"}
+                    </Text>
 
                     <TouchableOpacity style={styles.menuItem}>
                         <Icon name="cog" size={16} color="#1976D2" />
@@ -92,27 +122,25 @@ export default function HomeScreen() {
                 </View>
             )}
 
-
             {/* Conteúdo */}
             <View style={styles.content}>
                 <View style={styles.row}>
                     <TouchableOpacity
                         style={styles.card}
-                        onPress={() => navigation.navigate('Refeicoes', { patientId: userId })}
+                        onPress={() => navigation.navigate('Refeicoes', { patientId: personalData.id })}
                     >
-                        <Icon name="clipboard" size={32} color="#fff" />
+                        <Icon name="cutlery" size={32} color="#fff" />
                         <Text style={styles.cardText}>Minhas Refeições</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('Treinos')}>
-                        <Icon name="check-square" size={32} color="#fff" />
+                        <Icon name="heartbeat" size={32} color="#fff" />
                         <Text style={styles.cardText}>Meus Treinos</Text>
                     </TouchableOpacity>
                 </View>
 
-                <View style={styles.bigCard}>
-                    {/* Aqui você pode colocar gráfico ou conteúdo */}
-                </View>
+                {/* <View style={styles.bigCard}>
+                </View> */}
             </View>
 
             {/* Bottom Navigation */}

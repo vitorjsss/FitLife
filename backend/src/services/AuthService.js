@@ -1,6 +1,7 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { AuthRepository } from "../repositories/AuthRepository.js";
+import { pool } from "../config/db.js"; // Adicione este import para acessar o banco
 
 export const AuthService = {
   register: async (userData) => {
@@ -66,5 +67,10 @@ export const AuthService = {
 
   getAllUsers: async () => {
     return await AuthRepository.getAll();
+  },
+
+  getPatientByAuthId: async (authId) => {
+    const result = await pool.query("SELECT id FROM patient WHERE auth_id = $1", [authId]);
+    return result.rows[0] || null;
   }
 };

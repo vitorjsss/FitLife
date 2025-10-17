@@ -20,7 +20,8 @@ const PatientRepository = {
     },
 
     findById: async (id) => {
-        const query = 'SELECT * FROM patient WHERE id = $1;';
+        console.log("Finding patient by auth_id:", id);
+        const query = 'SELECT * FROM patient WHERE auth_id = $1;';
         const { rows } = await pool.query(query, [id]);
         return rows[0];
     },
@@ -60,7 +61,7 @@ const PatientRepository = {
     findByAuthId: async (auth_id) => {
         const query = 'SELECT * FROM patient WHERE auth_id = $1;';
         const { rows } = await pool.query(query, [auth_id]);
-        return rows[0];
+        return rows[0] || null;
     }
 };
 

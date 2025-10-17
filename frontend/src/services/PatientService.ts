@@ -23,7 +23,7 @@ export interface PatientData {
     birthdate: string;
     //sex: string;
     contact: string;
-    auth_id: number;
+    auth_id: string; // UUID
 }
 
 class PatientService {
@@ -37,14 +37,24 @@ class PatientService {
         return response.data;
     }
 
-    async getById(id: number): Promise<any> {
-        const endpoint = API_CONFIG.ENDPOINTS.PATIENT.GET_BY_ID.replace('{id}', id.toString());
+    async getById(id: string): Promise<any> {
+        const endpoint = API_CONFIG.ENDPOINTS.PATIENT.GET_BY_ID.replace('{id}', id);
+        console.log('Fetching patient with endpoint:', endpoint); // Debug log
         const response = await apiClient.get(endpoint);
+        console.log('Received response:', response.data); // Debug log
         return response.data;
     }
 
-    async update(id: number, data: Partial<PatientData>): Promise<any> {
-        const endpoint = API_CONFIG.ENDPOINTS.PATIENT.UPDATE.replace('{id}', id.toString());
+    async getByAuthId(auth_id: string): Promise<any> {
+        const endpoint = API_CONFIG.ENDPOINTS.PATIENT.GET_BY_AUTH_ID.replace('{auth_id}', auth_id);
+        console.log('Fetching patient by auth_id with endpoint:', endpoint);
+        const response = await apiClient.get(endpoint);
+        console.log('Received response:', response.data);
+        return response.data;
+    }
+
+    async update(id: string, data: Partial<PatientData>): Promise<any> {
+        const endpoint = API_CONFIG.ENDPOINTS.PATIENT.UPDATE.replace('{id}', id);
         const response = await apiClient.put(endpoint, data);
         return response.data;
     }

@@ -4,17 +4,16 @@ export const LogService = {
     // Criar um novo log
     createLog: async (logData) => {
         try {
-            const { action, logType, description, ip, oldValue, newValue, status, userId } = logData;
-
+            const { action, logType, log_type, description, ip, oldValue, newValue, status, userId, user_id } = logData;
             return await LogRepository.create({
                 action,
-                logType,
+                log_type: log_type || logType,
                 description,
                 ip,
                 oldValue: typeof oldValue === 'object' ? JSON.stringify(oldValue) : oldValue,
                 newValue: typeof newValue === 'object' ? JSON.stringify(newValue) : newValue,
                 status,
-                userId
+                user_id: user_id || userId || null
             });
         } catch (error) {
             console.error("Erro no LogService.createLog:", error);

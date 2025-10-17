@@ -9,13 +9,13 @@ const LogRepository = {
         `;
         const values = [
             data.action,
-            data.logType,
+            data.log_type,
             data.description,
             data.ip,
             data.oldValue,
             data.newValue,
             data.status,
-            data.userId,
+            data.user_id,
         ];
         const { rows } = await pool.query(query, values);
         return rows[0];

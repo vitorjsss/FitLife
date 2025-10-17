@@ -38,14 +38,14 @@ class AuthService {
                 throw new Error('Dados de autenticação incompletos do backend.');
             }
 
-            // Sempre salvar strings e usar chaves corretas
-            await AsyncStorage.setItem(ACCESS_TOKEN_KEY, String(accessToken));
-            await AsyncStorage.setItem(REFRESH_TOKEN_KEY, String(refreshToken));
-            await AsyncStorage.setItem(USER_ID_KEY, String(userId));
-            await AsyncStorage.setItem(USER_ROLE_KEY, String(userType));
+            // Salva os tokens e os dados do usuário no AsyncStorage
+            await AsyncStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
+            await AsyncStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+            await AsyncStorage.setItem(USER_ID_KEY, userId); // ID real do paciente/nutricionista/educador
+            await AsyncStorage.setItem(USER_ROLE_KEY, userType);
 
-            if (username !== undefined && username !== null) {
-                await AsyncStorage.setItem(USERNAME_KEY, String(username));
+            if (username) {
+                await AsyncStorage.setItem(USERNAME_KEY, username);
             }
 
             return { accessToken, refreshToken, userId, userType, username };
@@ -91,7 +91,7 @@ class AuthService {
             const response = await apiClient.post(API_CONFIG.ENDPOINTS.AUTH.REFRESH, { refreshToken });
             const { accessToken } = response.data;
             if (accessToken) {
-                await AsyncStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
+                await AsyncStorage.setItem(ACCESS_TOKEN_KEY, String(accessToken));
                 return accessToken;
             }
             return null;

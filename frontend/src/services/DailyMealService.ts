@@ -10,31 +10,31 @@ export interface DailyMealData {
 
 const DailyMealService = {
     create: async (data: DailyMealData) => {
-        return apiClient.post('/daily-meals', data);
+        return apiClient.post('/daily-meal-registry', data);
     },
 
     getAll: async () => {
-        return apiClient.get('/daily-meals');
+        return apiClient.get('/daily-meal-registry');
     },
 
     getById: async (id: string) => {
-        return apiClient.get(`/daily-meals/${id}`);
+        return apiClient.get(`/daily-meal-registry/${id}`);
     },
 
     getByPatientId: async (patientId: string) => {
-        return apiClient.get(`/daily-meals?patientId=${encodeURIComponent(patientId)}`);
+        return apiClient.get(`/daily-meal-registry?patientId=${encodeURIComponent(patientId)}`);
     },
 
     getByDate: async (date: string) => {
-        return apiClient.get(`/daily-meals?date=${encodeURIComponent(date)}`);
+        return apiClient.get(`/daily-meal-registry?date=${encodeURIComponent(date)}`);
     },
 
     update: async (id: string, data: DailyMealData) => {
-        return apiClient.put(`/daily-meals/${id}`, data);
+        return apiClient.put(`/daily-meal-registry/${id}`, data);
     },
 
     delete: async (id: string) => {
-        return apiClient.delete(`/daily-meals/${id}`);
+        return apiClient.delete(`/daily-meal-registry/${id}`);
     },
 };
 

@@ -8,7 +8,6 @@ export interface MealItemData {
     fats?: number;
     created_at?: string;
     updated_at?: string;
-    food_id: string; // UUID
     meal_id: string; // UUID
 }
 
@@ -16,27 +15,27 @@ import { apiClient } from './apiClient';
 
 const MealItemService = {
     create: async (data: MealItemData) => {
-        return apiClient.post('/meal-items', data);
+        return apiClient.post('/meal-item', data);
     },
 
     getAll: async () => {
-        return apiClient.get('/meal-items');
+        return apiClient.get('/meal-item');
     },
 
     getById: async (id: string) => {
-        return apiClient.get(`/meal-items/${id}`);
+        return apiClient.get(`/meal-item/${id}`);
     },
 
     getByMeal: async (meal_id: string) => {
-        return apiClient.get(`/meal-items?meal_id=${encodeURIComponent(meal_id)}`);
+        return apiClient.get(`/meal-item?meal_id=${encodeURIComponent(meal_id)}`);
     },
 
     update: async (id: string, data: MealItemData) => {
-        return apiClient.put(`/meal-items/${id}`, data);
+        return apiClient.put(`/meal-item/${id}`, data);
     },
 
     delete: async (id: string) => {
-        return apiClient.delete(`/meal-items/${id}`);
+        return apiClient.delete(`/meal-item/${id}`);
     },
 };
 

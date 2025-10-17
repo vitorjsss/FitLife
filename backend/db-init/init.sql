@@ -1,6 +1,9 @@
 -- ================================
--- Script de inicialização FitLife
+-- Script de inicialização FitLife (com UUID)
 -- ================================
+
+-- Extensão para gerar UUIDs
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- ----------------------------
 -- Enum para user_type
@@ -11,7 +14,7 @@ CREATE TYPE user_type_enum AS ENUM ('Patient', 'Nutricionist', 'Physical_educato
 -- Tabela AUTH
 -- ----------------------------
 CREATE TABLE auth (
-    id SERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     username VARCHAR(255) NOT NULL UNIQUE,
     email VARCHAR(255) NOT NULL UNIQUE,
     user_type user_type_enum NOT NULL,
@@ -28,13 +31,13 @@ CREATE TABLE auth (
 -- Tabela PATIENT
 -- ----------------------------
 CREATE TABLE patient (
-    id SERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL,
     birthdate DATE NOT NULL,
     sex CHAR(1) NOT NULL,
     contact VARCHAR(50),
     avatar_path VARCHAR(255),
-    auth_id INT NOT NULL UNIQUE REFERENCES auth(id) ON DELETE CASCADE,
+    auth_id UUID NOT NULL UNIQUE REFERENCES auth(id) ON DELETE CASCADE,
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
 );
@@ -43,14 +46,14 @@ CREATE TABLE patient (
 -- Tabela PHYSICAL_EDUCATOR
 -- ----------------------------
 CREATE TABLE physical_educator (
-    id SERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL,
     birthdate DATE NOT NULL,
     sex CHAR(1) NOT NULL,
     contact VARCHAR(50),
     cref VARCHAR(50) NOT NULL,
     avatar_path VARCHAR(255),
-    auth_id INT NOT NULL UNIQUE REFERENCES auth(id) ON DELETE CASCADE,
+    auth_id UUID NOT NULL UNIQUE REFERENCES auth(id) ON DELETE CASCADE,
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
 );
@@ -59,14 +62,14 @@ CREATE TABLE physical_educator (
 -- Tabela NUTRICIONIST
 -- ----------------------------
 CREATE TABLE nutricionist (
-    id SERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL,
     birthdate DATE NOT NULL,
     sex CHAR(1) NOT NULL,
     contact VARCHAR(50),
     crn VARCHAR(50) NOT NULL,
     avatar_path VARCHAR(255),
-    auth_id INT NOT NULL UNIQUE REFERENCES auth(id) ON DELETE CASCADE,
+    auth_id UUID NOT NULL UNIQUE REFERENCES auth(id) ON DELETE CASCADE,
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
 );
@@ -75,8 +78,8 @@ CREATE TABLE nutricionist (
 -- Tabela MEDIDAS_CORPORAIS
 -- ----------------------------
 CREATE TABLE medidas_corporais (
-    id SERIAL PRIMARY KEY,
-    patient_id INT NOT NULL REFERENCES patient(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    patient_id UUID NOT NULL REFERENCES patient(id) ON DELETE CASCADE,
     data DATE NOT NULL,
     peso FLOAT,
     altura FLOAT,
@@ -90,8 +93,8 @@ CREATE TABLE medidas_corporais (
 -- Tabela MEDIDAS_NUTRICIONAIS
 -- ----------------------------
 CREATE TABLE medidas_nutricionais (
-    id SERIAL PRIMARY KEY,
-    patient_id INT NOT NULL REFERENCES patient(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    patient_id UUID NOT NULL REFERENCES patient(id) ON DELETE CASCADE,
     data DATE NOT NULL,
     calorias INT,
     proteina FLOAT,
@@ -105,20 +108,19 @@ CREATE TABLE medidas_nutricionais (
 -- Tabela TREINO
 -- ----------------------------
 CREATE TABLE treino (
-    id SERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(100) NOT NULL,
     description TEXT,
     duration INTERVAL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    patient_id INT NOT NULL REFERENCES patient(id),
-    physical_educator_id INT REFERENCES physical_educator(id) -- agora é opcional
+    patient_id UUID NOT NULL REFERENCES patient(id),
+    physical_educator_id UUID REFERENCES physical_educator(id)
 );
 
 -- ----------------------------
 -- Tabela EXERCICIO
 -- ----------------------------
--- Criar o ENUM
 CREATE TYPE exercise_type_enum AS ENUM (
     'forca',
     'cardio',
@@ -126,11 +128,10 @@ CREATE TYPE exercise_type_enum AS ENUM (
     'esporte'
 );
 
--- Tabela Exercicio
 CREATE TABLE exercicio (
-    id SERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(100) NOT NULL,
-    exercise_type exercise_type_enum NOT NULL, -- agora usa ENUM
+    exercise_type exercise_type_enum NOT NULL,
     series INT,
     repetitions INT,
     load FLOAT,
@@ -138,7 +139,7 @@ CREATE TABLE exercicio (
     distance FLOAT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    treino_id INT NOT NULL REFERENCES treino(id) ON DELETE CASCADE
+    treino_id UUID NOT NULL REFERENCES treino(id) ON DELETE CASCADE
 );
 
 -- ----------------------------
@@ -146,7 +147,7 @@ CREATE TABLE exercicio (
 -- ----------------------------
 
 CREATE TABLE logs (
-    id SERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     action VARCHAR(100) NOT NULL,
     log_type VARCHAR(50) NOT NULL,
     description TEXT,
@@ -154,11 +155,10 @@ CREATE TABLE logs (
     old_value TEXT,
     new_value TEXT,
     status VARCHAR(20) DEFAULT 'SUCCESS',
-    user_id INT REFERENCES auth(id) ON DELETE SET NULL,
+    user_id UUID REFERENCES auth(id) ON DELETE SET NULL,
     created_at TIMESTAMP DEFAULT NOW()
 );
 
--- Índices para melhor performance
 CREATE INDEX idx_logs_user_id ON logs(user_id);
 CREATE INDEX idx_logs_action ON logs(action);
 CREATE INDEX idx_logs_created_at ON logs(created_at);
@@ -168,22 +168,11 @@ CREATE INDEX idx_logs_created_at ON logs(created_at);
 -- ----------------------------
 
 CREATE TABLE DailyMealRegistry (
-    id UUID PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     date DATE NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    patient_id UUID NOT NULL
-);
-
--- ----------------------------
--- Tabela FOOD
--- ----------------------------
-
-CREATE TABLE Food (
-    id UUID PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    descricao TEXT,
-    image_path VARCHAR(500)
+    patient_id UUID NOT NULL REFERENCES patient(id)
 );
 
 -- ----------------------------
@@ -191,7 +180,7 @@ CREATE TABLE Food (
 -- ----------------------------
 
 CREATE TABLE MealRecord (
-    id UUID PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL,
     icon_path VARCHAR(500),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -206,7 +195,7 @@ CREATE TABLE MealRecord (
 -- ----------------------------
 
 CREATE TABLE MealItem (
-    id UUID PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     food_name VARCHAR(255) NOT NULL,
     quantity VARCHAR(100),
     calories FLOAT,
@@ -215,46 +204,7 @@ CREATE TABLE MealItem (
     fats FLOAT,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    food_id UUID NOT NULL,
     meal_id UUID NOT NULL,
-    CONSTRAINT fk_mealitem_food FOREIGN KEY (food_id)
-        REFERENCES Food(id) ON DELETE CASCADE,
     CONSTRAINT fk_mealitem_meal FOREIGN KEY (meal_id)
         REFERENCES MealRecord(id) ON DELETE CASCADE
 );
-
--- =============================
--- Dados iniciais
--- =============================
-
--- Usuários
-INSERT INTO auth (username, email, user_type, password)
-VALUES 
-('patient01', 'patient01@example.com', 'Patient', 'hashed_password1'),
-('nutri01', 'nutri01@example.com', 'Nutricionist', 'hashed_password2'),
-('educ01', 'educ01@example.com', 'Physical_educator', 'hashed_password3');
-
--- Paciente vinculado ao auth
-INSERT INTO patient (name, birthdate, sex, contact, auth_id)
-VALUES 
-('João Silva', '1990-05-12', 'M', '99999-1111', 1);
-
--- Nutricionista vinculado ao auth
-INSERT INTO nutricionist (name, birthdate, sex, contact, crn, auth_id)
-VALUES 
-('Maria Costa', '1985-08-23', 'F', '98888-2222', 'CRN12345', 2);
-
--- Educador físico vinculado ao auth
-INSERT INTO physical_educator (name, birthdate, sex, contact, cref, auth_id)
-VALUES 
-('Carlos Pereira', '1980-01-15', 'M', '97777-3333', 'CREF98765', 3);
-
--- Medidas corporais do paciente
-INSERT INTO medidas_corporais (patient_id, data, peso, altura, imc, circunferencia)
-VALUES 
-(1, '2025-01-01', 75.0, 1.75, 24.5, 90.0);
-
--- Medidas nutricionais do paciente
-INSERT INTO medidas_nutricionais (patient_id, data, calorias, proteina, carboidrato, gordura)
-VALUES
-(1, '2025-01-01', 2200, 120.0, 250.0, 70.0);

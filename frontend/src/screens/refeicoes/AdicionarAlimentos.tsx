@@ -38,7 +38,6 @@ const AdicionarAlimentos: React.FC<AdicionarAlimentosProps> = ({ navigation, rou
                 proteins: parseFloat(proteins) || 0,
                 carbs: parseFloat(carbs) || 0,
                 fats: parseFloat(fats) || 0,
-                food_id: 'food_uuid_placeholder', // TODO: Replace with actual food_id from selection
                 meal_id: mealRecordId,
             };
             await MealItemService.create(newMealItem);
