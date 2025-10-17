@@ -1,9 +1,10 @@
 export const API_CONFIG = {
-    BASE_URL: "http://192.168.1.106:5001",
+    BASE_URL: "http://127.0.0.1:5001",
     ENDPOINTS: {
         AUTH: {
             REGISTER: "/auth/register",
-            LOGIN: "/auth/login"
+            LOGIN: "/auth/login",
+            REFRESH: "/auth/refresh-token",
         },
         PATIENT: {
             CREATE: "/patient/register",
@@ -26,4 +27,4 @@ export const API_CONFIG = {
     },
     TIMEOUT: 30000,
     IGNORE_SSL_ERRORS: true,
-}; 
+};

@@ -11,6 +11,7 @@ import Icon from "react-native-vector-icons/FontAwesome";
 import { CommonActions, useNavigation } from "@react-navigation/native";
 import { RootStackParamList } from "../../../App";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { authService } from "../../services/authService";
 
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<
@@ -18,20 +19,21 @@ type HomeScreenNavigationProp = NativeStackNavigationProp<
     "Home"
 >;
 
-
-
 export default function HomeScreen() {
-    const [token, setToken] = useState<string | null>(null);
+    const [userId, setUserId] = useState<string | null>(null);
+    const [userRole, setUserRole] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [showMenu, setShowMenu] = useState(false);
 
     const navigation = useNavigation<HomeScreenNavigationProp>();
 
     useEffect(() => {
-        const loadToken = async () => {
+        const loadUserData = async () => {
             try {
-                const accessToken = await AsyncStorage.getItem("accessToken");
-                setToken(accessToken);
+                const userId = await AsyncStorage.getItem("userId");
+                setUserId(userId);
+                const userRole = await AsyncStorage.getItem("userRole");
+                setUserRole(userRole);
             } catch (err) {
                 console.error("Erro ao buscar token:", err);
             } finally {
@@ -39,11 +41,11 @@ export default function HomeScreen() {
             }
         };
 
-        loadToken();
+        loadUserData();
     }, []);
 
     const handleLogout = async () => {
-        await AsyncStorage.removeItem("accessToken");
+        await authService.logout();
         navigation.dispatch(
             CommonActions.reset({
                 index: 0,
@@ -96,7 +98,7 @@ export default function HomeScreen() {
                 <View style={styles.row}>
                     <TouchableOpacity
                         style={styles.card}
-                        onPress={() => navigation.navigate('Refeicoes')}
+                        onPress={() => navigation.navigate('Refeicoes', { patientId: userId })}
                     >
                         <Icon name="clipboard" size={32} color="#fff" />
                         <Text style={styles.cardText}>Minhas Refeições</Text>

@@ -10,10 +10,11 @@ import {
     KeyboardAvoidingView,
     Platform,
     FlatList,
+    Modal,
 } from 'react-native';
+import DailyMealService from '../../services/DailyMealService';
+import MealRecordService, { MealRecordData } from '../../services/MealRecordService';
 import Icon from "react-native-vector-icons/FontAwesome";
-import { saveMealRecordLocal, loadMealRecordsLocal } from '../../utils/mealRecordStorage';
-import { apiClient } from '../../service/apiClient';
 
 interface MealRecord {
     id: string;
@@ -34,8 +35,14 @@ const GerenciarRefeicoes: React.FC<GerenciarRefeicoesProps> = ({ navigation, rou
     const [loading, setLoading] = useState(false);
     const [mealRecords, setMealRecords] = useState<MealRecord[]>([]);
 
+    // Estados para edição
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [editingMeal, setEditingMeal] = useState<MealRecord | null>(null);
+    const [editMealName, setEditMealName] = useState('');
+    const [editSelectedIcon, setEditSelectedIcon] = useState('cutlery');
+
     // Parâmetros da navegação
-    const { dailyMealRegistryId, date } = route?.params || {};
+    const { date, patientId } = route?.params || {};
 
     const mealIcons = [
         { name: 'cutlery', label: 'Geral' },
@@ -50,48 +57,54 @@ const GerenciarRefeicoes: React.FC<GerenciarRefeicoesProps> = ({ navigation, rou
         navigation?.goBack();
     };
 
-    useEffect(() => {
-        const loadLocalRecords = async () => {
-            const localRecords = await loadMealRecordsLocal(dailyMealRegistryId);
-            setMealRecords(localRecords);
-        };
-        loadLocalRecords();
-    }, [dailyMealRegistryId]);
 
+    // Carrega refeições do backend ao abrir a tela
+    useEffect(() => {
+        const fetchMeals = async () => {
+            setLoading(true);
+            try {
+                // Recebe o id do registro diário via props/route
+                const { dailyMealRegistryId } = route?.params || {};
+                if (dailyMealRegistryId) {
+                    const records = await MealRecordService.getByRegistry(dailyMealRegistryId);
+                    setMealRecords(Array.isArray(records) ? records : []);
+                } else {
+                    setMealRecords([]);
+                }
+            } catch (err) {
+                console.error('Erro ao carregar refeições do backend:', err);
+                setMealRecords([]);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchMeals();
+    }, [date, patientId]);
 
     const handleAddMealRecord = async () => {
         if (!mealName.trim()) {
             Alert.alert('Atenção', 'Por favor, insira o nome da refeição');
             return;
         }
-
         try {
             setLoading(true);
-
-            // Aqui você faria a chamada para a API
-            //const response = await apiClient.post('/meal-record', {
-                // name: mealName,
-                // icon_path: `/icons/${selectedIcon}.png`,
-                 //daily_meal_registry_id: dailyMealRegistryId
-             //});
-
-            const newMealRecord: MealRecord = {
-                id: `meal_${Date.now()}`,
+            const { dailyMealRegistryId } = route?.params || {};
+            if (!dailyMealRegistryId) {
+                Alert.alert('Erro', 'Registro diário não encontrado.');
+                return;
+            }
+            // Cria a refeição
+            const newMeal: MealRecordData = {
                 name: mealName,
                 icon_path: `/icons/${selectedIcon}.png`,
-                itemCount: 0
+                daily_meal_registry_id: dailyMealRegistryId,
             };
-
-            
-            const updatedRecords = [...mealRecords, newMealRecord];
-            setMealRecords(updatedRecords);
-
-            // salva localmente
-            await saveMealRecordLocal(dailyMealRegistryId, updatedRecords);
-
+            await MealRecordService.create(newMeal);
             setMealName('');
-
             Alert.alert('Sucesso!', 'Refeição adicionada com sucesso!');
+            // Atualiza lista
+            const records = await MealRecordService.getByRegistry(dailyMealRegistryId);
+            setMealRecords(Array.isArray(records) ? records : []);
         } catch (error) {
             Alert.alert('Erro', 'Não foi possível adicionar a refeição');
         } finally {
@@ -103,27 +116,147 @@ const GerenciarRefeicoes: React.FC<GerenciarRefeicoesProps> = ({ navigation, rou
         navigation?.navigate('AdicionarAlimentos', {
             mealRecordId: mealRecord.id,
             mealName: mealRecord.name,
-            dailyMealRegistryId
+            date,
+            patientId
         });
     };
 
-    const renderMealRecord = ({ item }: { item: MealRecord }) => (
-        <TouchableOpacity
-            style={styles.mealCard}
-            onPress={() => handleEditMealRecord(item)}
-        >
-            <View style={styles.mealCardHeader}>
-                <Icon name={selectedIcon} size={24} color="#40C4FF" />
-                <View style={styles.mealCardInfo}>
-                    <Text style={styles.mealCardTitle}>{item.name}</Text>
-                    <Text style={styles.mealCardSubtitle}>
-                        {item.itemCount || 0} alimentos adicionados
-                    </Text>
+    // Nova função para long press
+    const handleLongPressMeal = (mealRecord: MealRecord) => {
+        Alert.alert(
+            'Opções da Refeição',
+            `O que deseja fazer com "${mealRecord.name}"?`,
+            [
+                {
+                    text: 'Cancelar',
+                    style: 'cancel'
+                },
+                {
+                    text: 'Editar',
+                    onPress: () => openEditModal(mealRecord)
+                },
+                {
+                    text: 'Excluir',
+                    style: 'destructive',
+                    onPress: () => confirmDeleteMeal(mealRecord)
+                }
+            ]
+        );
+    };
+
+    const openEditModal = (mealRecord: MealRecord) => {
+        setEditingMeal(mealRecord);
+        setEditMealName(mealRecord.name);
+
+        // Extrair ícone do icon_path
+        const iconMatch = mealRecord.icon_path?.match(/\/icons\/(.+)\.png/);
+        const currentIcon = iconMatch ? iconMatch[1] : 'cutlery';
+        setEditSelectedIcon(currentIcon);
+
+        setShowEditModal(true);
+    };
+
+    const confirmDeleteMeal = (mealRecord: MealRecord) => {
+        Alert.alert(
+            'Confirmar Exclusão',
+            `Tem certeza que deseja excluir a refeição "${mealRecord.name}"? Esta ação não pode ser desfeita.`,
+            [
+                {
+                    text: 'Cancelar',
+                    style: 'cancel'
+                },
+                {
+                    text: 'Excluir',
+                    style: 'destructive',
+                    onPress: () => deleteMeal(mealRecord.id)
+                }
+            ]
+        );
+    };
+
+    const deleteMeal = async (mealId: string) => {
+        try {
+            setLoading(true);
+            await MealRecordService.delete(mealId);
+            setMealRecords((prev) => prev.filter(meal => meal.id !== mealId));
+            Alert.alert('Sucesso!', 'Refeição excluída com sucesso!');
+        } catch (error) {
+            Alert.alert('Erro', 'Não foi possível excluir a refeição');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const saveEditedMeal = async () => {
+        if (!editMealName.trim()) {
+            Alert.alert('Atenção', 'Por favor, insira o nome da refeição');
+            return;
+        }
+        if (!editingMeal) return;
+        try {
+            setLoading(true);
+            const updatedMeal: MealRecordData = {
+                ...editingMeal,
+                name: editMealName,
+                icon_path: `/icons/${editSelectedIcon}.png`,
+                daily_meal_registry_id: (editingMeal as any).daily_meal_registry_id,
+            };
+            await MealRecordService.update(editingMeal.id, updatedMeal);
+            setShowEditModal(false);
+            setEditingMeal(null);
+            setEditMealName('');
+            setEditSelectedIcon('cutlery');
+            // Atualiza lista
+            let dailyMealRegistries = await DailyMealService.getByDate(date);
+            let registryId = '';
+            if (Array.isArray(dailyMealRegistries) && dailyMealRegistries.length > 0) {
+                registryId = dailyMealRegistries[0].id;
+            }
+            if (registryId) {
+                const records = await MealRecordService.getByRegistry(registryId);
+                setMealRecords(Array.isArray(records) ? records : []);
+            }
+            Alert.alert('Sucesso!', 'Refeição atualizada com sucesso!');
+        } catch (error) {
+            Alert.alert('Erro', 'Não foi possível atualizar a refeição');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const cancelEdit = () => {
+        setShowEditModal(false);
+        setEditingMeal(null);
+        setEditMealName('');
+        setEditSelectedIcon('cutlery');
+    };
+
+    const renderMealRecord = ({ item }: { item: MealRecord }) => {
+        // Extrair ícone do icon_path
+        const iconMatch = item.icon_path?.match(/\/icons\/(.+)\.png/);
+        const iconName = iconMatch ? iconMatch[1] : 'cutlery';
+
+        return (
+            <TouchableOpacity
+                style={styles.mealCard}
+                onPress={() => handleEditMealRecord(item)}
+                onLongPress={() => handleLongPressMeal(item)}
+                delayLongPress={500}
+                activeOpacity={0.7}
+            >
+                <View style={styles.mealCardHeader}>
+                    <Icon name={iconName} size={24} color="#40C4FF" />
+                    <View style={styles.mealCardInfo}>
+                        <Text style={styles.mealCardTitle}>{item.name}</Text>
+                        <Text style={styles.mealCardSubtitle}>
+                            {item.itemCount || 0} alimentos adicionados
+                        </Text>
+                    </View>
+                    <Icon name="chevron-right" size={16} color="#666" />
                 </View>
-                <Icon name="chevron-right" size={16} color="#666" />
-            </View>
-        </TouchableOpacity>
-    );
+            </TouchableOpacity>
+        );
+    };
 
     return (
         <KeyboardAvoidingView
@@ -240,6 +373,9 @@ const GerenciarRefeicoes: React.FC<GerenciarRefeicoesProps> = ({ navigation, rou
                 {mealRecords.length > 0 && (
                     <View style={styles.mealsList}>
                         <Text style={styles.mealsListTitle}>Refeições do Dia</Text>
+                        <Text style={styles.helpText}>
+                            💡 Toque para adicionar alimentos ou segure para editar
+                        </Text>
                         <FlatList
                             data={mealRecords}
                             keyExtractor={(item) => item.id}
@@ -249,6 +385,89 @@ const GerenciarRefeicoes: React.FC<GerenciarRefeicoesProps> = ({ navigation, rou
                     </View>
                 )}
             </ScrollView>
+
+            {/* Modal de Edição */}
+            <Modal
+                visible={showEditModal}
+                animationType="slide"
+                transparent={true}
+                onRequestClose={cancelEdit}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Editar Refeição</Text>
+                            <TouchableOpacity onPress={cancelEdit}>
+                                <Icon name="times" size={24} color="#666" />
+                            </TouchableOpacity>
+                        </View>
+
+                        <ScrollView style={styles.modalBody}>
+                            {/* Nome da Refeição */}
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.label}>Nome da Refeição</Text>
+                                <TextInput
+                                    style={styles.textInput}
+                                    placeholder="Ex: Café da manhã, Almoço, Jantar..."
+                                    value={editMealName}
+                                    onChangeText={setEditMealName}
+                                    placeholderTextColor="#999"
+                                />
+                            </View>
+
+                            {/* Seleção de Ícone */}
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.label}>Ícone da Refeição</Text>
+                                <ScrollView
+                                    horizontal
+                                    showsHorizontalScrollIndicator={false}
+                                    style={styles.iconSelector}
+                                >
+                                    {mealIcons.map((icon) => (
+                                        <TouchableOpacity
+                                            key={icon.name}
+                                            style={[
+                                                styles.iconOption,
+                                                editSelectedIcon === icon.name && styles.iconOptionSelected
+                                            ]}
+                                            onPress={() => setEditSelectedIcon(icon.name)}
+                                        >
+                                            <Icon
+                                                name={icon.name}
+                                                size={24}
+                                                color={editSelectedIcon === icon.name ? '#fff' : '#40C4FF'}
+                                            />
+                                            <Text style={[
+                                                styles.iconLabel,
+                                                editSelectedIcon === icon.name && styles.iconLabelSelected
+                                            ]}>
+                                                {icon.label}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </ScrollView>
+                            </View>
+                        </ScrollView>
+
+                        <View style={styles.modalFooter}>
+                            <TouchableOpacity
+                                style={styles.cancelButton}
+                                onPress={cancelEdit}
+                            >
+                                <Text style={styles.cancelButtonText}>Cancelar</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={styles.saveButton}
+                                onPress={saveEditedMeal}
+                            >
+                                <Icon name="check" size={16} color="#fff" />
+                                <Text style={styles.saveButtonText}>Salvar</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </KeyboardAvoidingView>
     );
 };
@@ -426,7 +645,13 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: 'bold',
         color: '#1976D2',
+        marginBottom: 8,
+    },
+    helpText: {
+        fontSize: 12,
+        color: '#666',
         marginBottom: 16,
+        fontStyle: 'italic',
     },
     mealCard: {
         backgroundColor: '#F8F9FA',
@@ -453,6 +678,78 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#666',
         marginTop: 2,
+    },
+    // Estilos do Modal
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
+    },
+    modalContent: {
+        backgroundColor: '#fff',
+        borderRadius: 12,
+        width: '100%',
+        maxHeight: '80%',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 10,
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: 20,
+        borderBottomWidth: 1,
+        borderBottomColor: '#E0E0E0',
+    },
+    modalTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#1976D2',
+    },
+    modalBody: {
+        padding: 20,
+        maxHeight: 300,
+    },
+    modalFooter: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        padding: 20,
+        borderTopWidth: 1,
+        borderTopColor: '#E0E0E0',
+    },
+    cancelButton: {
+        flex: 1,
+        backgroundColor: '#E0E0E0',
+        paddingVertical: 12,
+        borderRadius: 8,
+        marginRight: 10,
+        alignItems: 'center',
+    },
+    cancelButtonText: {
+        color: '#666',
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    saveButton: {
+        flex: 1,
+        backgroundColor: '#40C4FF',
+        paddingVertical: 12,
+        borderRadius: 8,
+        marginLeft: 10,
+        alignItems: 'center',
+        flexDirection: 'row',
+        justifyContent: 'center',
+    },
+    saveButtonText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: 'bold',
+        marginLeft: 8,
     },
 });
 

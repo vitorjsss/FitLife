@@ -4,6 +4,8 @@ import { LogService } from "../services/LogService.js";
 export const AuthController = {
   register: async (req, res) => {
     const user = req.body;
+    user.email = user.email.toLowerCase();
+
     const ip = req.ip;
     try {
       const created = await AuthService.register(user);
@@ -38,9 +40,11 @@ export const AuthController = {
 
   login: async (req, res) => {
     const { email, password } = req.body;
+    const normalizedEmail = email.toLowerCase();
+
     const ip = req.ip;
     try {
-      const result = await AuthService.login(email, password);
+      const result = await AuthService.login(normalizedEmail, password);
 
       if (!result) {
         await LogService.createLog({

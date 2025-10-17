@@ -13,7 +13,7 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useNavigation } from "@react-navigation/native";
 import { RootStackParamList } from "../../../App";
-import { authService } from '../../service/authService';
+import { authService } from '../../services/authService';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 type LoginFormData = {

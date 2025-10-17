@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,38 @@ import {
   KeyboardAvoidingView,
   Platform
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from "react-native-vector-icons/FontAwesome";
+import MaterialIcons from "react-native-vector-icons/MaterialIcons";
+import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
+import { Ionicons } from '@expo/vector-icons';
+
+/* 
+🏋️ ÍCONES DE TREINO DISPONÍVEIS:
+
+📱 MaterialCommunityIcons (react-native-vector-icons):
+  - "dumbbell" - Halteres (atual)
+  - "weight-lifter" - Levantador de peso  
+  - "barbell" - Barra de exercício
+  - "arm-flex" - Braço flexionado
+  - "run" - Pessoa correndo
+  - "bike" - Bicicleta para cardio
+  - "tennis" - Esportes
+  - "heart-pulse" - Batimento cardíaco
+
+📱 MaterialIcons (react-native-vector-icons):
+  - "fitness-center" - Centro de fitness
+  - "sports-gymnastics" - Ginástica
+  - "sports-handball" - Esportes
+
+📱 Ionicons (@expo/vector-icons):
+  - "barbell" - Barra
+  - "fitness" - Fitness
+  - "walk" - Caminhada
+
+🔄 Para trocar um ícone, substitua:
+   <MaterialCommunityIcons name="dumbbell" size={20} color="#40C4FF" />
+*/
 
 interface Exercicio {
   id: string;
@@ -21,10 +52,60 @@ interface Exercicio {
   repeticoes: string;
 }
 
+interface Treino {
+  id: string;
+  nome: string;
+  exercicios: Exercicio[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface GerenciarTreinoProps {
   navigation?: any;
   route?: any;
 }
+
+// Funções de AsyncStorage para treinos
+const saveTreinoLocal = async (treino: Treino) => {
+  try {
+    const treinos = await loadTreinosLocal();
+    const index = treinos.findIndex(t => t.id === treino.id);
+
+    if (index >= 0) {
+      treinos[index] = { ...treino, updatedAt: new Date().toISOString() };
+    } else {
+      treinos.push(treino);
+    }
+
+    await AsyncStorage.setItem('@fitlife_treinos', JSON.stringify(treinos));
+    console.log('Treino salvo localmente:', treino.nome);
+  } catch (error) {
+    console.error('Erro ao salvar treino:', error);
+    Alert.alert('Erro', 'Não foi possível salvar o treino.');
+  }
+};
+
+const loadTreinosLocal = async (): Promise<Treino[]> => {
+  try {
+    const data = await AsyncStorage.getItem('@fitlife_treinos');
+    return data ? JSON.parse(data) : [];
+  } catch (error) {
+    console.error('Erro ao carregar treinos:', error);
+    return [];
+  }
+};
+
+const deleteTreinoLocal = async (treinoId: string) => {
+  try {
+    const treinos = await loadTreinosLocal();
+    const filteredTreinos = treinos.filter(t => t.id !== treinoId);
+    await AsyncStorage.setItem('@fitlife_treinos', JSON.stringify(filteredTreinos));
+    console.log('Treino removido localmente:', treinoId);
+  } catch (error) {
+    console.error('Erro ao remover treino:', error);
+    Alert.alert('Erro', 'Não foi possível remover o treino.');
+  }
+};
 
 const GerenciarTreinos: React.FC<GerenciarTreinoProps> = ({ navigation, route }) => {
   const [showMenu, setShowMenu] = useState(false);
@@ -34,8 +115,28 @@ const GerenciarTreinos: React.FC<GerenciarTreinoProps> = ({ navigation, route })
   const [series, setSeries] = useState('');
   const [repeticoes, setRepeticoes] = useState('');
   const [loading, setLoading] = useState(false);
+  const [treinoAtual, setTreinoAtual] = useState<Treino | null>(null);
 
-  const { treinoNome } = route?.params || {};
+  const { treinoNome, treinoId } = route?.params || {};
+
+  useEffect(() => {
+    loadTreinoExistente();
+  }, [treinoId]);
+
+  const loadTreinoExistente = async () => {
+    if (treinoId) {
+      try {
+        const treinos = await loadTreinosLocal();
+        const treino = treinos.find(t => t.id === treinoId);
+        if (treino) {
+          setTreinoAtual(treino);
+          setExercicios(treino.exercicios);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar treino:', error);
+      }
+    }
+  };
 
   const handleGoBack = () => navigation?.goBack();
 
@@ -73,6 +174,36 @@ const GerenciarTreinos: React.FC<GerenciarTreinoProps> = ({ navigation, route })
       { text: 'Cancelar', style: 'cancel' },
       { text: 'Remover', style: 'destructive', onPress: () => setExercicios(exercicios.filter(e => e.id !== id)) },
     ]);
+  };
+
+  const handleSalvarTreino = async () => {
+    if (exercicios.length === 0) {
+      Alert.alert('Atenção', 'Adicione pelo menos um exercício ao treino.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const nomeDoTreino = treinoNome || `Treino - ${new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}`;
+      const treino: Treino = {
+        id: treinoAtual?.id || `treino_${Date.now()}`,
+        nome: nomeDoTreino,
+        exercicios,
+        createdAt: treinoAtual?.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      await saveTreinoLocal(treino);
+
+      Alert.alert('Sucesso!', 'Treino salvo com sucesso!', [
+        { text: 'OK', onPress: () => navigation?.goBack() }
+      ]);
+    } catch (error) {
+      console.error('Erro ao salvar treino:', error);
+      Alert.alert('Erro', 'Não foi possível salvar o treino.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const renderExercicio = ({ item }: { item: Exercicio }) => (
@@ -127,7 +258,7 @@ const GerenciarTreinos: React.FC<GerenciarTreinoProps> = ({ navigation, route })
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Info do treino */}
         <View style={styles.treinoHeader}>
-          <Icon name="plus" size={20} color="#40C4FF" />
+          <MaterialCommunityIcons name="dumbbell" size={20} color="#40C4FF" />
           <Text style={styles.treinoNome}>{treinoNome || 'Treino'}</Text>
         </View>
 
@@ -187,6 +318,20 @@ const GerenciarTreinos: React.FC<GerenciarTreinoProps> = ({ navigation, route })
               scrollEnabled={false}
             />
           </View>
+        )}
+
+        {/* Botão Salvar Treino */}
+        {exercicios.length > 0 && (
+          <TouchableOpacity
+            style={[styles.salvarButton, loading && styles.addButtonDisabled]}
+            onPress={handleSalvarTreino}
+            disabled={loading}
+          >
+            <Icon name="save" size={18} color="#fff" />
+            <Text style={styles.salvarButtonText}>
+              {loading ? 'Salvando...' : 'Salvar Treino'}
+            </Text>
+          </TouchableOpacity>
         )}
       </ScrollView>
     </KeyboardAvoidingView>
@@ -272,6 +417,17 @@ const styles = StyleSheet.create({
   },
   exercicioNome: { fontSize: 16, fontWeight: '600', color: '#333' },
   exercicioInfo: { fontSize: 14, color: '#666' },
+  salvarButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#4CAF50',
+    paddingVertical: 16,
+    borderRadius: 8,
+    marginTop: 20,
+    marginBottom: 20,
+  },
+  salvarButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold', marginLeft: 8 },
 });
 
 export default GerenciarTreinos;

@@ -8,31 +8,30 @@ import {
     ScrollView,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { loadDailyMeals } from '../../utils/dailyMealStorage';
 
-
+import DailyMealService from '../../services/DailyMealService';
 
 const { width } = Dimensions.get('window');
 
 interface RefeicoesProps {
+    route?: any;
     navigation?: any;
 }
 
 const STORAGE_KEY = '@fitlife_meal_records';
 
-const Refeicoes: React.FC<RefeicoesProps> = ({ navigation }) => {
+const Refeicoes: React.FC<RefeicoesProps> = ({ route, navigation }) => {
     const [showMenu, setShowMenu] = useState(false);
     const [dailyMeals, setDailyMeals] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
-    const todayId = 'mock_id_123';
+    const patientId = route?.params?.patientId || '';
     const dateString = new Date().toISOString().split('T')[0];
 
     const handleCriarRefeicao = () => {
         navigation?.navigate('GerenciarRefeicoes', {
-            dailyMealRegistryId: todayId,
             date: dateString,
+            patientId,
         });
     };
 
@@ -40,36 +39,20 @@ const Refeicoes: React.FC<RefeicoesProps> = ({ navigation }) => {
 
     useEffect(() => {
         const fetchMeals = async () => {
-            const data = await loadDailyMeals(todayId);
-            setDailyMeals(data);
-            setLoading(false);
+            setLoading(true);
+            try {
+                const meals = await DailyMealService.getByDate(dateString);
+                setDailyMeals(Array.isArray(meals) ? meals : []);
+            } catch (err) {
+                console.error('Erro ao carregar refeições do backend:', err);
+                setDailyMeals([]);
+            } finally {
+                setLoading(false);
+            }
         };
         const unsubscribe = navigation?.addListener('focus', fetchMeals);
         return unsubscribe;
-    }, [navigation]);
-
-    const loadMeals = async () => {
-        try {
-            const stored = await AsyncStorage.getItem(STORAGE_KEY);
-            if (!stored) {
-                setDailyMeals([]);
-                return;
-            }
-            const allData = JSON.parse(stored);
-            setDailyMeals(allData[todayId] || []);
-        } catch (err) {
-            console.error('Erro ao carregar refeições:', err);
-            setDailyMeals([]);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // Atualiza ao abrir a tela
-    useEffect(() => {
-        const unsubscribe = navigation?.addListener('focus', loadMeals);
-        return unsubscribe;
-    }, [navigation]);
+    }, [navigation, dateString]);
 
     return (
         <View style={styles.container}>
@@ -155,10 +138,11 @@ const Refeicoes: React.FC<RefeicoesProps> = ({ navigation }) => {
                                     justifyContent: 'space-between'
                                 }}
                                 onPress={() =>
-                                    navigation.navigate('AdicionarAlimentos', {
-                                        mealRecordId: meal.id,
+                                    navigation.navigate('GerenciarRefeicoes', {
+                                        dailyMealRegistryId: meal.id,
                                         mealName: meal.name,
-                                        dailyMealRegistryId: todayId,
+                                        date: dateString,
+                                        patientId,
                                     })
                                 }
                             >
@@ -306,7 +290,7 @@ const styles = StyleSheet.create({
         color: '#1976D2',
         marginBottom: 16,
         top: -10,
-        
+
     },
     mealCard: {
         backgroundColor: '#FFF',

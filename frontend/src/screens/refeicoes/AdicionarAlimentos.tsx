@@ -1,29 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import {
-    View,
-    Text,
-    StyleSheet,
-    TouchableOpacity,
-    TextInput,
-    Alert,
-    ScrollView,
-    KeyboardAvoidingView,
-    Platform,
-    FlatList,
-} from 'react-native';
+import { Text, View, StyleSheet, TouchableOpacity, TextInput, Alert, ScrollView, KeyboardAvoidingView, Platform, FlatList } from 'react-native';
 import Icon from "react-native-vector-icons/FontAwesome";
-import { saveMeal, loadMeal } from '../../utils/mealStorage';
-
-
-interface MealItem {
-    id: string;
-    food_name: string;
-    quantity: string;
-    calories: number;
-    proteins: number;
-    carbs: number;
-    fats: number;
-}
+import MealItemService, { MealItemData } from '../../services/MealItemService';
 
 interface AdicionarAlimentosProps {
     navigation?: any;
@@ -31,23 +9,7 @@ interface AdicionarAlimentosProps {
 }
 
 const AdicionarAlimentos: React.FC<AdicionarAlimentosProps> = ({ navigation, route }) => {
-    const [showMenu, setShowMenu] = useState(false);
-    const [foodName, setFoodName] = useState('');
-    const [quantity, setQuantity] = useState('');
-    const [calories, setCalories] = useState('');
-    const [proteins, setProteins] = useState('');
-    const [carbs, setCarbs] = useState('');
-    const [fats, setFats] = useState('');
-    const [loading, setLoading] = useState(false);
-    const [mealItems, setMealItems] = useState<MealItem[]>([]);
-
-    // Parâmetros da navegação
-    const { mealRecordId, mealName, dailyMealRegistryId } = route?.params || {};
-
-    const handleGoBack = () => {
-        navigation?.goBack();
-    };
-
+    // Clear form fields
     const clearForm = () => {
         setFoodName('');
         setQuantity('');
@@ -57,56 +19,34 @@ const AdicionarAlimentos: React.FC<AdicionarAlimentosProps> = ({ navigation, rou
         setFats('');
     };
 
-    useEffect(() => {
-        const loadLocalData = async () => {
-            const items = await loadMeal(mealRecordId);
-            setMealItems(items);
-        };
-        loadLocalData();
-    }, []);
-
-
+    // Add meal item handler
     const handleAddMealItem = async () => {
         if (!foodName.trim() || !quantity.trim()) {
-            Alert.alert('Atenção', 'Por favor, insira o nome do alimento');
+            Alert.alert('Atenção', 'Por favor, insira o nome do alimento e a quantidade');
             return;
         }
-
-        if (!quantity.trim()) {
-            Alert.alert('Atenção', 'Por favor, insira a quantidade');
+        if (!mealRecordId) {
+            Alert.alert('Erro', 'ID da refeição não encontrado.');
             return;
         }
-
+        setLoading(true);
         try {
-            setLoading(true);
-
-            // Aqui você faria a chamada para a API
-            // const response = await api.post('/meal-item', {
-            //     food_name: foodName,
-            //     quantity: quantity,
-            //     calories: parseFloat(calories) || 0,
-            //     proteins: parseFloat(proteins) || 0,
-            //     carbs: parseFloat(carbs) || 0,
-            //     fats: parseFloat(fats) || 0,
-            //     food_id: 'food_uuid_here', // Seria obtido da seleção ou busca
-            //     meal_id: mealRecordId
-            // });
-
-            const newMealItem: MealItem = {
-                id: `item_${Date.now()}`,
+            const newMealItem: MealItemData = {
                 food_name: foodName,
                 quantity: quantity,
                 calories: parseFloat(calories) || 0,
                 proteins: parseFloat(proteins) || 0,
                 carbs: parseFloat(carbs) || 0,
                 fats: parseFloat(fats) || 0,
+                food_id: 'food_uuid_placeholder', // TODO: Replace with actual food_id from selection
+                meal_id: mealRecordId,
             };
-
-            const updatedList = [...mealItems, newMealItem];
-            setMealItems(updatedList);
-            await saveMeal(mealRecordId, updatedList); // 👈 salva localmente
+            await MealItemService.create(newMealItem);
             clearForm();
-
+            // Refresh list
+            const response = await MealItemService.getByMeal(mealRecordId);
+            const items = (response as any).data || response;
+            setMealItems(Array.isArray(items) ? items : []);
             Alert.alert('Sucesso!', 'Alimento adicionado com sucesso!');
         } catch (error) {
             Alert.alert('Erro', 'Não foi possível adicionar o alimento');
@@ -115,6 +55,7 @@ const AdicionarAlimentos: React.FC<AdicionarAlimentosProps> = ({ navigation, rou
         }
     };
 
+    // Remove meal item handler
     const handleRemoveMealItem = async (itemId: string) => {
         Alert.alert(
             'Confirmar Exclusão',
@@ -124,27 +65,38 @@ const AdicionarAlimentos: React.FC<AdicionarAlimentosProps> = ({ navigation, rou
                 {
                     text: 'Remover',
                     style: 'destructive',
-                    onPress: () => {
-                        setMealItems(mealItems.filter(item => item.id !== itemId));
+                    onPress: async () => {
+                        try {
+                            await MealItemService.delete(itemId);
+                            if (mealRecordId) {
+                                const response = await MealItemService.getByMeal(mealRecordId);
+                                const items = (response as any).data || response;
+                                setMealItems(Array.isArray(items) ? items : []);
+                            }
+                        } catch (error) {
+                            Alert.alert('Erro', 'Não foi possível remover o alimento');
+                        }
                     }
                 }
             ]
         );
     };
 
+    // Calculate total nutrients
     const getTotalNutrients = () => {
         return mealItems.reduce(
             (totals, item) => ({
-                calories: totals.calories + item.calories,
-                proteins: totals.proteins + item.proteins,
-                carbs: totals.carbs + item.carbs,
-                fats: totals.fats + item.fats,
+                calories: totals.calories + (item.calories || 0),
+                proteins: totals.proteins + (item.proteins || 0),
+                carbs: totals.carbs + (item.carbs || 0),
+                fats: totals.fats + (item.fats || 0),
             }),
             { calories: 0, proteins: 0, carbs: 0, fats: 0 }
         );
     };
 
-    const renderMealItem = ({ item }: { item: MealItem }) => (
+    // Render meal item
+    const renderMealItem = ({ item }: { item: MealItemData }) => (
         <View style={styles.itemCard}>
             <View style={styles.itemHeader}>
                 <View style={styles.itemInfo}>
@@ -153,35 +105,67 @@ const AdicionarAlimentos: React.FC<AdicionarAlimentosProps> = ({ navigation, rou
                 </View>
                 <TouchableOpacity
                     style={styles.removeButton}
-                    onPress={() => handleRemoveMealItem(item.id)}
+                    onPress={() => item.id && handleRemoveMealItem(item.id)}
                 >
                     <Icon name="trash" size={16} color="#FF5252" />
                 </TouchableOpacity>
             </View>
-
             <View style={styles.nutrientsRow}>
                 <View style={styles.nutrientItem}>
-                    <Text style={styles.nutrientValue}>{item.calories.toFixed(0)}</Text>
+                    <Text style={styles.nutrientValue}>{(item.calories || 0).toFixed(0)}</Text>
                     <Text style={styles.nutrientLabel}>kcal</Text>
                 </View>
                 <View style={styles.nutrientItem}>
-                    <Text style={styles.nutrientValue}>{item.proteins.toFixed(1)}</Text>
+                    <Text style={styles.nutrientValue}>{(item.proteins || 0).toFixed(1)}</Text>
                     <Text style={styles.nutrientLabel}>Prot.</Text>
                 </View>
                 <View style={styles.nutrientItem}>
-                    <Text style={styles.nutrientValue}>{item.carbs.toFixed(1)}</Text>
+                    <Text style={styles.nutrientValue}>{(item.carbs || 0).toFixed(1)}</Text>
                     <Text style={styles.nutrientLabel}>Carb.</Text>
                 </View>
                 <View style={styles.nutrientItem}>
-                    <Text style={styles.nutrientValue}>{item.fats.toFixed(1)}</Text>
+                    <Text style={styles.nutrientValue}>{(item.fats || 0).toFixed(1)}</Text>
                     <Text style={styles.nutrientLabel}>Gord.</Text>
                 </View>
             </View>
         </View>
     );
+    const [showMenu, setShowMenu] = useState(false);
+    const [foodName, setFoodName] = useState('');
+    const [quantity, setQuantity] = useState('');
+    const [calories, setCalories] = useState('');
+    const [proteins, setProteins] = useState('');
+    const [carbs, setCarbs] = useState('');
+    const [fats, setFats] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [mealItems, setMealItems] = useState<MealItemData[]>([]);
 
-    const totals = getTotalNutrients();
+    // Parâmetros da navegação: recebe apenas o mealRecordId e mealName da tela anterior
+    const { mealRecordId, mealName } = route?.params || {};
 
+    const handleGoBack = () => {
+        navigation?.goBack();
+    };
+
+    useEffect(() => {
+        const fetchMealItems = async () => {
+            if (!mealRecordId) return;
+            setLoading(true);
+            try {
+                const response = await MealItemService.getByMeal(mealRecordId);
+                const items = (response as any).data || response;
+                setMealItems(Array.isArray(items) ? items : []);
+            } catch (err) {
+                setMealItems([]);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchMealItems();
+    }, [mealRecordId]);
+
+    // All UI and logic should be inside the return block below
+    // The following is the correct return block for your component:
     return (
         <KeyboardAvoidingView
             style={styles.container}
@@ -192,42 +176,34 @@ const AdicionarAlimentos: React.FC<AdicionarAlimentosProps> = ({ navigation, rou
                 <TouchableOpacity onPress={handleGoBack}>
                     <Icon name="arrow-left" size={24} color="#fff" style={{ marginTop: 25 }} />
                 </TouchableOpacity>
-
                 <Text style={styles.headerTitle}>ALIMENTOS</Text>
-
                 <TouchableOpacity onPress={() => setShowMenu(!showMenu)}>
                     <Icon name="user-circle" size={32} color="#fff" style={{ marginTop: 25 }} />
                 </TouchableOpacity>
             </View>
-
             {/* Dropdown Menu */}
             {showMenu && (
                 <View style={styles.menu}>
                     <Text style={styles.menuTitle}>NOME DO USUÁRIO</Text>
-
                     <TouchableOpacity style={styles.menuItem}>
                         <Icon name="cog" size={16} color="#1976D2" />
                         <Text style={styles.menuText}>Minha Conta</Text>
                     </TouchableOpacity>
-
                     <TouchableOpacity style={styles.menuItem}>
                         <Icon name="sign-out" size={16} color="#1976D2" />
                         <Text style={styles.menuText}>Sair</Text>
                     </TouchableOpacity>
                 </View>
             )}
-
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
                 {/* Meal Info */}
                 <View style={styles.mealInfo}>
                     <Icon name="cutlery" size={20} color="#40C4FF" />
                     <Text style={styles.mealName}>{mealName || 'Refeição'}</Text>
                 </View>
-
                 {/* Formulário para adicionar alimento */}
                 <View style={styles.formContainer}>
                     <Text style={styles.formTitle}>Adicionar Alimento</Text>
-
                     {/* Nome do Alimento */}
                     <View style={styles.inputGroup}>
                         <Text style={styles.label}>Nome do Alimento</Text>
@@ -239,7 +215,6 @@ const AdicionarAlimentos: React.FC<AdicionarAlimentosProps> = ({ navigation, rou
                             placeholderTextColor="#999"
                         />
                     </View>
-
                     {/* Quantidade */}
                     <View style={styles.inputGroup}>
                         <Text style={styles.label}>Quantidade</Text>
@@ -251,10 +226,8 @@ const AdicionarAlimentos: React.FC<AdicionarAlimentosProps> = ({ navigation, rou
                             placeholderTextColor="#999"
                         />
                     </View>
-
                     {/* Informações Nutricionais */}
                     <Text style={styles.sectionTitle}>Informações Nutricionais (opcional)</Text>
-
                     <View style={styles.nutrientInputsRow}>
                         <View style={styles.nutrientInputGroup}>
                             <Text style={styles.label}>Calorias</Text>
@@ -267,7 +240,6 @@ const AdicionarAlimentos: React.FC<AdicionarAlimentosProps> = ({ navigation, rou
                                 placeholderTextColor="#999"
                             />
                         </View>
-
                         <View style={styles.nutrientInputGroup}>
                             <Text style={styles.label}>Proteínas (g)</Text>
                             <TextInput
@@ -280,7 +252,6 @@ const AdicionarAlimentos: React.FC<AdicionarAlimentosProps> = ({ navigation, rou
                             />
                         </View>
                     </View>
-
                     <View style={styles.nutrientInputsRow}>
                         <View style={styles.nutrientInputGroup}>
                             <Text style={styles.label}>Carboidratos (g)</Text>
@@ -293,7 +264,6 @@ const AdicionarAlimentos: React.FC<AdicionarAlimentosProps> = ({ navigation, rou
                                 placeholderTextColor="#999"
                             />
                         </View>
-
                         <View style={styles.nutrientInputGroup}>
                             <Text style={styles.label}>Gorduras (g)</Text>
                             <TextInput
@@ -306,7 +276,6 @@ const AdicionarAlimentos: React.FC<AdicionarAlimentosProps> = ({ navigation, rou
                             />
                         </View>
                     </View>
-
                     {/* Botão Adicionar */}
                     <TouchableOpacity
                         style={[styles.addButton, loading && styles.addButtonDisabled]}
@@ -324,37 +293,34 @@ const AdicionarAlimentos: React.FC<AdicionarAlimentosProps> = ({ navigation, rou
                         </Text>
                     </TouchableOpacity>
                 </View>
-
                 {/* Lista de Alimentos */}
                 {mealItems.length > 0 && (
                     <View style={styles.itemsList}>
                         <Text style={styles.itemsListTitle}>Alimentos Adicionados</Text>
-
                         <FlatList
                             data={mealItems}
-                            keyExtractor={(item) => item.id}
+                            keyExtractor={(item) => item.id ?? item.food_name}
                             renderItem={renderMealItem}
                             scrollEnabled={false}
                         />
-
                         {/* Resumo Nutricional */}
                         <View style={styles.summaryCard}>
                             <Text style={styles.summaryTitle}>Total da Refeição</Text>
                             <View style={styles.summaryRow}>
                                 <View style={styles.summaryItem}>
-                                    <Text style={styles.summaryValue}>{totals.calories.toFixed(0)}</Text>
+                                    <Text style={styles.summaryValue}>{getTotalNutrients().calories.toFixed(0)}</Text>
                                     <Text style={styles.summaryLabel}>kcal</Text>
                                 </View>
                                 <View style={styles.summaryItem}>
-                                    <Text style={styles.summaryValue}>{totals.proteins.toFixed(1)}</Text>
+                                    <Text style={styles.summaryValue}>{getTotalNutrients().proteins.toFixed(1)}</Text>
                                     <Text style={styles.summaryLabel}>Proteínas</Text>
                                 </View>
                                 <View style={styles.summaryItem}>
-                                    <Text style={styles.summaryValue}>{totals.carbs.toFixed(1)}</Text>
+                                    <Text style={styles.summaryValue}>{getTotalNutrients().carbs.toFixed(1)}</Text>
                                     <Text style={styles.summaryLabel}>Carboidratos</Text>
                                 </View>
                                 <View style={styles.summaryItem}>
-                                    <Text style={styles.summaryValue}>{totals.fats.toFixed(1)}</Text>
+                                    <Text style={styles.summaryValue}>{getTotalNutrients().fats.toFixed(1)}</Text>
                                     <Text style={styles.summaryLabel}>Gorduras</Text>
                                 </View>
                             </View>
