@@ -5,6 +5,7 @@ import { jwtDecode } from 'jwt-decode';
 
 const ACCESS_TOKEN_KEY = '@fitlife:access_token';
 const REFRESH_TOKEN_KEY = '@fitlife:refresh_token';
+const USER_ID_KEY = '@fitlife:user_id';
 const USERNAME_KEY = '@fitlife:username';
 const USER_ROLE_KEY = '@fitlife:role';
 
@@ -31,18 +32,23 @@ class AuthService {
         try {
             data.email = data.email.toLowerCase();
             const response = await apiClient.post(API_CONFIG.ENDPOINTS.AUTH.LOGIN, data);
-            const { accessToken, refreshToken, userId, userType } = response.data;
+            const { accessToken, refreshToken, userId, userType, username } = response.data;
 
             if (!accessToken || !refreshToken || !userId || !userType) {
                 throw new Error('Dados de autenticação incompletos do backend.');
             }
 
-            await AsyncStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
-            await AsyncStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
-            await AsyncStorage.setItem(USERNAME_KEY, userId);
-            await AsyncStorage.setItem(USER_ROLE_KEY, userType);
+            // Sempre salvar strings e usar chaves corretas
+            await AsyncStorage.setItem(ACCESS_TOKEN_KEY, String(accessToken));
+            await AsyncStorage.setItem(REFRESH_TOKEN_KEY, String(refreshToken));
+            await AsyncStorage.setItem(USER_ID_KEY, String(userId));
+            await AsyncStorage.setItem(USER_ROLE_KEY, String(userType));
 
-            return { accessToken, refreshToken, userId, userType };
+            if (username !== undefined && username !== null) {
+                await AsyncStorage.setItem(USERNAME_KEY, String(username));
+            }
+
+            return { accessToken, refreshToken, userId, userType, username };
         } catch (error: any) {
             console.error('Erro no login:', error);
             throw error;
@@ -109,6 +115,7 @@ class AuthService {
         await AsyncStorage.multiRemove([
             ACCESS_TOKEN_KEY,
             REFRESH_TOKEN_KEY,
+            USER_ID_KEY,
             USERNAME_KEY,
             USER_ROLE_KEY,
         ]);
