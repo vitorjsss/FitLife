@@ -305,29 +305,6 @@ export default function RegisterScreen() {
             />
             {errors.birthdate && <Text style={styles.error}>{errors.birthdate.message}</Text>}
 
-            {/* Sexo (todos os tipos) - botões M/F */}
-            <Controller
-                control={control}
-                name="sex"
-                render={({ field: { onChange, value } }) => (
-                    <View style={styles.sexContainer}>
-                        <Text style={{ marginBottom: 8 }}>Sexo</Text>
-                        <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
-                            {['M', 'F'].map((option) => (
-                                <TouchableOpacity
-                                    key={option}
-                                    style={[styles.sexButton, value === option && styles.sexButtonSelected]}
-                                    onPress={() => onChange(option)}
-                                >
-                                    <Text style={[styles.sexButtonText, value === option && styles.sexButtonTextSelected]}>{option === 'M' ? 'Masculino' : 'Feminino'}</Text>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
-                    </View>
-                )}
-            />
-            {errors.sex && <Text style={styles.error}>{errors.sex.message}</Text>}
-
             {/* Contato */}
             <Controller
                 control={control}
@@ -376,6 +353,29 @@ export default function RegisterScreen() {
                 />
             )}
             {errors.cref && <Text style={styles.error}>{errors.cref.message}</Text>}
+
+            {/* Sexo (todos os tipos) - botões M/F */}
+            <Controller
+                control={control}
+                name="sex"
+                render={({ field: { onChange, value } }) => (
+                    <View style={styles.sexContainer}>
+                        <Text style={{ marginBottom: 8 }}>Sexo</Text>
+                        <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
+                            {['M', 'F'].map((option) => (
+                                <TouchableOpacity
+                                    key={option}
+                                    style={[styles.sexButton, value === option && styles.sexButtonSelected]}
+                                    onPress={() => onChange(option)}
+                                >
+                                    <Text style={[styles.sexButtonText, value === option && styles.sexButtonTextSelected]}>{option === 'M' ? 'Masculino' : 'Feminino'}</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                    </View>
+                )}
+            />
+            {errors.sex && <Text style={styles.error}>{errors.sex.message}</Text>}
 
             {/* Botão Cadastrar */}
             <TouchableOpacity

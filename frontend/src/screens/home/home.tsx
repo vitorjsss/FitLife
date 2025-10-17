@@ -94,21 +94,38 @@ export default function HomeScreen() {
         <View style={styles.container}>
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => setShowMenu(!showMenu)}>
-                    <Icon name="user-circle" size={32} color="#fff" style={{ marginTop: 25 }} />
-                </TouchableOpacity>
+                <View style={{ width: 25 }} />
 
                 <Text style={styles.headerTitle}>INÍCIO</Text>
 
-                <View style={{ width: 25 }} />
+                <TouchableOpacity onPress={() => setShowMenu(!showMenu)}>
+                    <Icon name="user-circle" size={32} color="#fff" style={{ marginTop: 25 }} />
+                </TouchableOpacity>
             </View>
 
             {/* Dropdown Menu */}
             {showMenu && (
                 <View style={styles.menu}>
                     <Text style={styles.menuTitle}>
-                        {personalData?.name || "NOME DO USUÁRIO"}
+                        {personalData?.name ? personalData.name.split(' ')[0] : "NOME DO USUÁRIO"}
                     </Text>
+                    {userRole && (
+                        <Text
+                            style={
+                                [
+                                    styles.roleText,
+                                    userRole === 'Patient' ? { color: '#1976D2' } :
+                                        userRole === 'Nutricionist' ? { color: '#43A047' } :
+                                            userRole === 'Physical_educator' ? { color: '#FF9800' } :
+                                                { color: '#888' }
+                                ]
+                            }
+                        >
+                            {userRole === 'Patient' && 'Paciente'}
+                            {userRole === 'Nutricionist' && 'Nutricionista'}
+                            {userRole === 'Physical_educator' && 'Educador Físico'}
+                        </Text>
+                    )}
 
                     <TouchableOpacity style={styles.menuItem}>
                         <Icon name="cog" size={16} color="#1976D2" />
@@ -124,6 +141,20 @@ export default function HomeScreen() {
 
             {/* Conteúdo */}
             <View style={styles.content}>
+                {/* Texto de boas-vindas */}
+                <View style={{ alignItems: 'center', marginBottom: 18 }}>
+                    {personalData?.name ? (
+                        <Text style={{ fontSize: 20, color: '#1976D2' }}>
+                            Bem-vindo,{' '}
+                            <Text style={{ fontWeight: 'bold', color: '#40C4FF', fontSize: 22 }}>
+                                {personalData.name.split(' ')[0]}!
+                            </Text>
+                        </Text>
+                    ) : (
+                        <Text style={{ fontSize: 20, color: '#1976D2' }}>Bem-vindo!</Text>
+                    )}
+                </View>
+
                 <View style={styles.row}>
                     <TouchableOpacity
                         style={styles.card}
@@ -153,7 +184,6 @@ export default function HomeScreen() {
                 <TouchableOpacity style={styles.navItem}>
                     <Icon name="plus-square" size={20} color="#fff" />
                     <Text style={styles.navText}>Gerenciar</Text>
-                    <Text style={styles.navText}>Medidas</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -200,8 +230,8 @@ const styles = StyleSheet.create({
     },
     menu: {
         position: "absolute",
-        top: 90,
-        left: 20,
+        top: 80,
+        right: 20,
         width: 200,
         backgroundColor: "#fff",
         borderRadius: 8,
@@ -215,10 +245,18 @@ const styles = StyleSheet.create({
     },
     menuTitle: {
         fontWeight: "bold",
-        marginBottom: 10,
+        marginBottom: 0,
         borderBottomWidth: 1,
         borderBottomColor: "#ccc",
         paddingBottom: 5,
+        fontSize: 18,
+        textAlign: 'center',
+    },
+    roleText: {
+        fontWeight: '600',
+        fontSize: 15,
+        marginBottom: 10,
+        textAlign: 'center',
     },
     menuItem: {
         flexDirection: "row",
