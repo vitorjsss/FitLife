@@ -13,6 +13,7 @@ import dailyMealRegistryRoutes from "./routes/dailyMealRegistryRoutes.js";
 import foodRoutes from "./routes/foodRoutes.js";
 import mealRecordRoutes from "./routes/mealRecordRoutes.js";
 import mealItemRoutes from "./routes/mealItemRoutes.js";
+import workoutRoutes from "./routes/workoutRoutes.js";
 
 const app = express();
 app.use(cors());
@@ -27,6 +28,7 @@ app.use("/daily-meal-registry", dailyMealRegistryRoutes);
 app.use("/food", foodRoutes);
 app.use("/meal-record", mealRecordRoutes);
 app.use("/meal-item", mealItemRoutes);
+app.use("/workout", workoutRoutes);
 
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => {

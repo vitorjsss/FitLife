@@ -105,41 +105,45 @@ CREATE TABLE medidas_nutricionais (
 );
 
 -- ----------------------------
--- Tabela TREINO
--- ----------------------------
-CREATE TABLE treino (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(100) NOT NULL,
-    description TEXT,
-    duration INTERVAL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    patient_id UUID NOT NULL REFERENCES patient(id),
-    physical_educator_id UUID REFERENCES physical_educator(id)
-);
-
--- ----------------------------
--- Tabela EXERCICIO
+-- Enum para tipos de exercício
 -- ----------------------------
 CREATE TYPE exercise_type_enum AS ENUM (
     'forca',
     'cardio',
     'flexibilidade',
-    'esporte'
+    'esporte',
+    'funcional',
+    'outro'
 );
 
-CREATE TABLE exercicio (
+-- ----------------------------
+-- Tabela WORKOUT (Treinos)
+-- ----------------------------
+CREATE TABLE workout (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(100) NOT NULL,
-    exercise_type exercise_type_enum NOT NULL,
-    series INT,
-    repetitions INT,
-    load FLOAT,
-    duration INTERVAL,
-    distance FLOAT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    treino_id UUID NOT NULL REFERENCES treino(id) ON DELETE CASCADE
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
+    patient_id UUID NOT NULL REFERENCES patient(id) ON DELETE CASCADE,
+    physical_educator_id UUID REFERENCES physical_educator(id)
+);
+
+-- ----------------------------
+-- Tabela WORKOUT_EXERCISE (Exercícios do Treino)
+-- ----------------------------
+CREATE TABLE workout_exercise (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    exercise_type exercise_type_enum DEFAULT 'outro',
+    carga FLOAT DEFAULT 0,
+    series INTEGER NOT NULL,
+    repeticoes INTEGER NOT NULL,
+    notes TEXT,
+    order_index INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
+    workout_id UUID NOT NULL REFERENCES workout(id) ON DELETE CASCADE
 );
 
 -- ----------------------------
