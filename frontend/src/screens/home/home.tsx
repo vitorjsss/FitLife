@@ -181,9 +181,11 @@ export default function HomeScreen() {
                     <Text style={styles.navText}>Relatórios</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.navItem}>
+                <TouchableOpacity style={styles.navItem}
+                    onPress={() => navigation.navigate('GerenciarMedidas')}
+                >
                     <Icon name="plus-square" size={20} color="#fff" />
-                    <Text style={styles.navText}>Gerenciar</Text>
+                    <Text style={styles.navText}>Gerenciar Medidas</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -193,10 +195,14 @@ export default function HomeScreen() {
                     <Text style={styles.navText}>Início</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.navItem}>
+                <TouchableOpacity style={styles.navItem}
+                    onPress={() => navigation.navigate('Checklist')}
+                >
                     <Icon name="list" size={20} color="#fff" />
                     <Text style={styles.navText}>CheckList</Text>
+
                 </TouchableOpacity>
+                
 
                 <TouchableOpacity style={styles.navItem}>
                     <Icon name="calendar" size={20} color="#fff" />
@@ -316,5 +322,6 @@ const styles = StyleSheet.create({
         color: "#fff",
         fontSize: 12,
         marginTop: 10,
+        textAlign: "center",
     },
 });

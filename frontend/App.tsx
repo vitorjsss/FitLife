@@ -7,12 +7,13 @@ import React, { useEffect, useState } from 'react';
 import Login from './src/screens/login/login';
 import RegisterScreen from './src/screens/cadastro/register';
 import HomeScreen from './src/screens/home/home';
-import Refeicoes from './src/screens/refeicoes/Refeicoes';
+import Refeicoes from './src/screens/refeicoes/refeicoes';
 import GerenciarRefeicoes from './src/screens/refeicoes/GerenciarRefeicoes';
 import AdicionarAlimentos from './src/screens/refeicoes/AdicionarAlimentos';
 import GerenciarTreinos from './src/screens/treinos/GerenciarTreinos';
 import Treinos from './src/screens/treinos/Treinos';
 import AdicionarTreinos from './src/screens/treinos/AdicionarTreinos';
+import ChecklistScreen from './src/screens/checklist/Checklist';
 
 import { authService } from './src/services/authService';
 
@@ -31,6 +32,7 @@ export type RootStackParamList = {
     mealName: string;
     dailyMealRegistryId: string;
   };
+  GerenciarMedidas: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -65,17 +67,20 @@ export default function App() {
         <Stack.Screen name="Login" component={Login} />
         <Stack.Screen name="Register" component={RegisterScreen} />
         <Stack.Screen name="Home" component={HomeScreen} />
+        <Stack.Screen name="Checklist" component={ChecklistScreen} />
         <Stack.Screen name="Refeicoes" component={Refeicoes} />
         <Stack.Screen name="GerenciarRefeicoes" component={GerenciarRefeicoes} />
         <Stack.Screen name="AdicionarAlimentos" component={AdicionarAlimentos} />
         <Stack.Screen name="Treinos" component={Treinos} />
         <Stack.Screen name="GerenciarTreinos" component={GerenciarTreinos} />
         <Stack.Screen name="AdicionarTreinos" component={AdicionarTreinos} />
+        <Stack.Screen name="GerenciarMedidas" component={require('./src/screens/medidas/GerenciarMedidas').default} />
       </Stack.Navigator>
       <StatusBar style="auto" />
     </NavigationContainer>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {
