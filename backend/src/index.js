@@ -14,6 +14,7 @@ import foodRoutes from "./routes/foodRoutes.js";
 import mealRecordRoutes from "./routes/mealRecordRoutes.js";
 import mealItemRoutes from "./routes/mealItemRoutes.js";
 import workoutRoutes from "./routes/workoutRoutes.js";
+import workoutSessionRoutes from "./routes/workoutSessionRoutes.js";
 
 const app = express();
 app.use(cors());
@@ -29,6 +30,7 @@ app.use("/food", foodRoutes);
 app.use("/meal-record", mealRecordRoutes);
 app.use("/meal-item", mealItemRoutes);
 app.use("/workout", workoutRoutes);
+app.use("/workout-session", workoutSessionRoutes);
 
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => {

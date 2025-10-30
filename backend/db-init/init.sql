@@ -147,6 +147,44 @@ CREATE TABLE workout_exercise (
 );
 
 -- ----------------------------
+-- Tabela WORKOUT_SESSION (Sessão de Treino - Histórico de execução)
+-- ----------------------------
+CREATE TABLE workout_session (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    workout_id UUID NOT NULL REFERENCES workout(id) ON DELETE CASCADE,
+    patient_id UUID NOT NULL REFERENCES patient(id) ON DELETE CASCADE,
+    session_date DATE NOT NULL DEFAULT CURRENT_DATE,
+    start_time TIMESTAMP,
+    end_time TIMESTAMP,
+    notes TEXT,
+    completed BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- ----------------------------
+-- Tabela WORKOUT_EXERCISE_LOG (Checklist - Exercícios completados)
+-- ----------------------------
+CREATE TABLE workout_exercise_log (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    workout_session_id UUID NOT NULL REFERENCES workout_session(id) ON DELETE CASCADE,
+    workout_exercise_id UUID NOT NULL REFERENCES workout_exercise(id) ON DELETE CASCADE,
+    series_completed INTEGER DEFAULT 0,
+    repeticoes_completed INTEGER DEFAULT 0,
+    carga_used FLOAT DEFAULT 0,
+    checked BOOLEAN NOT NULL DEFAULT FALSE,
+    completed BOOLEAN DEFAULT FALSE,
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Índices para melhor performance
+CREATE INDEX idx_workout_session_patient ON workout_session(patient_id);
+CREATE INDEX idx_workout_session_date ON workout_session(session_date);
+CREATE INDEX idx_workout_exercise_log_session ON workout_exercise_log(workout_session_id);
+
+-- ----------------------------
 -- Tabela LOGS
 -- ----------------------------
 
