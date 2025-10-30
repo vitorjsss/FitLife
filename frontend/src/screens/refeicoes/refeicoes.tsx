@@ -26,7 +26,11 @@ const Refeicoes: React.FC<RefeicoesProps> = ({ route, navigation }) => {
     const [loading, setLoading] = useState(true);
 
     const patientId = route?.params?.patientId || '';
-    const dateString = new Date().toISOString().split('T')[0];
+    // Gera data local (corrige bug do dia anterior)
+    const today = new Date();
+    const dateString = today.getFullYear() + '-' +
+        String(today.getMonth() + 1).padStart(2, '0') + '-' +
+        String(today.getDate()).padStart(2, '0');
 
     const handleCriarRefeicao = () => {
         navigation?.navigate('GerenciarRefeicoes', {
@@ -148,9 +152,11 @@ const Refeicoes: React.FC<RefeicoesProps> = ({ route, navigation }) => {
                                     {meal.date && (
                                         <Text style={{ marginLeft: 8, color: '#888', fontSize: 13 }}>
                                             {(() => {
+                                                // Ajusta para data local (corrige bug do dia anterior)
                                                 const d = new Date(meal.date);
-                                                return d instanceof Date && !isNaN(d.getTime())
-                                                    ? `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()}`
+                                                const localDate = new Date(d.getTime() + d.getTimezoneOffset() * 60000);
+                                                return localDate instanceof Date && !isNaN(localDate.getTime())
+                                                    ? `${localDate.getDate().toString().padStart(2, '0')}/${(localDate.getMonth() + 1).toString().padStart(2, '0')}/${localDate.getFullYear()}`
                                                     : '';
                                             })()}
                                         </Text>
