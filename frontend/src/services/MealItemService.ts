@@ -27,7 +27,7 @@ const MealItemService = {
     },
 
     getByMeal: async (meal_id: string) => {
-        return apiClient.get(`/meal-item?meal_id=${encodeURIComponent(meal_id)}`);
+        return apiClient.get(`/meal-item/meal/${encodeURIComponent(meal_id)}`);
     },
 
     update: async (id: string, data: MealItemData) => {

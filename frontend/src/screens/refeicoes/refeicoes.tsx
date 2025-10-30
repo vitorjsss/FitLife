@@ -41,7 +41,7 @@ const Refeicoes: React.FC<RefeicoesProps> = ({ route, navigation }) => {
         const fetchMeals = async () => {
             setLoading(true);
             try {
-                const meals = await DailyMealService.getByDate(dateString);
+                const meals = await DailyMealService.getByDate(dateString, patientId);
                 setDailyMeals(Array.isArray(meals) ? meals : []);
                 console.log('Refeições carregadas do backend:', meals);
             } catch (err) {
@@ -90,7 +90,7 @@ const Refeicoes: React.FC<RefeicoesProps> = ({ route, navigation }) => {
             {/* CONTEÚDO */}
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
                 {loading ? (
-                    <Text>Carregando...</Text>
+                    <Text>Carregando refeições...</Text>
                 ) : dailyMeals.length === 0 ? (
                     <>
                         {/* ILUSTRAÇÃO INICIAL */}
@@ -121,11 +121,6 @@ const Refeicoes: React.FC<RefeicoesProps> = ({ route, navigation }) => {
                     </>
                 ) : (
                     <>
-                        {/* LISTA DE REFEIÇÕES */}
-                        <Text style={styles.listTitle}>
-                            Refeições de {new Date().toLocaleDateString('pt-BR')}
-                        </Text>
-
                         {dailyMeals.map((meal) => (
                             <TouchableOpacity
                                 key={meal.id}
@@ -238,7 +233,6 @@ const styles = StyleSheet.create({
     content: {
         flex: 1,
         padding: 20,
-        marginTop: 150,
     },
     illustrationContainer: {
         alignItems: 'center',

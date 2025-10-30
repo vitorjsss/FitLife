@@ -37,9 +37,9 @@ export const DailyMealRegistryService = {
         }
     },
 
-    getByDate: async (date) => {
+    getByDate: async (date, patientId) => {
         try {
-            return await DailyMealRegistryRepository.findByDate(date);
+            return await DailyMealRegistryRepository.findByDate(date, patientId);
         } catch (error) {
             console.error("Erro no DailyMealRegistryService.getByDate:", error);
             throw error;

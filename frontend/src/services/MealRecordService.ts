@@ -5,6 +5,7 @@ export interface MealRecordData {
     created_at?: string;
     updated_at?: string;
     daily_meal_registry_id: string; // UUID
+    checked: boolean;
 }
 
 import { apiClient } from './apiClient';

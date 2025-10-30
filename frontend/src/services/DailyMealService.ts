@@ -25,8 +25,8 @@ const DailyMealService = {
         return apiClient.get(`/daily-meal-registry?patientId=${encodeURIComponent(patientId)}`);
     },
 
-    getByDate: async (date: string) => {
-        return apiClient.get(`/daily-meal-registry?date=${encodeURIComponent(date)}`);
+    getByDate: async (date: string, patientId: string) => {
+        return apiClient.get(`/daily-meal-registry/by-date?date=${encodeURIComponent(date)}&patientId=${encodeURIComponent(patientId)}`);
     },
 
     update: async (id: string, data: DailyMealData) => {

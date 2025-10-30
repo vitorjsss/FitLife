@@ -57,13 +57,37 @@ const MealRecordRepository = {
     },
 
     update: async (id, data) => {
+        // Monta dinamicamente os campos a atualizar
+        const fields = [];
+        const values = [id];
+        let idx = 2;
+        if (data.name !== undefined) {
+            fields.push(`name = $${idx}`);
+            values.push(data.name);
+            idx++;
+        }
+        if (data.icon_path !== undefined) {
+            fields.push(`icon_path = $${idx}`);
+            values.push(data.icon_path);
+            idx++;
+        }
+        if (data.daily_meal_registry_id !== undefined) {
+            fields.push(`daily_meal_registry_id = $${idx}`);
+            values.push(data.daily_meal_registry_id);
+            idx++;
+        }
+        if (data.checked !== undefined) {
+            fields.push(`checked = $${idx}`);
+            values.push(data.checked);
+            idx++;
+        }
+        fields.push(`updated_at = CURRENT_TIMESTAMP`);
         const query = `
-            UPDATE MealRecord 
-            SET name = $2, icon_path = $3, daily_meal_registry_id = $4, updated_at = CURRENT_TIMESTAMP
+            UPDATE MealRecord
+            SET ${fields.join(', ')}
             WHERE id = $1
             RETURNING *;
         `;
-        const values = [id, data.name, data.icon_path, data.daily_meal_registry_id];
         const { rows } = await pool.query(query, values);
         return rows[0];
     },

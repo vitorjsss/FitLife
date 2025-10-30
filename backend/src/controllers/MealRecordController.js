@@ -214,6 +214,7 @@ export const MealRecordController = {
         const updateData = req.body;
         const ip = req.ip;
         const userId = req.user?.id;
+        console.log('MealRecordController.update - updateData:', updateData);
 
         try {
             const oldMeal = await MealRecordService.getById(id);

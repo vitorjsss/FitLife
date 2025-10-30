@@ -32,9 +32,9 @@ const DailyMealRegistryRepository = {
         return rows;
     },
 
-    findByDate: async (date) => {
-        const query = 'SELECT * FROM DailyMealRegistry WHERE date = $1 ORDER BY created_at DESC;';
-        const { rows } = await pool.query(query, [date]);
+    findByDate: async (date, patientId) => {
+        const query = 'SELECT * FROM DailyMealRegistry WHERE date = $1 AND patient_id = $2 ORDER BY created_at DESC;';
+        const { rows } = await pool.query(query, [date, patientId]);
         return rows;
     },
 

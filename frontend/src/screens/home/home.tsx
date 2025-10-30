@@ -195,14 +195,14 @@ export default function HomeScreen() {
                     <Text style={styles.navText}>Início</Text>
                 </TouchableOpacity>
 
+
                 <TouchableOpacity style={styles.navItem}
-                    onPress={() => navigation.navigate('Checklist')}
+                    onPress={() => navigation.navigate('Checklist', personalData?.id ? { patientId: personalData.id } : {})}
                 >
                     <Icon name="list" size={20} color="#fff" />
                     <Text style={styles.navText}>CheckList</Text>
-
                 </TouchableOpacity>
-                
+
 
                 <TouchableOpacity style={styles.navItem}>
                     <Icon name="calendar" size={20} color="#fff" />

@@ -2,6 +2,41 @@ import { DailyMealRegistryService } from "../services/DailyMealRegistryService.j
 import { LogService } from "../services/LogService.js";
 
 export const DailyMealRegistryController = {
+    getByDate: async (req, res) => {
+        const { date, patientId } = req.query;
+        console.log('getByDate params:', { date, patientId });
+        const ip = req.ip;
+        const userId = req.user?.id;
+        if (!date || !patientId) {
+            return res.status(400).json({ message: "Parâmetros 'date' e 'patientId' são obrigatórios." });
+        }
+        try {
+            const registries = await DailyMealRegistryService.getByDate(date, patientId);
+            await LogService.createLog({
+                action: "GET_DAILY_MEAL_REGISTRY_BY_DATE",
+                logType: "read",
+                description: `Registros diários para data ${date} e paciente ${patientId} recuperados`,
+                ip,
+                oldValue: null,
+                newValue: { date, patientId, count: registries.length },
+                status: "SUCCESS",
+                userId: userId
+            });
+            res.json(registries);
+        } catch (err) {
+            await LogService.createLog({
+                action: "GET_DAILY_MEAL_REGISTRY_BY_DATE",
+                logType: "ERROR",
+                description: err.message,
+                ip,
+                oldValue: null,
+                newValue: { date, patientId },
+                status: "FAILURE",
+                userId: userId
+            });
+            res.status(500).json({ message: "Erro ao buscar registro diário por data", error: err });
+        }
+    },
     create: async (req, res) => {
         const registryData = req.body;
         const ip = req.ip;
@@ -77,6 +112,22 @@ export const DailyMealRegistryController = {
         const { id } = req.params;
         const ip = req.ip;
         const userId = req.user?.id;
+
+        // Validação de UUID
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+        if (!uuidRegex.test(id)) {
+            await LogService.createLog({
+                action: "GET_DAILY_MEAL_REGISTRY_BY_ID",
+                logType: "ERROR",
+                description: `ID inválido recebido: ${id}`,
+                ip,
+                oldValue: null,
+                newValue: null,
+                status: "INVALID_ID",
+                userId: userId
+            });
+            return res.status(400).json({ error: "Formato de UUID inválido para id" });
+        }
 
         try {
             const registry = await DailyMealRegistryService.getById(id);

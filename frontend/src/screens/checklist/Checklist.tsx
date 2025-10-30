@@ -12,8 +12,8 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Icon from "react-native-vector-icons/FontAwesome";
 import DailyMealService from "../../services/DailyMealService";
-import MealRecordService from "../../services/MealRecordService";
-import { useNavigation } from "@react-navigation/native";
+import MealRecordService, { MealRecordData } from "../../services/MealRecordService";
+import { useNavigation, useRoute } from "@react-navigation/native";
 
 const TRAININGS_KEY = "@fitlife_treinos";
 const { width } = Dimensions.get("window");
@@ -75,6 +75,21 @@ export default function ChecklistScreen() {
     meals: Record<string, boolean>;
   }>({ trainings: {}, meals: {} });
   const navigation = useNavigation();
+  const route = useRoute();
+  // patientId pode vir das params ou do AsyncStorage
+  const paramPatientId = (route.params as any)?.patientId ?? null;
+  const [patientId, setPatientId] = useState<string | null>(paramPatientId);
+
+  // Se não veio via params, busca do AsyncStorage
+  useEffect(() => {
+    if (!patientId) {
+      const fetchPatientId = async () => {
+        const pid = await AsyncStorage.getItem("@fitlife:user_id");
+        setPatientId(pid);
+      };
+      fetchPatientId();
+    }
+  }, [patientId]);
 
   useEffect(() => {
     loadAll();
@@ -102,8 +117,12 @@ export default function ChecklistScreen() {
 
   const loadMeals = async () => {
     try {
+      if (!patientId) {
+        setMeals([]);
+        return;
+      }
       const dateStr = formatDateKey(date);
-      const registries = await DailyMealService.getByDate(dateStr);
+      const registries = await DailyMealService.getByDate(dateStr, patientId);
       if (Array.isArray(registries) && registries.length > 0) {
         const registryId = registries[0].id;
         const records = await MealRecordService.getByRegistry(registryId);
@@ -147,10 +166,42 @@ export default function ChecklistScreen() {
     await saveCompleted(next);
   };
 
+  const toggleMealItem = async (id?: string) => {
+    if (!id) {
+      Alert.alert("Erro", "ID da refeição não fornecido.");
+      return;
+    }
+
+    const meal = meals.find((m) => m.id === id);
+    if (!meal) {
+      Alert.alert("Erro", "Refeição não encontrada.");
+      return;
+    }
+
+    const updatedMeal = { ...meal, checked: !meal.checked };
+    try {
+      await MealRecordService.update(id, updatedMeal);
+      const updatedMeals = meals.map((m) => (m.id === id ? updatedMeal : m));
+      setMeals(updatedMeals);
+
+      // Also toggle in completed state
+      const next = {
+        ...completed,
+        meals: { ...(completed as any).meals, [id]: updatedMeal.checked },
+      };
+      setCompleted(next);
+      await saveCompleted(next);
+    } catch (err) {
+      console.error("Erro ao atualizar refeição:", err);
+      Alert.alert("Erro", "Não foi possível atualizar o status da refeição.");
+    }
+  }
+
   const changeDay = (delta: number) => {
-    const d = new Date(date);
+    // Garante que a data seja atualizada corretamente sem problemas de fuso/horário
+    const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
     d.setDate(d.getDate() + delta);
-    setDate(d);
+    setDate(new Date(d));
   };
 
   const renderTraining = ({ item }: { item: any }) => {
@@ -195,37 +246,33 @@ export default function ChecklistScreen() {
     );
   };
 
-  const renderMeal = ({ item }: { item: any }) => {
-    const done = !!completed.meals[item.id];
+  const renderMeal = ({ item }: { item: MealRecordData, }) => {
     return (
-      <View style={[styles.card, done && styles.cardDone]}>
+      <View style={[styles.card, item.checked && styles.cardDone]}>
         <TouchableOpacity
           style={styles.cardLeft}
           activeOpacity={0.8}
           onPress={() => {
             // optional: navigate to meal details if you have a screen
-            navigation.navigate("Refeicoes", { /* pass params if needed */ });
+            navigation.navigate("AdicionarAlimentos", { mealRecordId: item.id, mealName: item.name, date, patientId });
           }}
         >
           <View style={[styles.iconCircle, { backgroundColor: "#FFF3E0" }]}>
             <Icon name="cutlery" size={18} color="#FB8C00" />
           </View>
           <View style={styles.cardText}>
-            <Text style={[styles.cardTitle, done && styles.cardTitleDone]}>
-              {item.name || item.nome || "Refeição"}
-            </Text>
-            <Text style={styles.cardSubtitle}>
-              {item.itemCount ? `${item.itemCount} alimentos` : "Sem itens"}
+            <Text style={[styles.cardTitle, item.checked && styles.cardTitleDone]}>
+              {item.name || item.name || "Refeição"}
             </Text>
           </View>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.cardRight}
-          onPress={() => toggleItem("meals", item.id)}
+          onPress={() => toggleMealItem(item.id)}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          {done ? (
+          {item.checked ? (
             <Icon name="check-circle" size={22} color="#4caf50" />
           ) : (
             <Icon name="square-o" size={20} color="#bdbdbd" />

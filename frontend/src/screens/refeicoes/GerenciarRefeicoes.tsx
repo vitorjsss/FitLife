@@ -19,8 +19,7 @@ import Icon from "react-native-vector-icons/FontAwesome";
 interface MealRecord {
     id: string;
     name: string;
-    icon_path?: string;
-    itemCount?: number;
+    checked: boolean;
 }
 
 interface GerenciarRefeicoesProps {
@@ -133,6 +132,7 @@ const GerenciarRefeicoes: React.FC<GerenciarRefeicoesProps> = ({ navigation, rou
     };
 
     const handleEditMealRecord = (mealRecord: MealRecord) => {
+        console.log('Navegando para AdicionarAlimentos com:', mealRecord.id);
         navigation?.navigate('AdicionarAlimentos', {
             mealRecordId: mealRecord.id,
             mealName: mealRecord.name,
@@ -258,25 +258,27 @@ const GerenciarRefeicoes: React.FC<GerenciarRefeicoesProps> = ({ navigation, rou
 
         return (
             <TouchableOpacity
-                style={styles.mealCard}
+                style={[styles.mealCard, {
+                    backgroundColor: item.checked ? '#E8F5E9' : '#F8F9FA',
+                    borderLeftColor: item.checked ? '#378544ff' : '#40C4FF',
+                }]}
                 onPress={() => handleEditMealRecord(item)}
                 onLongPress={() => handleLongPressMeal(item)}
                 delayLongPress={500}
                 activeOpacity={0.7}
             >
                 <View style={styles.mealCardHeader}>
-                    <Icon name={iconName} size={24} color="#40C4FF" />
+                    <Icon name={iconName} size={24} color={item.checked ? "#378544ff" : "#40C4FF"} />
                     <View style={styles.mealCardInfo}>
-                        <Text style={styles.mealCardTitle}>{item.name}</Text>
-                        <Text style={styles.mealCardSubtitle}>
-                            {item.itemCount || 0} alimentos adicionados
-                        </Text>
+                        <Text style={[styles.mealCardTitle, {
+                            color: item.checked ? '#378544ff' : '#40C4FF'
+                        }]}>{item.name}</Text>
                     </View>
-                    <Icon name="chevron-right" size={16} color="#666" />
+                    <Icon name="chevron-right" size={16} color={item.checked ? "#378544ff" : "#40C4FF"} />
                 </View>
             </TouchableOpacity>
         );
-    };
+    }
 
     return (
         <KeyboardAvoidingView
@@ -394,7 +396,7 @@ const GerenciarRefeicoes: React.FC<GerenciarRefeicoesProps> = ({ navigation, rou
                     <View style={styles.mealsList}>
                         <Text style={styles.mealsListTitle}>Refeições do Dia</Text>
                         <Text style={styles.helpText}>
-                            💡 Toque para adicionar alimentos ou segure para editar
+                            Toque para adicionar alimentos ou segure para editar
                         </Text>
                         <FlatList
                             data={mealRecords}
@@ -674,12 +676,10 @@ const styles = StyleSheet.create({
         fontStyle: 'italic',
     },
     mealCard: {
-        backgroundColor: '#F8F9FA',
         borderRadius: 8,
         padding: 16,
         marginBottom: 12,
         borderLeftWidth: 4,
-        borderLeftColor: '#40C4FF',
     },
     mealCardHeader: {
         flexDirection: 'row',
@@ -692,12 +692,6 @@ const styles = StyleSheet.create({
     mealCardTitle: {
         fontSize: 16,
         fontWeight: '600',
-        color: '#333',
-    },
-    mealCardSubtitle: {
-        fontSize: 14,
-        color: '#666',
-        marginTop: 2,
     },
     // Estilos do Modal
     modalOverlay: {
