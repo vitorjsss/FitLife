@@ -312,7 +312,7 @@ export default function RegisterScreen() {
                 render={({ field: { onChange, value } }) => (
                     <TextInput
                         style={styles.input}
-                        placeholder="Contato (telefone, email, etc)"
+                        placeholder="Telefone +55 (XX) XXXXX-XXXX"
                         value={value}
                         onChangeText={onChange}
                     />

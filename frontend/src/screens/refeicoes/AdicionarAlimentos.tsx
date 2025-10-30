@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Text, View, StyleSheet, TouchableOpacity, TextInput, Alert, ScrollView, KeyboardAvoidingView, Platform, FlatList } from 'react-native';
+import { Text, View, StyleSheet, TouchableOpacity, TextInput, Alert, ScrollView, KeyboardAvoidingView, Platform, FlatList, Modal } from 'react-native';
 import Icon from "react-native-vector-icons/FontAwesome";
 import MealItemService, { MealItemData } from '../../services/MealItemService';
+import MealRecordService from '../../services/MealRecordService';
 
 interface AdicionarAlimentosProps {
     navigation?: any;
@@ -25,7 +26,7 @@ const AdicionarAlimentos: React.FC<AdicionarAlimentosProps> = ({ navigation, rou
             Alert.alert('Atenção', 'Por favor, insira o nome do alimento e a quantidade');
             return;
         }
-        if (!mealRecordId) {
+        if (!mealRecord.id) {
             Alert.alert('Erro', 'ID da refeição não encontrado.');
             return;
         }
@@ -38,12 +39,12 @@ const AdicionarAlimentos: React.FC<AdicionarAlimentosProps> = ({ navigation, rou
                 proteins: parseFloat(proteins) || 0,
                 carbs: parseFloat(carbs) || 0,
                 fats: parseFloat(fats) || 0,
-                meal_id: mealRecordId,
+                meal_id: mealRecord.id,
             };
             await MealItemService.create(newMealItem);
             clearForm();
             // Refresh list
-            const response = await MealItemService.getByMeal(mealRecordId);
+            const response = await MealItemService.getByMeal(mealRecord.id);
             const items = (response as any).data || response;
             setMealItems(Array.isArray(items) ? items : []);
             Alert.alert('Sucesso!', 'Alimento adicionado com sucesso!');
@@ -67,8 +68,8 @@ const AdicionarAlimentos: React.FC<AdicionarAlimentosProps> = ({ navigation, rou
                     onPress: async () => {
                         try {
                             await MealItemService.delete(itemId);
-                            if (mealRecordId) {
-                                const response = await MealItemService.getByMeal(mealRecordId);
+                            if (mealRecord.id) {
+                                const response = await MealItemService.getByMeal(mealRecord.id);
                                 const items = (response as any).data || response;
                                 setMealItems(Array.isArray(items) ? items : []);
                             }
@@ -79,6 +80,22 @@ const AdicionarAlimentos: React.FC<AdicionarAlimentosProps> = ({ navigation, rou
                 }
             ]
         );
+    };
+
+    const toggleMealItem = async () => {
+        if (!mealRecord.id) {
+            Alert.alert("Erro", "ID da refeição não fornecido.");
+            return;
+        }
+
+        try {
+            await MealRecordService.update(mealRecord.id, { ...mealRecord, checked: !mealRecord.checked });
+
+            setChecked(!checked);
+        } catch (err) {
+            console.error("Erro ao atualizar refeição:", err);
+            Alert.alert("Erro", "Não foi possível atualizar o status da refeição.");
+        }
     };
 
     // Calculate total nutrients
@@ -129,6 +146,8 @@ const AdicionarAlimentos: React.FC<AdicionarAlimentosProps> = ({ navigation, rou
             </View>
         </View>
     );
+
+    const [checked, setChecked] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
     const [foodName, setFoodName] = useState('');
     const [quantity, setQuantity] = useState('');
@@ -140,133 +159,27 @@ const AdicionarAlimentos: React.FC<AdicionarAlimentosProps> = ({ navigation, rou
     const [mealItems, setMealItems] = useState<MealItemData[]>([]);
     const [showAddModal, setShowAddModal] = useState(false);
 
-    // Modal de Adicionar Alimento (fora do return principal)
-    const AddFoodModal = () => (
-        showAddModal ? (
-            <View style={styles.modalOverlay} pointerEvents="box-none">
-                <View style={styles.modalContent}>
-                    <Text style={styles.formTitle}>Adicionar Alimento</Text>
-                    {/* Nome do Alimento */}
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Nome do Alimento</Text>
-                        <TextInput
-                            style={styles.textInput}
-                            placeholder="Ex: Arroz integral, Frango grelhado..."
-                            value={foodName}
-                            onChangeText={setFoodName}
-                            placeholderTextColor="#999"
-                        />
-                    </View>
-                    {/* Quantidade */}
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Quantidade</Text>
-                        <TextInput
-                            style={styles.textInput}
-                            placeholder="Ex: 100g, 1 xícara, 200ml..."
-                            value={quantity}
-                            onChangeText={setQuantity}
-                            placeholderTextColor="#999"
-                        />
-                    </View>
-                    {/* Informações Nutricionais */}
-                    <Text style={styles.sectionTitle}>Informações Nutricionais</Text>
-                    <View style={styles.nutrientInputsRow}>
-                        <View style={styles.nutrientInputGroup}>
-                            <Text style={styles.label}>Calorias</Text>
-                            <TextInput
-                                style={styles.nutrientInput}
-                                placeholder="0"
-                                value={calories}
-                                onChangeText={setCalories}
-                                keyboardType="numeric"
-                                placeholderTextColor="#999"
-                            />
-                        </View>
-                        <View style={styles.nutrientInputGroup}>
-                            <Text style={styles.label}>Proteínas (g)</Text>
-                            <TextInput
-                                style={styles.nutrientInput}
-                                placeholder="0"
-                                value={proteins}
-                                onChangeText={setProteins}
-                                keyboardType="numeric"
-                                placeholderTextColor="#999"
-                            />
-                        </View>
-                    </View>
-                    <View style={styles.nutrientInputsRow}>
-                        <View style={styles.nutrientInputGroup}>
-                            <Text style={styles.label}>Carboidratos (g)</Text>
-                            <TextInput
-                                style={styles.nutrientInput}
-                                placeholder="0"
-                                value={carbs}
-                                onChangeText={setCarbs}
-                                keyboardType="numeric"
-                                placeholderTextColor="#999"
-                            />
-                        </View>
-                        <View style={styles.nutrientInputGroup}>
-                            <Text style={styles.label}>Gorduras (g)</Text>
-                            <TextInput
-                                style={styles.nutrientInput}
-                                placeholder="0"
-                                value={fats}
-                                onChangeText={setFats}
-                                keyboardType="numeric"
-                                placeholderTextColor="#999"
-                            />
-                        </View>
-                    </View>
-                    {/* Botões do Modal */}
-                    <View style={styles.modalButtonsRow}>
-                        <TouchableOpacity
-                            style={[styles.addButton, loading && styles.addButtonDisabled]}
-                            onPress={async () => {
-                                await handleAddMealItem();
-                                setShowAddModal(false);
-                            }}
-                            disabled={loading}
-                            activeOpacity={0.8}
-                        >
-                            <Icon
-                                name={loading ? "spinner" : "plus"}
-                                size={20}
-                                color="#FFFFFF"
-                            />
-                            <Text style={styles.addButtonText}>
-                                {loading ? 'Adicionando...' : 'Adicionar'}
-                            </Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={styles.cancelButton}
-                            onPress={() => {
-                                setShowAddModal(false);
-                                clearForm();
-                            }}
-                            activeOpacity={0.8}
-                        >
-                            <Text style={styles.cancelButtonText}>Cancelar</Text>
-                        </TouchableOpacity>
-                    </View>
-                </View>
-            </View>
-        ) : null
-    );
-
-    // Parâmetros da navegação: recebe apenas o mealRecordId e mealName da tela anterior
-    const { mealRecordId, mealName } = route?.params || {};
+    // Parâmetros da navegação: recebe apenas o mealRecord.id e mealName da tela anterior
+    const { mealRecord } = route?.params || {};
+    // Função para extrair o nome do ícone FontAwesome
+    const getFontAwesomeIconName = (iconPath?: string) => {
+        if (!iconPath) return 'cutlery';
+        // Remove prefixos e sufixos
+        return iconPath.replace(/^.*\//, '').replace(/\.png$/, '');
+    };
 
     const handleGoBack = () => {
         navigation?.goBack();
     };
 
     useEffect(() => {
+        setChecked(mealRecord.checked);
+
         const fetchMealItems = async () => {
-            if (!mealRecordId) return;
+            if (!mealRecord.id) return;
             setLoading(true);
             try {
-                const response = await MealItemService.getByMeal(mealRecordId);
+                const response = await MealItemService.getByMeal(mealRecord.id);
                 const items = (response as any).data || response;
                 setMealItems(Array.isArray(items) ? items : []);
             } catch (err) {
@@ -276,13 +189,122 @@ const AdicionarAlimentos: React.FC<AdicionarAlimentosProps> = ({ navigation, rou
             }
         };
         fetchMealItems();
-    }, [mealRecordId]);
+    }, [mealRecord.id]);
 
     // All UI and logic should be inside the return block below
     // The following is the correct return block for your component:
     return (
         <>
-            <AddFoodModal />
+            <Modal visible={showAddModal} transparent animationType="fade" onRequestClose={() => { setShowAddModal(false); clearForm(); }}>
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.formTitle}>Adicionar Alimento</Text>
+                        {/* Nome do Alimento */}
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Nome do Alimento</Text>
+                            <TextInput
+                                style={styles.textInput}
+                                placeholder="Ex: Arroz integral, Frango grelhado..."
+                                value={foodName}
+                                onChangeText={setFoodName}
+                                placeholderTextColor="#999"
+                            />
+                        </View>
+                        {/* Quantidade */}
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Quantidade</Text>
+                            <TextInput
+                                style={styles.textInput}
+                                placeholder="Ex: 100g, 1 xícara, 200ml..."
+                                value={quantity}
+                                onChangeText={setQuantity}
+                                placeholderTextColor="#999"
+                            />
+                        </View>
+                        {/* Informações Nutricionais */}
+                        <Text style={styles.sectionTitle}>Informações Nutricionais</Text>
+                        <View style={styles.nutrientInputsRow}>
+                            <View style={styles.nutrientInputGroup}>
+                                <Text style={styles.label}>Calorias</Text>
+                                <TextInput
+                                    style={styles.nutrientInput}
+                                    placeholder="0"
+                                    value={calories}
+                                    onChangeText={setCalories}
+                                    keyboardType="numeric"
+                                    placeholderTextColor="#999"
+                                />
+                            </View>
+                            <View style={styles.nutrientInputGroup}>
+                                <Text style={styles.label}>Proteínas (g)</Text>
+                                <TextInput
+                                    style={styles.nutrientInput}
+                                    placeholder="0"
+                                    value={proteins}
+                                    onChangeText={setProteins}
+                                    keyboardType="numeric"
+                                    placeholderTextColor="#999"
+                                />
+                            </View>
+                        </View>
+                        <View style={styles.nutrientInputsRow}>
+                            <View style={styles.nutrientInputGroup}>
+                                <Text style={styles.label}>Carboidratos (g)</Text>
+                                <TextInput
+                                    style={styles.nutrientInput}
+                                    placeholder="0"
+                                    value={carbs}
+                                    onChangeText={setCarbs}
+                                    keyboardType="numeric"
+                                    placeholderTextColor="#999"
+                                />
+                            </View>
+                            <View style={styles.nutrientInputGroup}>
+                                <Text style={styles.label}>Gorduras (g)</Text>
+                                <TextInput
+                                    style={styles.nutrientInput}
+                                    placeholder="0"
+                                    value={fats}
+                                    onChangeText={setFats}
+                                    keyboardType="numeric"
+                                    placeholderTextColor="#999"
+                                />
+                            </View>
+                        </View>
+                        {/* Botões do Modal */}
+                        <View style={styles.modalButtonsRow}>
+                            <TouchableOpacity
+                                style={[styles.addButton, loading && styles.addButtonDisabled]}
+                                onPress={async () => {
+                                    await handleAddMealItem();
+                                    setShowAddModal(false);
+                                }}
+                                disabled={loading}
+                                activeOpacity={0.8}
+                            >
+                                <Icon
+                                    name={loading ? "spinner" : "plus"}
+                                    size={20}
+                                    color="#FFFFFF"
+                                />
+                                <Text style={styles.addButtonText}>
+                                    {loading ? 'Adicionando...' : 'Adicionar'}
+                                </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={styles.cancelButton}
+                                onPress={() => {
+                                    setShowAddModal(false);
+                                    clearForm();
+                                }}
+                                activeOpacity={0.8}
+                            >
+                                <Text style={styles.cancelButtonText}>Cancelar</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
             <KeyboardAvoidingView
                 style={styles.container}
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -313,9 +335,21 @@ const AdicionarAlimentos: React.FC<AdicionarAlimentosProps> = ({ navigation, rou
                 )}
                 <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
                     {/* Meal Info */}
-                    <View style={styles.mealInfo}>
-                        <Icon name="cutlery" size={20} color="#40C4FF" />
-                        <Text style={styles.mealName}>{mealName || 'Refeição'}</Text>
+                    <View style={[styles.mealInfo, { backgroundColor: checked ? '#E8F5E9' : '#fff' }]}>
+                        <Icon name={getFontAwesomeIconName(mealRecord.icon_path)} size={20} color={checked ? '#4caf50' : '#40C4FF'} />
+                        <Text style={[styles.mealName, { color: checked ? '#4caf50' : '#333' }]}>{mealRecord.name || 'Refeição'}</Text>
+                        <View style={{ flex: 1 }} />
+                        <TouchableOpacity
+                            style={styles.checkButton}
+                            onPress={toggleMealItem}
+                            activeOpacity={0.7}
+                        >
+                            <Icon
+                                name={checked ? 'check-square' : 'square-o'}
+                                size={24}
+                                color={checked ? '#4caf50' : '#bbb'}
+                            />
+                        </TouchableOpacity>
                     </View>
                     {/* Botão Novo Alimento */}
                     <TouchableOpacity
@@ -367,6 +401,12 @@ const AdicionarAlimentos: React.FC<AdicionarAlimentosProps> = ({ navigation, rou
 };
 
 const styles = StyleSheet.create({
+    checkButton: {
+        marginLeft: 0,
+        padding: 0,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
     container: {
         flex: 1,
         backgroundColor: "#E0E0E0",
@@ -489,7 +529,7 @@ const styles = StyleSheet.create({
     mealInfo: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#fff',
+        // backgroundColor: '#fff',
         padding: 16,
         borderRadius: 8,
         marginBottom: 20,
@@ -502,7 +542,6 @@ const styles = StyleSheet.create({
     mealName: {
         fontSize: 16,
         fontWeight: '600',
-        color: '#333',
         marginLeft: 12,
     },
     formContainer: {

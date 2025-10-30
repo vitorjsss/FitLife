@@ -254,7 +254,7 @@ export default function ChecklistScreen() {
           activeOpacity={0.8}
           onPress={() => {
             // optional: navigate to meal details if you have a screen
-            navigation.navigate("AdicionarAlimentos", { mealRecordId: item.id, mealName: item.name, date, patientId });
+            navigation.navigate("AdicionarAlimentos", { item });
           }}
         >
           <View style={[styles.iconCircle, { backgroundColor: "#FFF3E0" }]}>

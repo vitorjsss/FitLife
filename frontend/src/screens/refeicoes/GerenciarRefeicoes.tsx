@@ -20,6 +20,7 @@ interface MealRecord {
     id: string;
     name: string;
     checked: boolean;
+    icon_path: string;
 }
 
 interface GerenciarRefeicoesProps {
@@ -117,6 +118,7 @@ const GerenciarRefeicoes: React.FC<GerenciarRefeicoesProps> = ({ navigation, rou
                 name: mealName,
                 icon_path: `/icons/${selectedIcon}.png`,
                 daily_meal_registry_id: dailyMealRegistryId,
+                checked: false
             };
             await MealRecordService.create(newMeal);
             setMealName('');
@@ -134,10 +136,7 @@ const GerenciarRefeicoes: React.FC<GerenciarRefeicoesProps> = ({ navigation, rou
     const handleEditMealRecord = (mealRecord: MealRecord) => {
         console.log('Navegando para AdicionarAlimentos com:', mealRecord.id);
         navigation?.navigate('AdicionarAlimentos', {
-            mealRecordId: mealRecord.id,
-            mealName: mealRecord.name,
-            date,
-            patientId
+            mealRecord
         });
     };
 
@@ -320,7 +319,7 @@ const GerenciarRefeicoes: React.FC<GerenciarRefeicoesProps> = ({ navigation, rou
                 <View style={styles.dateInfo}>
                     <Icon name="calendar" size={20} color="#40C4FF" />
                     <Text style={styles.dateText}>
-                        Refeições de {date ? new Date(date).toLocaleDateString('pt-BR') : 'hoje'}
+                        Refeições de {date ? new Date(date + 'T00:00:00').toLocaleDateString('pt-BR') : new Date().toLocaleDateString('pt-BR')}
                     </Text>
                 </View>
 
