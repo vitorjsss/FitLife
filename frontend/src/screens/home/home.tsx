@@ -1,4 +1,3 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useEffect, useState } from "react";
 import {
     View,
@@ -8,13 +7,11 @@ import {
     ActivityIndicator,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome";
-import { CommonActions, useNavigation } from "@react-navigation/native";
+import { useNavigation } from "@react-navigation/native";
 import { RootStackParamList } from "../../../App";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { authService } from "../../services/authService";
-import { patientService } from "../../services/PatientService";
-import { nutricionistService } from "../../services/NutricionistService";
-import { physicalEducatorService } from "../../services/PhysicalEducatorService";
+import Header from '../../components/Header';
+import { useUser } from '../../context/UserContext';
 
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<
@@ -23,66 +20,16 @@ type HomeScreenNavigationProp = NativeStackNavigationProp<
 >;
 
 export default function HomeScreen() {
-    const [userId, setUserId] = useState<string | null>(null);
-    const [userRole, setUserRole] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
-    const [showMenu, setShowMenu] = useState(false);
-    const [personalData, setPersonalData] = useState<any>(null);
-
     const navigation = useNavigation<HomeScreenNavigationProp>();
+    const { user, loading: userLoading } = useUser();
 
     useEffect(() => {
-        const loadUserData = async () => {
-            try {
-                const userId = await AsyncStorage.getItem("@fitlife:user_id");
-                setUserId(userId);
-                const userRole = await AsyncStorage.getItem("@fitlife:role");
-                setUserRole(userRole);
-            } catch (err) {
-                console.error("Erro ao buscar token:", err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        loadUserData();
+        // Simula carregamento inicial
+        setTimeout(() => setLoading(false), 500);
     }, []);
 
-    useEffect(() => {
-        const fetchPersonalData = async () => {
-            if (!userId || !userRole) return;
-            try {
-                let data = null;
-                if (userRole === "Patient") {
-                    data = await patientService.getById(userId);
-                } else if (userRole === "Nutricionist") {
-                    data = await nutricionistService.getById(userId);
-                } else if (userRole === "Physical_educator") {
-                    data = await physicalEducatorService.getById(userId);
-                }
-
-                // Agora data já é o objeto do usuário
-                setPersonalData(data || null);
-            } catch (err) {
-                console.error("Erro ao buscar dados pessoais:", err);
-                setPersonalData(null);
-            }
-        };
-
-        fetchPersonalData();
-    }, [userId, userRole]);
-
-    const handleLogout = async () => {
-        await authService.logout();
-        navigation.dispatch(
-            CommonActions.reset({
-                index: 0,
-                routes: [{ name: "Login" }],
-            })
-        );
-    };
-
-    if (loading) {
+    if (loading || userLoading) {
         return (
             <View style={styles.container}>
                 <ActivityIndicator size="large" color="#40C4FF" />
@@ -93,67 +40,17 @@ export default function HomeScreen() {
     return (
         <View style={styles.container}>
             {/* Header */}
-            <View style={styles.header}>
-                <View style={{ width: 25 }} />
-
-                <Text style={styles.headerTitle}>INÍCIO</Text>
-
-                <TouchableOpacity onPress={() => setShowMenu(!showMenu)}>
-                    <Icon name="user-circle" size={32} color="#fff" style={{ marginTop: 25 }} />
-                </TouchableOpacity>
-            </View>
-
-            {/* Dropdown Menu */}
-            {showMenu && (
-                <View style={styles.menu}>
-                    <Text style={styles.menuTitle}>
-                        {personalData?.name ? personalData.name.split(' ')[0] : "NOME DO USUÁRIO"}
-                    </Text>
-                    {userRole && (
-                        <Text
-                            style={
-                                [
-                                    styles.roleText,
-                                    userRole === 'Patient' ? { color: '#1976D2' } :
-                                        userRole === 'Nutricionist' ? { color: '#43A047' } :
-                                            userRole === 'Physical_educator' ? { color: '#FF9800' } :
-                                                { color: '#888' }
-                                ]
-                            }
-                        >
-                            {userRole === 'Patient' && 'Paciente'}
-                            {userRole === 'Nutricionist' && 'Nutricionista'}
-                            {userRole === 'Physical_educator' && 'Educador Físico'}
-                        </Text>
-                    )}
-
-                    <TouchableOpacity style={styles.menuItem} onPress={() => {
-                        setShowMenu(false);
-                        navigation.navigate('ContaUsuario', {
-                            userRole: userRole,
-                            userId: userId
-                        });
-                    }}>
-                        <Icon name="cog" size={16} color="#1976D2" />
-                        <Text style={styles.menuText}>Minha Conta</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity style={styles.menuItem} onPress={handleLogout}>
-                        <Icon name="sign-out" size={16} color="#1976D2" />
-                        <Text style={styles.menuText}>Sair</Text>
-                    </TouchableOpacity>
-                </View>
-            )}
+            <Header />
 
             {/* Conteúdo */}
             <View style={styles.content}>
                 {/* Texto de boas-vindas */}
                 <View style={{ alignItems: 'center', marginBottom: 18 }}>
-                    {personalData?.name ? (
+                    {user?.name ? (
                         <Text style={{ fontSize: 20, color: '#1976D2' }}>
                             Bem-vindo,{' '}
                             <Text style={{ fontWeight: 'bold', color: '#40C4FF', fontSize: 22 }}>
-                                {personalData.name.split(' ')[0]}!
+                                {user.name.split(' ')[0]}!
                             </Text>
                         </Text>
                     ) : (
@@ -164,7 +61,7 @@ export default function HomeScreen() {
                 <View style={styles.row}>
                     <TouchableOpacity
                         style={styles.card}
-                        onPress={() => navigation.navigate('Refeicoes', { patientId: personalData.id })}
+                        onPress={() => navigation.navigate('Refeicoes', user?.id ? { patientId: user.id } : {})}
                     >
                         <Icon name="cutlery" size={32} color="#fff" />
                         <Text style={styles.cardText}>Minhas Refeições</Text>
@@ -203,7 +100,7 @@ export default function HomeScreen() {
 
 
                 <TouchableOpacity style={styles.navItem}
-                    onPress={() => navigation.navigate('Checklist', personalData?.id ? { patientId: personalData.id } : {})}
+                    onPress={() => navigation.navigate('Checklist', user?.id ? { patientId: user.id } : {})}
                 >
                     <Icon name="list" size={20} color="#fff" />
                     <Text style={styles.navText}>CheckList</Text>
@@ -224,21 +121,6 @@ const styles = StyleSheet.create({
         flex: 1,
         marginTop: 0,
         backgroundColor: "#E0E0E0",
-    },
-    header: {
-        backgroundColor: "#1976D2",
-        height: 90,
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        paddingHorizontal: 35,
-
-    },
-    headerTitle: {
-        color: "#fff",
-        fontSize: 18,
-        fontWeight: "bold",
-        paddingTop: 30,
     },
     menu: {
         position: "absolute",

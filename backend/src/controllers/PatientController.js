@@ -198,6 +198,18 @@ export const PatientController = {
 
             const updated = await PatientService.update(id, updateData);
 
+            await LogService.createLog({
+                action: "UPDATE_PATIENT",
+                logType: "UPDATE",
+                description: `Paciente ${oldPatient.name} atualizado com sucesso`,
+                ip,
+                oldValue: oldPatient,
+                newValue: updated,
+                status: "SUCCESS",
+                userId: userId
+            });
+
+            res.json(updated);
         } catch (err) {
             await LogService.createLog({
                 action: "UPDATE_PATIENT",
@@ -264,5 +276,43 @@ export const PatientController = {
 
             res.status(500).json({ message: "Erro ao deletar paciente", error: err });
         }
-    }
+    },
+
+    uploadAvatar: async (req, res) => {
+        const { id } = req.params;
+        if (!req.file) return res.status(400).json({ message: "Nenhum arquivo enviado" });
+
+        // Caminho relativo para salvar no banco
+        const avatarPath = "uploads/avatars/" + req.file.filename;
+
+        try {
+            const updated = await PatientService.update(id, { avatar_path: avatarPath });
+
+            await LogService.createLog({
+                action: "UPLOAD_AVATAR",
+                logType: "UPDATE",
+                description: `Avatar do paciente ${id} atualizado com sucesso`,
+                ip: req.ip,
+                oldValue: null,
+                newValue: { avatar_path: avatarPath },
+                status: "SUCCESS",
+                userId: req.user?.id
+            });
+
+            res.json({ avatar_path: avatarPath, patient: updated });
+        } catch (err) {
+            await LogService.createLog({
+                action: "UPLOAD_AVATAR",
+                logType: "ERROR",
+                description: err.message,
+                ip: req.ip,
+                oldValue: null,
+                newValue: { requestedId: id },
+                status: "FAILURE",
+                userId: req.user?.id
+            });
+
+            res.status(500).json({ message: "Erro ao salvar avatar", error: err });
+        }
+    },
 };

@@ -31,6 +31,7 @@ app.use("/meal-record", mealRecordRoutes);
 app.use("/meal-item", mealItemRoutes);
 app.use("/workout", workoutRoutes);
 app.use("/workout-session", workoutSessionRoutes);
+app.use("/uploads/avatars", express.static("uploads/avatars"));
 
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => {

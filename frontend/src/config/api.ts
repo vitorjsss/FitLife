@@ -12,6 +12,7 @@ export const API_CONFIG = {
             GET_BY_ID: "/patient/{id}",
             UPDATE: "/patient/{id}",
             GET_BY_AUTH_ID: "/patient/auth/{auth_id}",
+            UPLOAD_AVATAR: '/patient/{id}/avatar',
         },
         PHYSICAL_EDUCATOR: {
             CREATE: "/physical-educator/register",

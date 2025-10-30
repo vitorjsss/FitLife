@@ -58,6 +58,22 @@ class PatientService {
         const response = await apiClient.put(endpoint, data);
         return response.data;
     }
+
+    async uploadAvatar(id: string, image: { uri: string; type?: string; name?: string }): Promise<any> {
+        const endpoint = API_CONFIG.ENDPOINTS.PATIENT.UPLOAD_AVATAR.replace('{id}', id);
+        const formData = new FormData();
+        formData.append('avatar', {
+            uri: image.uri,
+            type: image.type || 'image/jpeg',
+            name: image.name || 'avatar.jpg',
+        } as any);
+        const response = await apiClient.patch(endpoint, formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
+        return response.data;
+    }
 }
 
 export const patientService = new PatientService();

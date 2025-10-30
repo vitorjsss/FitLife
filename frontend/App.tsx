@@ -17,6 +17,7 @@ import ChecklistScreen from './src/screens/checklist/Checklist';
 
 import { authService } from './src/services/authService';
 import ContaUsuario from './src/screens/conta/ContaUsuario';
+import { UserProvider } from './src/context/UserContext';
 
 export type RootStackParamList = {
   Login: undefined;
@@ -60,26 +61,28 @@ export default function App() {
   }
 
   return (
-    <NavigationContainer>
-      <Stack.Navigator
-        initialRouteName={initialRoute || 'Login'}
-        screenOptions={{ headerShown: false }}
-      >
-        <Stack.Screen name="Login" component={Login} />
-        <Stack.Screen name="ContaUsuario" component={ContaUsuario} />
-        <Stack.Screen name="Register" component={RegisterScreen} />
-        <Stack.Screen name="Home" component={HomeScreen} />
-        <Stack.Screen name="Checklist" component={ChecklistScreen} />
-        <Stack.Screen name="Refeicoes" component={Refeicoes} />
-        <Stack.Screen name="GerenciarRefeicoes" component={GerenciarRefeicoes} />
-        <Stack.Screen name="AdicionarAlimentos" component={AdicionarAlimentos} />
-        <Stack.Screen name="Treinos" component={Treinos} />
-        <Stack.Screen name="GerenciarTreinos" component={GerenciarTreinos} />
-        <Stack.Screen name="AdicionarTreinos" component={AdicionarTreinos} />
-        <Stack.Screen name="GerenciarMedidas" component={require('./src/screens/medidas/GerenciarMedidas').default} />
-      </Stack.Navigator>
-      <StatusBar style="auto" />
-    </NavigationContainer>
+    <UserProvider>
+      <NavigationContainer>
+        <Stack.Navigator
+          initialRouteName={initialRoute || 'Login'}
+          screenOptions={{ headerShown: false }}
+        >
+          <Stack.Screen name="Login" component={Login} />
+          <Stack.Screen name="ContaUsuario" component={ContaUsuario} />
+          <Stack.Screen name="Register" component={RegisterScreen} />
+          <Stack.Screen name="Home" component={HomeScreen} />
+          <Stack.Screen name="Checklist" component={ChecklistScreen} />
+          <Stack.Screen name="Refeicoes" component={Refeicoes} />
+          <Stack.Screen name="GerenciarRefeicoes" component={GerenciarRefeicoes} />
+          <Stack.Screen name="AdicionarAlimentos" component={AdicionarAlimentos} />
+          <Stack.Screen name="Treinos" component={Treinos} />
+          <Stack.Screen name="GerenciarTreinos" component={GerenciarTreinos} />
+          <Stack.Screen name="AdicionarTreinos" component={AdicionarTreinos} />
+          <Stack.Screen name="GerenciarMedidas" component={require('./src/screens/medidas/GerenciarMedidas').default} />
+        </Stack.Navigator>
+        <StatusBar style="auto" />
+      </NavigationContainer>
+    </UserProvider>
   );
 }
 
