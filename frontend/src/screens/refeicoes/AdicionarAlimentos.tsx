@@ -138,70 +138,13 @@ const AdicionarAlimentos: React.FC<AdicionarAlimentosProps> = ({ navigation, rou
     const [fats, setFats] = useState('');
     const [loading, setLoading] = useState(false);
     const [mealItems, setMealItems] = useState<MealItemData[]>([]);
+    const [showAddModal, setShowAddModal] = useState(false);
 
-    // Parâmetros da navegação: recebe apenas o mealRecordId e mealName da tela anterior
-    const { mealRecordId, mealName } = route?.params || {};
-
-    const handleGoBack = () => {
-        navigation?.goBack();
-    };
-
-    useEffect(() => {
-        const fetchMealItems = async () => {
-            if (!mealRecordId) return;
-            setLoading(true);
-            try {
-                const response = await MealItemService.getByMeal(mealRecordId);
-                const items = (response as any).data || response;
-                setMealItems(Array.isArray(items) ? items : []);
-            } catch (err) {
-                setMealItems([]);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchMealItems();
-    }, [mealRecordId]);
-
-    // All UI and logic should be inside the return block below
-    // The following is the correct return block for your component:
-    return (
-        <KeyboardAvoidingView
-            style={styles.container}
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        >
-            {/* Header */}
-            <View style={styles.header}>
-                <TouchableOpacity onPress={handleGoBack}>
-                    <Icon name="arrow-left" size={24} color="#fff" style={{ marginTop: 25 }} />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>ALIMENTOS</Text>
-                <TouchableOpacity onPress={() => setShowMenu(!showMenu)}>
-                    <Icon name="user-circle" size={32} color="#fff" style={{ marginTop: 25 }} />
-                </TouchableOpacity>
-            </View>
-            {/* Dropdown Menu */}
-            {showMenu && (
-                <View style={styles.menu}>
-                    <Text style={styles.menuTitle}>NOME DO USUÁRIO</Text>
-                    <TouchableOpacity style={styles.menuItem}>
-                        <Icon name="cog" size={16} color="#1976D2" />
-                        <Text style={styles.menuText}>Minha Conta</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.menuItem}>
-                        <Icon name="sign-out" size={16} color="#1976D2" />
-                        <Text style={styles.menuText}>Sair</Text>
-                    </TouchableOpacity>
-                </View>
-            )}
-            <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-                {/* Meal Info */}
-                <View style={styles.mealInfo}>
-                    <Icon name="cutlery" size={20} color="#40C4FF" />
-                    <Text style={styles.mealName}>{mealName || 'Refeição'}</Text>
-                </View>
-                {/* Formulário para adicionar alimento */}
-                <View style={styles.formContainer}>
+    // Modal de Adicionar Alimento (fora do return principal)
+    const AddFoodModal = () => (
+        showAddModal ? (
+            <View style={styles.modalOverlay} pointerEvents="box-none">
+                <View style={styles.modalContent}>
                     <Text style={styles.formTitle}>Adicionar Alimento</Text>
                     {/* Nome do Alimento */}
                     <View style={styles.inputGroup}>
@@ -226,7 +169,7 @@ const AdicionarAlimentos: React.FC<AdicionarAlimentosProps> = ({ navigation, rou
                         />
                     </View>
                     {/* Informações Nutricionais */}
-                    <Text style={styles.sectionTitle}>Informações Nutricionais (opcional)</Text>
+                    <Text style={styles.sectionTitle}>Informações Nutricionais</Text>
                     <View style={styles.nutrientInputsRow}>
                         <View style={styles.nutrientInputGroup}>
                             <Text style={styles.label}>Calorias</Text>
@@ -275,59 +218,151 @@ const AdicionarAlimentos: React.FC<AdicionarAlimentosProps> = ({ navigation, rou
                             />
                         </View>
                     </View>
-                    {/* Botão Adicionar */}
-                    <TouchableOpacity
-                        style={[styles.addButton, loading && styles.addButtonDisabled]}
-                        onPress={handleAddMealItem}
-                        disabled={loading}
-                        activeOpacity={0.8}
-                    >
-                        <Icon
-                            name={loading ? "spinner" : "plus"}
-                            size={20}
-                            color="#FFFFFF"
-                        />
-                        <Text style={styles.addButtonText}>
-                            {loading ? 'Adicionando...' : 'Adicionar Alimento'}
-                        </Text>
+                    {/* Botões do Modal */}
+                    <View style={styles.modalButtonsRow}>
+                        <TouchableOpacity
+                            style={[styles.addButton, loading && styles.addButtonDisabled]}
+                            onPress={async () => {
+                                await handleAddMealItem();
+                                setShowAddModal(false);
+                            }}
+                            disabled={loading}
+                            activeOpacity={0.8}
+                        >
+                            <Icon
+                                name={loading ? "spinner" : "plus"}
+                                size={20}
+                                color="#FFFFFF"
+                            />
+                            <Text style={styles.addButtonText}>
+                                {loading ? 'Adicionando...' : 'Adicionar'}
+                            </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={styles.cancelButton}
+                            onPress={() => {
+                                setShowAddModal(false);
+                                clearForm();
+                            }}
+                            activeOpacity={0.8}
+                        >
+                            <Text style={styles.cancelButtonText}>Cancelar</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </View>
+        ) : null
+    );
+
+    // Parâmetros da navegação: recebe apenas o mealRecordId e mealName da tela anterior
+    const { mealRecordId, mealName } = route?.params || {};
+
+    const handleGoBack = () => {
+        navigation?.goBack();
+    };
+
+    useEffect(() => {
+        const fetchMealItems = async () => {
+            if (!mealRecordId) return;
+            setLoading(true);
+            try {
+                const response = await MealItemService.getByMeal(mealRecordId);
+                const items = (response as any).data || response;
+                setMealItems(Array.isArray(items) ? items : []);
+            } catch (err) {
+                setMealItems([]);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchMealItems();
+    }, [mealRecordId]);
+
+    // All UI and logic should be inside the return block below
+    // The following is the correct return block for your component:
+    return (
+        <>
+            <AddFoodModal />
+            <KeyboardAvoidingView
+                style={styles.container}
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            >
+                {/* Header */}
+                <View style={styles.header}>
+                    <TouchableOpacity onPress={handleGoBack}>
+                        <Icon name="arrow-left" size={24} color="#fff" style={{ marginTop: 25 }} />
+                    </TouchableOpacity>
+                    <Text style={styles.headerTitle}>ALIMENTOS</Text>
+                    <TouchableOpacity onPress={() => setShowMenu(!showMenu)}>
+                        <Icon name="user-circle" size={32} color="#fff" style={{ marginTop: 25 }} />
                     </TouchableOpacity>
                 </View>
-                {/* Lista de Alimentos */}
-                {mealItems.length > 0 && (
-                    <View style={styles.itemsList}>
-                        <Text style={styles.itemsListTitle}>Alimentos Adicionados</Text>
-                        <FlatList
-                            data={mealItems}
-                            keyExtractor={(item) => item.id ?? item.food_name}
-                            renderItem={renderMealItem}
-                            scrollEnabled={false}
-                        />
-                        {/* Resumo Nutricional */}
-                        <View style={styles.summaryCard}>
-                            <Text style={styles.summaryTitle}>Total da Refeição</Text>
-                            <View style={styles.summaryRow}>
-                                <View style={styles.summaryItem}>
-                                    <Text style={styles.summaryValue}>{getTotalNutrients().calories.toFixed(0)}</Text>
-                                    <Text style={styles.summaryLabel}>kcal</Text>
-                                </View>
-                                <View style={styles.summaryItem}>
-                                    <Text style={styles.summaryValue}>{getTotalNutrients().proteins.toFixed(1)}</Text>
-                                    <Text style={styles.summaryLabel}>Proteínas</Text>
-                                </View>
-                                <View style={styles.summaryItem}>
-                                    <Text style={styles.summaryValue}>{getTotalNutrients().carbs.toFixed(1)}</Text>
-                                    <Text style={styles.summaryLabel}>Carboidratos</Text>
-                                </View>
-                                <View style={styles.summaryItem}>
-                                    <Text style={styles.summaryValue}>{getTotalNutrients().fats.toFixed(1)}</Text>
-                                    <Text style={styles.summaryLabel}>Gorduras</Text>
+                {/* Dropdown Menu */}
+                {showMenu && (
+                    <View style={styles.menu}>
+                        <Text style={styles.menuTitle}>NOME DO USUÁRIO</Text>
+                        <TouchableOpacity style={styles.menuItem}>
+                            <Icon name="cog" size={16} color="#1976D2" />
+                            <Text style={styles.menuText}>Minha Conta</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.menuItem}>
+                            <Icon name="sign-out" size={16} color="#1976D2" />
+                            <Text style={styles.menuText}>Sair</Text>
+                        </TouchableOpacity>
+                    </View>
+                )}
+                <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+                    {/* Meal Info */}
+                    <View style={styles.mealInfo}>
+                        <Icon name="cutlery" size={20} color="#40C4FF" />
+                        <Text style={styles.mealName}>{mealName || 'Refeição'}</Text>
+                    </View>
+                    {/* Botão Novo Alimento */}
+                    <TouchableOpacity
+                        style={styles.newFoodButton}
+                        onPress={() => setShowAddModal(true)}
+                        activeOpacity={0.8}
+                    >
+                        <Icon name="plus" size={18} color="#fff" />
+                        <Text style={styles.newFoodButtonText}>Novo Alimento</Text>
+                    </TouchableOpacity>
+                    {/* Lista de Alimentos */}
+                    {mealItems.length > 0 && (
+                        <View style={styles.itemsList}>
+                            <Text style={styles.itemsListTitle}>Alimentos Adicionados</Text>
+                            <FlatList
+                                data={mealItems}
+                                keyExtractor={(item) => item.id ?? item.food_name}
+                                renderItem={renderMealItem}
+                                scrollEnabled={false}
+                            />
+                            {/* Resumo Nutricional */}
+                            <View style={styles.summaryCard}>
+                                <Text style={styles.summaryTitle}>Total da Refeição</Text>
+                                <View style={styles.summaryRow}>
+                                    <View style={styles.summaryItem}>
+                                        <Text style={styles.summaryValue}>{getTotalNutrients().calories.toFixed(0)}</Text>
+                                        <Text style={styles.summaryLabel}>kcal</Text>
+                                    </View>
+                                    <View style={styles.summaryItem}>
+                                        <Text style={styles.summaryValue}>{getTotalNutrients().proteins.toFixed(1)}</Text>
+                                        <Text style={styles.summaryLabel}>Proteínas</Text>
+                                    </View>
+                                    <View style={styles.summaryItem}>
+                                        <Text style={styles.summaryValue}>{getTotalNutrients().carbs.toFixed(1)}</Text>
+                                        <Text style={styles.summaryLabel}>Carboidratos</Text>
+                                    </View>
+                                    <View style={styles.summaryItem}>
+                                        <Text style={styles.summaryValue}>{getTotalNutrients().fats.toFixed(1)}</Text>
+                                        <Text style={styles.summaryLabel}>Gorduras</Text>
+                                    </View>
                                 </View>
                             </View>
                         </View>
-                    </View>
-                )}
-            </ScrollView>
-        </KeyboardAvoidingView>
+                    )}
+                </ScrollView>
+            </KeyboardAvoidingView>
+        </>
     );
 };
 
@@ -335,6 +370,71 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: "#E0E0E0",
+    },
+    newFoodButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#1976D2',
+        paddingVertical: 12,
+        borderRadius: 8,
+        justifyContent: 'center',
+        marginBottom: 20,
+        shadowColor: '#1976D2',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+        elevation: 4,
+    },
+    newFoodButtonText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: 'bold',
+        marginLeft: 8,
+    },
+    modalOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0,0,0,0.45)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 9999,
+        width: '100%',
+        height: '100%',
+    },
+    modalContent: {
+        backgroundColor: '#fff',
+        borderRadius: 18,
+        padding: 32,
+        width: '90%',
+        maxWidth: 400,
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.25,
+        shadowRadius: 12,
+        elevation: 20,
+    },
+    modalButtonsRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginTop: 18,
+    },
+    cancelButton: {
+        backgroundColor: '#B0BEC5',
+        borderRadius: 8,
+        paddingVertical: 14,
+        paddingHorizontal: 15,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginLeft: 10,
+    },
+    cancelButtonText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: 'bold',
     },
     header: {
         backgroundColor: "#1976D2",
@@ -425,6 +525,7 @@ const styles = StyleSheet.create({
     },
     inputGroup: {
         marginBottom: 16,
+        width: '100%',
     },
     label: {
         fontSize: 14,
@@ -441,6 +542,7 @@ const styles = StyleSheet.create({
         paddingVertical: 12,
         fontSize: 16,
         color: '#333',
+        width: '100%',
     },
     sectionTitle: {
         fontSize: 16,
@@ -474,14 +576,10 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         backgroundColor: '#40C4FF',
         paddingVertical: 14,
+        paddingHorizontal: 15,
         borderRadius: 8,
         justifyContent: 'center',
-        marginTop: 16,
         shadowColor: '#40C4FF',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 8,
     },
     addButtonDisabled: {
         backgroundColor: '#B0BEC5',

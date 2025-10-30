@@ -127,7 +127,13 @@ export default function HomeScreen() {
                         </Text>
                     )}
 
-                    <TouchableOpacity style={styles.menuItem}>
+                    <TouchableOpacity style={styles.menuItem} onPress={() => {
+                        setShowMenu(false);
+                        navigation.navigate('ContaUsuario', {
+                            userRole: userRole,
+                            userId: userId
+                        });
+                    }}>
                         <Icon name="cog" size={16} color="#1976D2" />
                         <Text style={styles.menuText}>Minha Conta</Text>
                     </TouchableOpacity>

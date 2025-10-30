@@ -16,6 +16,7 @@ import AdicionarTreinos from './src/screens/treinos/AdicionarTreinos';
 import ChecklistScreen from './src/screens/checklist/Checklist';
 
 import { authService } from './src/services/authService';
+import ContaUsuario from './src/screens/conta/ContaUsuario';
 
 export type RootStackParamList = {
   Login: undefined;
@@ -65,6 +66,7 @@ export default function App() {
         screenOptions={{ headerShown: false }}
       >
         <Stack.Screen name="Login" component={Login} />
+        <Stack.Screen name="ContaUsuario" component={ContaUsuario} />
         <Stack.Screen name="Register" component={RegisterScreen} />
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="Checklist" component={ChecklistScreen} />

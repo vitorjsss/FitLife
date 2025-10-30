@@ -184,5 +184,73 @@ export const AuthController = {
 
       res.status(500).json({ message: "Erro ao buscar usuários", error: err });
     }
+  },
+
+  getAuthById: async (req, res) => {
+    const { authId } = req.params;
+    const ip = req.ip;
+    try {
+      const authData = await AuthService.getAuthById(authId);
+      if (!authData) {
+        return res.status(404).json({ message: "Usuário não encontrado" });
+      }
+      await LogService.createLog({
+        action: "GET_AUTH_BY_ID",
+        logType: "ACCESS",
+        description: `Dados auth recuperados para auth_id: ${authId}`,
+        ip,
+        oldValue: null,
+        newValue: JSON.stringify(authData),
+        status: "SUCCESS",
+        userId: authId
+      });
+      res.json(authData);
+    } catch (err) {
+      await LogService.createLog({
+        action: "GET_AUTH_BY_ID",
+        logType: "ERROR",
+        description: err.message,
+        ip,
+        oldValue: null,
+        newValue: null,
+        status: "FAILURE",
+        userId: authId
+      });
+      res.status(500).json({ message: "Erro ao buscar dados auth", error: err });
+    }
+  },
+
+  updateEmail: async (req, res) => {
+    const { email, authId } = req.body;
+    const ip = req.ip;
+    if (!email || !authId) {
+      return res.status(400).json({ message: "Email e authId são obrigatórios" });
+    }
+    try {
+      const updated = await AuthService.updateEmail(authId, email.toLowerCase());
+      await LogService.createLog({
+        action: "UPDATE_EMAIL",
+        logType: "ACCESS",
+        description: `Email atualizado para auth_id: ${authId}`,
+        ip,
+        oldValue: null,
+        newValue: JSON.stringify({ authId, email }),
+        status: "SUCCESS",
+        userId: authId
+      });
+      res.json({ success: true, updated });
+    } catch (err) {
+      await LogService.createLog({
+        action: "UPDATE_EMAIL",
+        logType: "ERROR",
+        description: err.message,
+        ip,
+        oldValue: null,
+        newValue: null,
+        status: "FAILURE",
+        userId: authId
+      });
+      res.status(500).json({ message: "Erro ao atualizar email", error: err });
+    }
   }
 };

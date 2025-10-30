@@ -9,7 +9,7 @@ const USER_ID_KEY = '@fitlife:user_id';
 const USERNAME_KEY = '@fitlife:username';
 const USER_ROLE_KEY = '@fitlife:role';
 
-const apiClient = axios.create({
+export const apiClient = axios.create({
     baseURL: API_CONFIG.BASE_URL,
     timeout: API_CONFIG.TIMEOUT,
 });
@@ -22,6 +22,27 @@ interface RegisterData {
 }
 
 class AuthService {
+    async updateEmail(authId: string, newEmail: string): Promise<any> {
+        const accessToken = await this.getAccessToken();
+        if (!accessToken) throw new Error('Token não encontrado');
+        const response = await apiClient.post('/auth/update-email', { email: newEmail, authId }, {
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+            },
+        });
+        return response.data;
+    }
+    async getAuthById(authId: string): Promise<any> {
+        const accessToken = await this.getAccessToken();
+        if (!accessToken) throw new Error('Token não encontrado');
+        const response = await apiClient.get(`/auth/by-id/${authId}`, {
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+            },
+        });
+        return response.data;
+    }
+
     async register(data: RegisterData): Promise<any> {
         data.email = data.email.toLowerCase();
         const response = await apiClient.post(API_CONFIG.ENDPOINTS.AUTH.REGISTER, data);
