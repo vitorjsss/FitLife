@@ -8,9 +8,11 @@ const router = express.Router();
 router.use(authMiddleware);
 
 // Rotas para registro diário de refeições
+
 router.post("/", DailyMealRegistryController.create);
-router.get("/", DailyMealRegistryController.getAll);
+router.get("/by-date", DailyMealRegistryController.getByDate);
 router.get("/patient/:patientId", DailyMealRegistryController.getByPatientId);
+router.get("/", DailyMealRegistryController.getAll);
 router.get("/:id", DailyMealRegistryController.getById);
 router.put("/:id", DailyMealRegistryController.update);
 router.delete("/:id", DailyMealRegistryController.deleteDailyMealRegistry);

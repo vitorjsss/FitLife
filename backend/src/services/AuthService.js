@@ -72,5 +72,25 @@ export const AuthService = {
   getPatientByAuthId: async (authId) => {
     const result = await pool.query("SELECT id FROM patient WHERE auth_id = $1", [authId]);
     return result.rows[0] || null;
+  },
+
+  getAuthById: async (authId) => {
+    try {
+      const result = await pool.query("SELECT * FROM auth WHERE id = $1", [authId]);
+      return result.rows[0] || null;
+    } catch (err) {
+      console.error("Erro ao buscar auth por id:", err);
+      throw err;
+    }
+  },
+
+  updateEmail: async (authId, newEmail) => {
+    try {
+      const result = await pool.query("UPDATE auth SET email = $1 WHERE id = $2 RETURNING *", [newEmail, authId]);
+      return result.rows[0] || null;
+    } catch (err) {
+      console.error("Erro ao atualizar email:", err);
+      throw err;
+    }
   }
 };
