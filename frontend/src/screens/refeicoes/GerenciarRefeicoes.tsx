@@ -19,8 +19,8 @@ import Icon from "react-native-vector-icons/FontAwesome";
 interface MealRecord {
     id: string;
     name: string;
-    checked: boolean;
-    icon_path: string;
+    icon_path?: string;
+    itemCount?: number;
 }
 
 interface GerenciarRefeicoesProps {
@@ -98,7 +98,7 @@ const GerenciarRefeicoes: React.FC<GerenciarRefeicoesProps> = ({ navigation, rou
                     setLoading(false);
                     return;
                 }
-                const created = await DailyMealService.create({
+                const created: any = await DailyMealService.create({
                     date,
                     patient_id: patientId,
                 });
@@ -118,7 +118,7 @@ const GerenciarRefeicoes: React.FC<GerenciarRefeicoesProps> = ({ navigation, rou
                 name: mealName,
                 icon_path: `/icons/${selectedIcon}.png`,
                 daily_meal_registry_id: dailyMealRegistryId,
-                checked: false
+                checked: false,
             };
             await MealRecordService.create(newMeal);
             setMealName('');
@@ -134,9 +134,11 @@ const GerenciarRefeicoes: React.FC<GerenciarRefeicoesProps> = ({ navigation, rou
     };
 
     const handleEditMealRecord = (mealRecord: MealRecord) => {
-        console.log('Navegando para AdicionarAlimentos com:', mealRecord.id);
         navigation?.navigate('AdicionarAlimentos', {
-            mealRecord
+            mealRecordId: mealRecord.id,
+            mealName: mealRecord.name,
+            date,
+            patientId
         });
     };
 
@@ -213,12 +215,12 @@ const GerenciarRefeicoes: React.FC<GerenciarRefeicoesProps> = ({ navigation, rou
         }
         if (!editingMeal) return;
         try {
-            setLoading(true);
             const updatedMeal: MealRecordData = {
                 ...editingMeal,
                 name: editMealName,
                 icon_path: `/icons/${editSelectedIcon}.png`,
                 daily_meal_registry_id: (editingMeal as any).daily_meal_registry_id,
+                checked: (editingMeal as any).checked ?? false,
             };
             await MealRecordService.update(editingMeal.id, updatedMeal);
             setShowEditModal(false);
@@ -226,7 +228,7 @@ const GerenciarRefeicoes: React.FC<GerenciarRefeicoesProps> = ({ navigation, rou
             setEditMealName('');
             setEditSelectedIcon('cutlery');
             // Atualiza lista
-            let dailyMealRegistries = await DailyMealService.getByDate(date);
+            let dailyMealRegistries = await DailyMealService.getByDate(date, patientId);
             let registryId = '';
             if (Array.isArray(dailyMealRegistries) && dailyMealRegistries.length > 0) {
                 registryId = dailyMealRegistries[0].id;
@@ -235,6 +237,7 @@ const GerenciarRefeicoes: React.FC<GerenciarRefeicoesProps> = ({ navigation, rou
                 const records = await MealRecordService.getByRegistry(registryId);
                 setMealRecords(Array.isArray(records) ? records : []);
             }
+            Alert.alert('Sucesso!', 'Refeição atualizada com sucesso!');
             Alert.alert('Sucesso!', 'Refeição atualizada com sucesso!');
         } catch (error) {
             Alert.alert('Erro', 'Não foi possível atualizar a refeição');
@@ -257,27 +260,25 @@ const GerenciarRefeicoes: React.FC<GerenciarRefeicoesProps> = ({ navigation, rou
 
         return (
             <TouchableOpacity
-                style={[styles.mealCard, {
-                    backgroundColor: item.checked ? '#E8F5E9' : '#F8F9FA',
-                    borderLeftColor: item.checked ? '#378544ff' : '#40C4FF',
-                }]}
+                style={styles.mealCard}
                 onPress={() => handleEditMealRecord(item)}
                 onLongPress={() => handleLongPressMeal(item)}
                 delayLongPress={500}
                 activeOpacity={0.7}
             >
                 <View style={styles.mealCardHeader}>
-                    <Icon name={iconName} size={24} color={item.checked ? "#378544ff" : "#40C4FF"} />
+                    <Icon name={iconName} size={24} color="#40C4FF" />
                     <View style={styles.mealCardInfo}>
-                        <Text style={[styles.mealCardTitle, {
-                            color: item.checked ? '#378544ff' : '#40C4FF'
-                        }]}>{item.name}</Text>
+                        <Text style={styles.mealCardTitle}>{item.name}</Text>
+                        <Text style={styles.mealCardSubtitle}>
+                            {item.itemCount || 0} alimentos adicionados
+                        </Text>
                     </View>
-                    <Icon name="chevron-right" size={16} color={item.checked ? "#378544ff" : "#40C4FF"} />
+                    <Icon name="chevron-right" size={16} color="#666" />
                 </View>
             </TouchableOpacity>
         );
-    }
+    };
 
     return (
         <KeyboardAvoidingView
@@ -319,7 +320,7 @@ const GerenciarRefeicoes: React.FC<GerenciarRefeicoesProps> = ({ navigation, rou
                 <View style={styles.dateInfo}>
                     <Icon name="calendar" size={20} color="#40C4FF" />
                     <Text style={styles.dateText}>
-                        Refeições de {date ? new Date(date + 'T00:00:00').toLocaleDateString('pt-BR') : new Date().toLocaleDateString('pt-BR')}
+                        Refeições de {date ? new Date(date).toLocaleDateString('pt-BR') : 'hoje'}
                     </Text>
                 </View>
 
@@ -395,7 +396,7 @@ const GerenciarRefeicoes: React.FC<GerenciarRefeicoesProps> = ({ navigation, rou
                     <View style={styles.mealsList}>
                         <Text style={styles.mealsListTitle}>Refeições do Dia</Text>
                         <Text style={styles.helpText}>
-                            Toque para adicionar alimentos ou segure para editar
+                            💡 Toque para adicionar alimentos ou segure para editar
                         </Text>
                         <FlatList
                             data={mealRecords}
@@ -675,10 +676,12 @@ const styles = StyleSheet.create({
         fontStyle: 'italic',
     },
     mealCard: {
+        backgroundColor: '#F8F9FA',
         borderRadius: 8,
         padding: 16,
         marginBottom: 12,
         borderLeftWidth: 4,
+        borderLeftColor: '#40C4FF',
     },
     mealCardHeader: {
         flexDirection: 'row',
@@ -691,6 +694,12 @@ const styles = StyleSheet.create({
     mealCardTitle: {
         fontSize: 16,
         fontWeight: '600',
+        color: '#333',
+    },
+    mealCardSubtitle: {
+        fontSize: 14,
+        color: '#666',
+        marginTop: 2,
     },
     // Estilos do Modal
     modalOverlay: {
