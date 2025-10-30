@@ -345,7 +345,7 @@ export default function ChecklistScreen() {
       ) : (
         <FlatList
           data={meals}
-          keyExtractor={(i) => i.id}
+          keyExtractor={(item, index) => item.id ?? `meal-${index}`}
           renderItem={renderMeal}
           contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 24 }}
           ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
