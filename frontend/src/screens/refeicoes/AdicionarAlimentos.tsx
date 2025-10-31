@@ -1,5 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { Text, View, StyleSheet, TouchableOpacity, TextInput, Alert, ScrollView, KeyboardAvoidingView, Platform, FlatList, Modal } from 'react-native';
+import {
+    Text,
+    View,
+    StyleSheet,
+    TouchableOpacity,
+    TextInput,
+    Alert,
+    ScrollView,
+    KeyboardAvoidingView,
+    Platform,
+    FlatList,
+    Modal,
+    Keyboard,
+    TouchableWithoutFeedback,
+} from 'react-native';
 import Icon from "react-native-vector-icons/FontAwesome";
 import MealItemService, { MealItemData } from '../../services/MealItemService';
 import MealRecordService from '../../services/MealRecordService';
@@ -196,122 +210,142 @@ const AdicionarAlimentos: React.FC<AdicionarAlimentosProps> = ({ navigation, rou
     // The following is the correct return block for your component:
     return (
         <>
-            <Modal visible={showAddModal} transparent animationType="fade" onRequestClose={() => { setShowAddModal(false); clearForm(); }}>
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalContent}>
-                        <Text style={styles.formTitle}>Adicionar Alimento</Text>
-                        {/* Nome do Alimento */}
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Nome do Alimento</Text>
-                            <TextInput
-                                style={styles.textInput}
-                                placeholder="Ex: Arroz integral, Frango grelhado..."
-                                value={foodName}
-                                onChangeText={setFoodName}
-                                placeholderTextColor="#999"
-                            />
-                        </View>
-                        {/* Quantidade */}
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Quantidade</Text>
-                            <TextInput
-                                style={styles.textInput}
-                                placeholder="Ex: 100g, 1 xícara, 200ml..."
-                                value={quantity}
-                                onChangeText={setQuantity}
-                                placeholderTextColor="#999"
-                            />
-                        </View>
-                        {/* Informações Nutricionais */}
-                        <Text style={styles.sectionTitle}>Informações Nutricionais</Text>
-                        <View style={styles.nutrientInputsRow}>
-                            <View style={styles.nutrientInputGroup}>
-                                <Text style={styles.label}>Calorias</Text>
-                                <TextInput
-                                    style={styles.nutrientInput}
-                                    placeholder="0"
-                                    value={calories}
-                                    onChangeText={setCalories}
-                                    keyboardType="numeric"
-                                    placeholderTextColor="#999"
-                                />
-                            </View>
-                            <View style={styles.nutrientInputGroup}>
-                                <Text style={styles.label}>Proteínas (g)</Text>
-                                <TextInput
-                                    style={styles.nutrientInput}
-                                    placeholder="0"
-                                    value={proteins}
-                                    onChangeText={setProteins}
-                                    keyboardType="numeric"
-                                    placeholderTextColor="#999"
-                                />
-                            </View>
-                        </View>
-                        <View style={styles.nutrientInputsRow}>
-                            <View style={styles.nutrientInputGroup}>
-                                <Text style={styles.label}>Carboidratos (g)</Text>
-                                <TextInput
-                                    style={styles.nutrientInput}
-                                    placeholder="0"
-                                    value={carbs}
-                                    onChangeText={setCarbs}
-                                    keyboardType="numeric"
-                                    placeholderTextColor="#999"
-                                />
-                            </View>
-                            <View style={styles.nutrientInputGroup}>
-                                <Text style={styles.label}>Gorduras (g)</Text>
-                                <TextInput
-                                    style={styles.nutrientInput}
-                                    placeholder="0"
-                                    value={fats}
-                                    onChangeText={setFats}
-                                    keyboardType="numeric"
-                                    placeholderTextColor="#999"
-                                />
-                            </View>
-                        </View>
-                        {/* Botões do Modal */}
-                        <View style={styles.modalButtonsRow}>
-                            <TouchableOpacity
-                                style={[styles.addButton, loading && styles.addButtonDisabled]}
-                                onPress={async () => {
-                                    await handleAddMealItem();
-                                    setShowAddModal(false);
-                                }}
-                                disabled={loading}
-                                activeOpacity={0.8}
+            <Modal
+                visible={showAddModal}
+                transparent
+                animationType="fade"
+                onRequestClose={() => {
+                    setShowAddModal(false);
+                    clearForm();
+                }}
+            >
+                <KeyboardAvoidingView
+                    style={styles.modalOverlay}
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 60}
+                >
+                    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+                        <View style={styles.modalOverlay}>
+                            <ScrollView
+                                contentContainerStyle={styles.modalContent}
+                                keyboardShouldPersistTaps="handled"
+                                showsVerticalScrollIndicator={false}
                             >
-                                <Icon
-                                    name={loading ? "spinner" : "plus"}
-                                    size={20}
-                                    color="#FFFFFF"
-                                />
-                                <Text style={styles.addButtonText}>
-                                    {loading ? 'Adicionando...' : 'Adicionar'}
-                                </Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={styles.cancelButton}
-                                onPress={() => {
-                                    setShowAddModal(false);
-                                    clearForm();
-                                }}
-                                activeOpacity={0.8}
-                            >
-                                <Text style={styles.cancelButtonText}>Cancelar</Text>
-                            </TouchableOpacity>
+                                <Text style={styles.formTitle}>Adicionar Alimento</Text>
+                                {/* Nome do Alimento */}
+                                <View style={styles.inputGroup}>
+                                    <Text style={styles.label}>Nome do Alimento</Text>
+                                    <TextInput
+                                        style={styles.textInput}
+                                        placeholder="Ex: Arroz integral, Frango grelhado..."
+                                        value={foodName}
+                                        onChangeText={setFoodName}
+                                        placeholderTextColor="#999"
+                                    />
+                                </View>
+                                {/* Quantidade */}
+                                <View style={styles.inputGroup}>
+                                    <Text style={styles.label}>Quantidade</Text>
+                                    <TextInput
+                                        style={styles.textInput}
+                                        placeholder="Ex: 100g, 1 xícara, 200ml..."
+                                        value={quantity}
+                                        onChangeText={setQuantity}
+                                        placeholderTextColor="#999"
+                                    />
+                                </View>
+                                {/* Informações Nutricionais */}
+                                <Text style={styles.sectionTitle}>Informações Nutricionais</Text>
+                                <View style={styles.nutrientInputsRow}>
+                                    <View style={styles.nutrientInputGroup}>
+                                        <Text style={styles.label}>Calorias</Text>
+                                        <TextInput
+                                            style={styles.nutrientInput}
+                                            placeholder="0"
+                                            value={calories}
+                                            onChangeText={setCalories}
+                                            keyboardType="numeric"
+                                            placeholderTextColor="#999"
+                                        />
+                                    </View>
+                                    <View style={styles.nutrientInputGroup}>
+                                        <Text style={styles.label}>Proteínas (g)</Text>
+                                        <TextInput
+                                            style={styles.nutrientInput}
+                                            placeholder="0"
+                                            value={proteins}
+                                            onChangeText={setProteins}
+                                            keyboardType="numeric"
+                                            placeholderTextColor="#999"
+                                        />
+                                    </View>
+                                </View>
+                                <View style={styles.nutrientInputsRow}>
+                                    <View style={styles.nutrientInputGroup}>
+                                        <Text style={styles.label}>Carboidratos (g)</Text>
+                                        <TextInput
+                                            style={styles.nutrientInput}
+                                            placeholder="0"
+                                            value={carbs}
+                                            onChangeText={setCarbs}
+                                            keyboardType="numeric"
+                                            placeholderTextColor="#999"
+                                        />
+                                    </View>
+                                    <View style={styles.nutrientInputGroup}>
+                                        <Text style={styles.label}>Gorduras (g)</Text>
+                                        <TextInput
+                                            style={styles.nutrientInput}
+                                            placeholder="0"
+                                            value={fats}
+                                            onChangeText={setFats}
+                                            keyboardType="numeric"
+                                            placeholderTextColor="#999"
+                                        />
+                                    </View>
+                                </View>
+                                {/* Botões do Modal */}
+                                <View style={styles.modalButtonsRow}>
+                                    <TouchableOpacity
+                                        style={[styles.addButton, loading && styles.addButtonDisabled]}
+                                        onPress={async () => {
+                                            await handleAddMealItem();
+                                            setShowAddModal(false);
+                                        }}
+                                        disabled={loading}
+                                        activeOpacity={0.8}
+                                    >
+                                        <Icon
+                                            name={loading ? "spinner" : "plus"}
+                                            size={20}
+                                            color="#FFFFFF"
+                                        />
+                                        <Text style={styles.addButtonText}>
+                                            {loading ? 'Adicionando...' : 'Adicionar'}
+                                        </Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        style={styles.cancelButton}
+                                        onPress={() => {
+                                            setShowAddModal(false);
+                                            clearForm();
+                                        }}
+                                        activeOpacity={0.8}
+                                    >
+                                        <Text style={styles.cancelButtonText}>Cancelar</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </ScrollView>
                         </View>
-                    </View>
-                </View>
+                    </TouchableWithoutFeedback>
+                </KeyboardAvoidingView>
             </Modal>
             <KeyboardAvoidingView
                 style={styles.container}
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             >
                 <Header title="Alimentos" />
-                <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+                <ScrollView style={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
                     {/* Meal Info */}
                     <View style={[styles.mealInfo, { backgroundColor: checked ? '#E8F5E9' : '#fff' }]}>
                         <Icon name={getFontAwesomeIconName(mealRecord.icon_path)} size={20} color={mealRecord.checked ? '#4caf50' : '#40C4FF'} />
@@ -411,11 +445,11 @@ const styles = StyleSheet.create({
     },
     modalOverlay: {
         position: 'absolute',
-        top: 0,
+        top: 90,
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: 'rgba(0,0,0,0.45)',
+        backgroundColor: 'rgba(177, 177, 177, 0.45)',
         justifyContent: 'center',
         alignItems: 'center',
         zIndex: 9999,
@@ -426,8 +460,8 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
         borderRadius: 18,
         padding: 32,
-        width: '90%',
-        maxWidth: 400,
+        width: '80%',
+        maxWidth: 350,
         alignItems: 'center',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
@@ -512,12 +546,14 @@ const styles = StyleSheet.create({
     inputGroup: {
         marginBottom: 16,
         width: '100%',
+        alignItems: 'center',
     },
     label: {
         fontSize: 14,
         fontWeight: '600',
         color: '#333',
         marginBottom: 6,
+
     },
     textInput: {
         backgroundColor: '#F8F9FA',
@@ -528,7 +564,10 @@ const styles = StyleSheet.create({
         paddingVertical: 12,
         fontSize: 16,
         color: '#333',
-        width: '100%',
+        width: 270,
+        minHeight: 48,        
+        maxHeight: 48,        
+        textAlignVertical: 'center',
     },
     sectionTitle: {
         fontSize: 16,
