@@ -13,6 +13,9 @@ import AdicionarAlimentos from './src/screens/refeicoes/AdicionarAlimentos';
 import GerenciarTreinos from './src/screens/treinos/GerenciarTreinos';
 import Treinos from './src/screens/treinos/Treinos';
 import AdicionarTreinos from './src/screens/treinos/AdicionarTreinos';
+import IniciarSessao from './src/screens/treinos/IniciarSessao';
+import VisualizarTreinos from './src/screens/treinos/VisualizarTreinos';
+import ChecklistTreino from './src/screens/treinos/ChecklistTreino';
 import ChecklistScreen from './src/screens/checklist/Checklist';
 
 import { authService } from './src/services/authService';
@@ -78,6 +81,9 @@ export default function App() {
           <Stack.Screen name="Treinos" component={Treinos} />
           <Stack.Screen name="GerenciarTreinos" component={GerenciarTreinos} />
           <Stack.Screen name="AdicionarTreinos" component={AdicionarTreinos} />
+          <Stack.Screen name="IniciarSessao" component={IniciarSessao} />
+          <Stack.Screen name="VisualizarTreinos" component={VisualizarTreinos} />
+          <Stack.Screen name="ChecklistTreino" component={ChecklistTreino} />
           <Stack.Screen name="GerenciarMedidas" component={require('./src/screens/medidas/GerenciarMedidas').default} />
         </Stack.Navigator>
         <StatusBar style="auto" />

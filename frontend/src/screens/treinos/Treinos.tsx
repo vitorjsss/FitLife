@@ -142,6 +142,25 @@ const Treinos: React.FC<InicioTreinosProps> = ({ navigation }) => {
       <Header title="TREINOS" />
 
       <View style={styles.content}>
+        {/* Botões de Ação */}
+        <View style={styles.actionButtons}>
+          <TouchableOpacity 
+            style={[styles.actionButton, styles.primaryButton]} 
+            onPress={() => navigation?.navigate('IniciarSessao')}
+          >
+            <MaterialCommunityIcons name="play-circle" size={24} color="#fff" />
+            <Text style={styles.actionButtonText}>Iniciar Treino</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.actionButton, styles.secondaryButton]} 
+            onPress={() => navigation?.navigate('VisualizarTreinos')}
+          >
+            <MaterialCommunityIcons name="history" size={24} color="#fff" />
+            <Text style={styles.actionButtonText}>Histórico</Text>
+          </TouchableOpacity>
+        </View>
+
         <TouchableOpacity style={styles.criarButton} onPress={handleCriarTreino}>
           <Icon name="plus" size={20} color="#fff" />
           <Text style={styles.criarButtonText}>Criar Novo Treino</Text>
@@ -177,6 +196,36 @@ const Treinos: React.FC<InicioTreinosProps> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#E0E0E0" },
   content: { flex: 1, padding: 20 },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
+  actionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    borderRadius: 12,
+    gap: 8,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  primaryButton: {
+    backgroundColor: '#4A90E2',
+  },
+  secondaryButton: {
+    backgroundColor: '#FF9800',
+  },
+  actionButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
   criarButton: {
     flexDirection: 'row',
     alignItems: 'center',
