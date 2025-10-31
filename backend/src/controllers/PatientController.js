@@ -129,7 +129,7 @@ export const PatientController = {
         const userId = req.user?.id;
 
         try {
-            const patient = await PatientService.getById(auth_id); // já usa findByAuthId
+            const patient = await PatientService.getByAuthId(auth_id);
 
             if (!patient) {
                 await LogService.createLog({
@@ -286,6 +286,11 @@ export const PatientController = {
         const avatarPath = "uploads/avatars/" + req.file.filename;
 
         try {
+            // Buscar paciente pelo id (chave primária)
+            const oldPatient = await PatientService.getById(id);
+            if (!oldPatient) return res.status(404).json({ message: "Paciente não encontrado" });
+
+            // Atualizar apenas avatar_path
             const updated = await PatientService.update(id, { avatar_path: avatarPath });
 
             await LogService.createLog({

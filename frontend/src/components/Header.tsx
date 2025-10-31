@@ -5,7 +5,13 @@ import { CommonActions, useNavigation } from "@react-navigation/native";
 import { authService } from "../services/authService";
 import { useUser } from "../context/UserContext";
 
-const Header: React.FC = () => {
+interface HeaderProps {
+    title?: string;
+    showBackArrow?: boolean;
+    showUserIcon?: boolean;
+}
+
+const Header: React.FC<HeaderProps> = ({ title = '', showBackArrow = true, showUserIcon = false }) => {
     const [showMenu, setShowMenu] = useState(false);
     const navigation = useNavigation();
     const { user, loading } = useUser();
@@ -30,11 +36,27 @@ const Header: React.FC = () => {
 
     return (
         <View style={styles.header}>
-            <View style={{ width: 25 }} />
-            <Text style={styles.headerTitle}>INÍCIO</Text>
-            <TouchableOpacity onPress={() => setShowMenu(!showMenu)}>
-                <Icon name="user-circle" size={32} color="#fff" style={{ marginTop: 25 }} />
-            </TouchableOpacity>
+            <View style={styles.sideContainer}>
+                {showBackArrow ? (
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backArrow}>
+                        <Icon name="arrow-left" size={20} color="#fff" style={{ marginTop: 30 }} />
+                    </TouchableOpacity>
+                ) : (
+                    <View style={{ width: 25 }} />
+                )}
+            </View>
+            <View style={styles.centerContainer}>
+                <Text style={styles.headerTitle}>{title}</Text>
+            </View>
+            <View style={styles.sideContainer}>
+                {showUserIcon ? (
+                    <TouchableOpacity onPress={() => setShowMenu(!showMenu)}>
+                        <Icon name="user-circle" size={30} color="#fff" style={{ marginTop: 30 }} />
+                    </TouchableOpacity>
+                ) : (
+                    <View style={{ width: 25 }} />
+                )}
+            </View>
             {showMenu && (
                 <View style={styles.menu}>
                     <Text style={styles.menuTitle}>
@@ -84,13 +106,29 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        paddingHorizontal: 35,
+        paddingHorizontal: 20,
+    },
+    sideContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    centerContainer: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        textAlign: 'center',
     },
     headerTitle: {
         color: "#fff",
-        fontSize: 18,
+        fontSize: 20,
         fontWeight: "bold",
-        paddingTop: 30,
+        paddingTop: 35,
+        textAlign: 'center',
+    },
+    backArrow: {
+        width: 25,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     menu: {
         position: "absolute",

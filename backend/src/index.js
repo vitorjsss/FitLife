@@ -1,3 +1,4 @@
+import path from 'path';
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -32,6 +33,7 @@ app.use("/meal-item", mealItemRoutes);
 app.use("/workout", workoutRoutes);
 app.use("/workout-session", workoutSessionRoutes);
 app.use("/uploads/avatars", express.static("uploads/avatars"));
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => {

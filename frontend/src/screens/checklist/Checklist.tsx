@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useMemo } from "react";
 import {
-  SafeAreaView,
   View,
   Text,
   TouchableOpacity,
@@ -13,13 +12,29 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import Icon from "react-native-vector-icons/FontAwesome";
 import DailyMealService from "../../services/DailyMealService";
 import MealRecordService, { MealRecordData } from "../../services/MealRecordService";
-import { useNavigation, useRoute } from "@react-navigation/native";
+import { useNavigation } from "@react-navigation/native";
+import { useUser } from "../../context/UserContext";
+import Header from "../../components/Header";
 
 const TRAININGS_KEY = "@fitlife_treinos";
 const { width } = Dimensions.get("window");
 
 function formatDateKey(d: Date) {
-  return d.toISOString().slice(0, 10); // YYYY-MM-DD
+  // Ajuste manual para fuso horário de Brasília (-3h padrão)
+  // Se quiser tratar horário de verão, pode ajustar para -2h conforme necessário
+  const BR_OFFSET = -3; // horas
+  const localDate = new Date(d.getTime() + BR_OFFSET * 60 * 60 * 1000);
+  const yyyy = localDate.getUTCFullYear();
+  const mm = String(localDate.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(localDate.getUTCDate()).padStart(2, "0");
+  if (isNaN(yyyy) || isNaN(Number(mm)) || isNaN(Number(dd))) {
+    // fallback: retorna data local do estado
+    const yyyyLocal = d.getFullYear();
+    const mmLocal = String(d.getMonth() + 1).padStart(2, "0");
+    const ddLocal = String(d.getDate()).padStart(2, "0");
+    return `${yyyyLocal}-${mmLocal}-${ddLocal}`;
+  }
+  return `${yyyy}-${mm}-${dd}`;
 }
 function formatDateBR(d: Date) {
   const dd = String(d.getDate()).padStart(2, "0");
@@ -75,25 +90,13 @@ export default function ChecklistScreen() {
     meals: Record<string, boolean>;
   }>({ trainings: {}, meals: {} });
   const navigation = useNavigation();
-  const route = useRoute();
-  // patientId pode vir das params ou do AsyncStorage
-  const paramPatientId = (route.params as any)?.patientId ?? null;
-  const [patientId, setPatientId] = useState<string | null>(paramPatientId);
-
-  // Se não veio via params, busca do AsyncStorage
-  useEffect(() => {
-    if (!patientId) {
-      const fetchPatientId = async () => {
-        const pid = await AsyncStorage.getItem("@fitlife:user_id");
-        setPatientId(pid);
-      };
-      fetchPatientId();
-    }
-  }, [patientId]);
+  const { user } = useUser();
 
   useEffect(() => {
-    loadAll();
-  }, [date]);
+    loadTrainings();
+    loadCompleted();
+    loadMeals();
+  }, [date, user?.id]);
 
   // compute trainings planned for the selected date
   const todaysTrainings = useMemo(() => {
@@ -117,12 +120,12 @@ export default function ChecklistScreen() {
 
   const loadMeals = async () => {
     try {
-      if (!patientId) {
+      if (!user?.id) {
         setMeals([]);
         return;
       }
       const dateStr = formatDateKey(date);
-      const registries = await DailyMealService.getByDate(dateStr, patientId);
+      const registries = await DailyMealService.getByDate(dateStr, user.id);
       if (Array.isArray(registries) && registries.length > 0) {
         const registryId = registries[0].id;
         const records = await MealRecordService.getByRegistry(registryId);
@@ -254,7 +257,7 @@ export default function ChecklistScreen() {
           activeOpacity={0.8}
           onPress={() => {
             // optional: navigate to meal details if you have a screen
-            navigation.navigate("AdicionarAlimentos", { item });
+            navigation.navigate("AdicionarAlimentos", { mealRecord: item });
           }}
         >
           <View style={[styles.iconCircle, { backgroundColor: "#FFF3E0" }]}>
@@ -285,17 +288,8 @@ export default function ChecklistScreen() {
   const handleGoBack = () => navigation?.goBack();
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={handleGoBack}>
-          <Icon name="arrow-left" size={20} color="#fff" />
-        </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Checklist diário</Text>
-          <Text style={styles.headerSubtitle}>Marque treinos e refeições concluídas</Text>
-        </View>
-        <View style={{ width: 20 }} />
-      </View>
+    <View style={styles.container}>
+      <Header title="Checklist diário" />
 
       <View style={styles.controlsRow}>
         <TouchableOpacity style={styles.dateBtn} onPress={() => changeDay(-1)}>
@@ -351,24 +345,12 @@ export default function ChecklistScreen() {
           ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
         />
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F4F7FB" },
-  header: {
-    backgroundColor: "#1976D2",
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  headerCenter: { alignItems: "center" },
-  headerTitle: { color: "#fff", fontWeight: "700", fontSize: 16 },
-  headerSubtitle: { color: "#E3F2FD", fontSize: 12, marginTop: 2 },
-
   controlsRow: {
     flexDirection: "row",
     alignItems: "center",

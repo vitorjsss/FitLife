@@ -3,6 +3,7 @@ import { Text, View, StyleSheet, TouchableOpacity, TextInput, Alert, ScrollView,
 import Icon from "react-native-vector-icons/FontAwesome";
 import MealItemService, { MealItemData } from '../../services/MealItemService';
 import MealRecordService from '../../services/MealRecordService';
+import Header from '../../components/Header';
 
 interface AdicionarAlimentosProps {
     navigation?: any;
@@ -309,35 +310,12 @@ const AdicionarAlimentos: React.FC<AdicionarAlimentosProps> = ({ navigation, rou
                 style={styles.container}
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             >
-                {/* Header */}
-                <View style={styles.header}>
-                    <TouchableOpacity onPress={handleGoBack}>
-                        <Icon name="arrow-left" size={24} color="#fff" style={{ marginTop: 25 }} />
-                    </TouchableOpacity>
-                    <Text style={styles.headerTitle}>ALIMENTOS</Text>
-                    <TouchableOpacity onPress={() => setShowMenu(!showMenu)}>
-                        <Icon name="user-circle" size={32} color="#fff" style={{ marginTop: 25 }} />
-                    </TouchableOpacity>
-                </View>
-                {/* Dropdown Menu */}
-                {showMenu && (
-                    <View style={styles.menu}>
-                        <Text style={styles.menuTitle}>NOME DO USUÁRIO</Text>
-                        <TouchableOpacity style={styles.menuItem}>
-                            <Icon name="cog" size={16} color="#1976D2" />
-                            <Text style={styles.menuText}>Minha Conta</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.menuItem}>
-                            <Icon name="sign-out" size={16} color="#1976D2" />
-                            <Text style={styles.menuText}>Sair</Text>
-                        </TouchableOpacity>
-                    </View>
-                )}
+                <Header title="Alimentos" />
                 <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
                     {/* Meal Info */}
                     <View style={[styles.mealInfo, { backgroundColor: checked ? '#E8F5E9' : '#fff' }]}>
-                        <Icon name={getFontAwesomeIconName(mealRecord.icon_path)} size={20} color={checked ? '#4caf50' : '#40C4FF'} />
-                        <Text style={[styles.mealName, { color: checked ? '#4caf50' : '#333' }]}>{mealRecord.name || 'Refeição'}</Text>
+                        <Icon name={getFontAwesomeIconName(mealRecord.icon_path)} size={20} color={mealRecord.checked ? '#4caf50' : '#40C4FF'} />
+                        <Text style={[styles.mealName, { color: mealRecord.checked ? '#4caf50' : '#333' }]}>{mealRecord.name || 'Refeição'}</Text>
                         <View style={{ flex: 1 }} />
                         <TouchableOpacity
                             style={styles.checkButton}
@@ -476,20 +454,6 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: 'bold',
     },
-    header: {
-        backgroundColor: "#1976D2",
-        height: 90,
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        paddingHorizontal: 35,
-    },
-    headerTitle: {
-        color: "#fff",
-        fontSize: 18,
-        fontWeight: "bold",
-        paddingTop: 30,
-    },
     menu: {
         position: "absolute",
         top: 90,
@@ -504,23 +468,6 @@ const styles = StyleSheet.create({
         shadowRadius: 4,
         shadowOffset: { width: 0, height: 2 },
         zIndex: 999,
-    },
-    menuTitle: {
-        fontWeight: "bold",
-        marginBottom: 10,
-        borderBottomWidth: 1,
-        borderBottomColor: "#ccc",
-        paddingBottom: 5,
-    },
-    menuItem: {
-        flexDirection: "row",
-        alignItems: "center",
-        paddingVertical: 8,
-    },
-    menuText: {
-        marginLeft: 8,
-        color: "#1976D2",
-        fontWeight: "600",
     },
     content: {
         flex: 1,

@@ -15,12 +15,13 @@ import {
 import DailyMealService from '../../services/DailyMealService';
 import MealRecordService, { MealRecordData } from '../../services/MealRecordService';
 import Icon from "react-native-vector-icons/FontAwesome";
+import Header from '../../components/Header';
 
 interface MealRecord {
     id: string;
     name: string;
     icon_path?: string;
-    itemCount?: number;
+    checked?: boolean;
 }
 
 interface GerenciarRefeicoesProps {
@@ -135,10 +136,7 @@ const GerenciarRefeicoes: React.FC<GerenciarRefeicoesProps> = ({ navigation, rou
 
     const handleEditMealRecord = (mealRecord: MealRecord) => {
         navigation?.navigate('AdicionarAlimentos', {
-            mealRecordId: mealRecord.id,
-            mealName: mealRecord.name,
-            date,
-            patientId
+            mealRecord: mealRecord
         });
     };
 
@@ -258,21 +256,32 @@ const GerenciarRefeicoes: React.FC<GerenciarRefeicoesProps> = ({ navigation, rou
         const iconMatch = item.icon_path?.match(/\/icons\/(.+)\.png/);
         const iconName = iconMatch ? iconMatch[1] : 'cutlery';
 
+        // Estilos dinâmicos para refeição marcada
+        const cardStyle = [
+            styles.mealCard,
+            item.checked && { backgroundColor: '#E8F5E9', borderLeftColor: '#4caf50' }
+        ];
+        const titleStyle = [
+            styles.mealCardTitle,
+            item.checked && { color: '#388e3c' }
+        ];
+        const subtitleStyle = [
+            styles.mealCardSubtitle,
+            item.checked && { color: '#388e3c' }
+        ];
+
         return (
             <TouchableOpacity
-                style={styles.mealCard}
+                style={cardStyle}
                 onPress={() => handleEditMealRecord(item)}
                 onLongPress={() => handleLongPressMeal(item)}
                 delayLongPress={500}
                 activeOpacity={0.7}
             >
                 <View style={styles.mealCardHeader}>
-                    <Icon name={iconName} size={24} color="#40C4FF" />
+                    <Icon name={iconName} size={24} color={item.checked ? '#388e3c' : '#40C4FF'} />
                     <View style={styles.mealCardInfo}>
-                        <Text style={styles.mealCardTitle}>{item.name}</Text>
-                        <Text style={styles.mealCardSubtitle}>
-                            {item.itemCount || 0} alimentos adicionados
-                        </Text>
+                        <Text style={titleStyle}>{item.name}</Text>
                     </View>
                     <Icon name="chevron-right" size={16} color="#666" />
                 </View>
@@ -285,36 +294,7 @@ const GerenciarRefeicoes: React.FC<GerenciarRefeicoesProps> = ({ navigation, rou
             style={styles.container}
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
-            {/* Header */}
-            <View style={styles.header}>
-                <TouchableOpacity onPress={handleGoBack}>
-                    <Icon name="arrow-left" size={24} color="#fff" style={{ marginTop: 25 }} />
-                </TouchableOpacity>
-
-                <Text style={styles.headerTitle}>REFEIÇÕES</Text>
-
-                <TouchableOpacity onPress={() => setShowMenu(!showMenu)}>
-                    <Icon name="user-circle" size={32} color="#fff" style={{ marginTop: 25 }} />
-                </TouchableOpacity>
-            </View>
-
-            {/* Dropdown Menu */}
-            {showMenu && (
-                <View style={styles.menu}>
-                    <Text style={styles.menuTitle}>NOME DO USUÁRIO</Text>
-
-                    <TouchableOpacity style={styles.menuItem}>
-                        <Icon name="cog" size={16} color="#1976D2" />
-                        <Text style={styles.menuText}>Minha Conta</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity style={styles.menuItem}>
-                        <Icon name="sign-out" size={16} color="#1976D2" />
-                        <Text style={styles.menuText}>Sair</Text>
-                    </TouchableOpacity>
-                </View>
-            )}
-
+            <Header title="REFEIÇÕES" />
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
                 {/* Data Info */}
                 <View style={styles.dateInfo}>
@@ -498,52 +478,6 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: "#E0E0E0",
-    },
-    header: {
-        backgroundColor: "#1976D2",
-        height: 90,
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        paddingHorizontal: 35,
-    },
-    headerTitle: {
-        color: "#fff",
-        fontSize: 18,
-        fontWeight: "bold",
-        paddingTop: 30,
-    },
-    menu: {
-        position: "absolute",
-        top: 90,
-        right: 20,
-        width: 200,
-        backgroundColor: "#fff",
-        borderRadius: 8,
-        padding: 10,
-        elevation: 10,
-        shadowColor: "#000",
-        shadowOpacity: 0.2,
-        shadowRadius: 4,
-        shadowOffset: { width: 0, height: 2 },
-        zIndex: 999,
-    },
-    menuTitle: {
-        fontWeight: "bold",
-        marginBottom: 10,
-        borderBottomWidth: 1,
-        borderBottomColor: "#ccc",
-        paddingBottom: 5,
-    },
-    menuItem: {
-        flexDirection: "row",
-        alignItems: "center",
-        paddingVertical: 8,
-    },
-    menuText: {
-        marginLeft: 8,
-        color: "#1976D2",
-        fontWeight: "600",
     },
     content: {
         flex: 1,

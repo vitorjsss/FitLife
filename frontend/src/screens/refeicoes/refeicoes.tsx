@@ -8,7 +8,7 @@ import {
     ScrollView,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
-
+import Header from '../../components/Header';
 import DailyMealService from '../../services/DailyMealService';
 
 const { width } = Dimensions.get('window');
@@ -61,36 +61,7 @@ const Refeicoes: React.FC<RefeicoesProps> = ({ route, navigation }) => {
 
     return (
         <View style={styles.container}>
-            {/* HEADER */}
-            <View style={styles.header}>
-                <TouchableOpacity onPress={handleGoBack}>
-                    <Icon name="arrow-left" size={24} color="#fff" style={{ marginTop: 25 }} />
-                </TouchableOpacity>
-
-                <Text style={styles.headerTitle}>REFEIÇÕES</Text>
-
-                <TouchableOpacity onPress={() => setShowMenu(!showMenu)}>
-                    <Icon name="user-circle" size={32} color="#fff" style={{ marginTop: 25 }} />
-                </TouchableOpacity>
-            </View>
-
-            {/* MENU */}
-            {showMenu && (
-                <View style={styles.menu}>
-                    <Text style={styles.menuTitle}>NOME DO USUÁRIO</Text>
-
-                    <TouchableOpacity style={styles.menuItem}>
-                        <Icon name="cog" size={16} color="#1976D2" />
-                        <Text style={styles.menuText}>Minha Conta</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity style={styles.menuItem}>
-                        <Icon name="sign-out" size={16} color="#1976D2" />
-                        <Text style={styles.menuText}>Sair</Text>
-                    </TouchableOpacity>
-                </View>
-            )}
-
+            <Header title="REFEIÇÕES" />
             {/* CONTEÚDO */}
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
                 {loading ? (
@@ -189,52 +160,6 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#E0E0E0',
         marginTop: 0,
-    },
-    header: {
-        backgroundColor: '#1976D2',
-        height: 90,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 35,
-    },
-    headerTitle: {
-        color: '#fff',
-        fontSize: 18,
-        fontWeight: 'bold',
-        paddingTop: 30,
-    },
-    menu: {
-        position: 'absolute',
-        top: 90,
-        right: 20,
-        width: 200,
-        backgroundColor: '#fff',
-        borderRadius: 8,
-        padding: 10,
-        elevation: 10,
-        shadowColor: '#000',
-        shadowOpacity: 0.2,
-        shadowRadius: 4,
-        shadowOffset: { width: 0, height: 2 },
-        zIndex: 999,
-    },
-    menuTitle: {
-        fontWeight: 'bold',
-        marginBottom: 10,
-        borderBottomWidth: 1,
-        borderBottomColor: '#ccc',
-        paddingBottom: 5,
-    },
-    menuItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 8,
-    },
-    menuText: {
-        marginLeft: 8,
-        color: '#1976D2',
-        fontWeight: '600',
     },
     content: {
         flex: 1,

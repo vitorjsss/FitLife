@@ -9,7 +9,10 @@ export const PatientService = {
         return await PatientRepository.findAll();
     },
     getById: async (id) => {
-        return await PatientRepository.findByAuthId(id);
+        return await PatientRepository.findById(id);
+    },
+    getByAuthId: async (auth_id) => {
+        return await PatientRepository.findByAuthId(auth_id);
     },
     update: async (id, data) => {
         return await PatientRepository.update(id, data);

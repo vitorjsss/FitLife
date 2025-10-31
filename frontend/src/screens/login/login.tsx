@@ -15,6 +15,7 @@ import { useNavigation } from "@react-navigation/native";
 import { RootStackParamList } from "../../../App";
 import { authService } from '../../services/authService';
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useUser } from '../../context/UserContext';
 
 type LoginFormData = {
     email: string;
@@ -30,6 +31,7 @@ const schema = yup.object({
 });
 
 export default function LoginScreen() {
+    const { refreshUser } = useUser();
     const [hidePassword, setHidePassword] = useState(true);
     const [loading, setLoading] = useState(false);
     const navigation = useNavigation<LoginScreenNavigationProp>();
@@ -42,7 +44,7 @@ export default function LoginScreen() {
         },
     });
 
-    const onSubmit: SubmitHandler<FormData> = async (data) => {
+    const onSubmit: SubmitHandler<LoginFormData> = async (data) => {
         setLoading(true);
         try {
             const loginData = {
@@ -55,7 +57,8 @@ export default function LoginScreen() {
 
             if (token) {
                 console.log("Login bem-sucedido:", token);
-
+                // força o contexto a recarregar os dados do usuário
+                if (refreshUser) await refreshUser();
                 navigation.replace("Home");
             } else {
                 alert("Credenciais inválidas.");

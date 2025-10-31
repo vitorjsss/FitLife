@@ -12,6 +12,7 @@ import {
   FlatList,
 } from 'react-native';
 import Icon from "react-native-vector-icons/FontAwesome";
+import Header from '../../components/Header';
 
 interface Exercicio {
   id: string;
@@ -107,35 +108,7 @@ const AdicionarTreinos: React.FC<AdicionarExerciciosProps> = ({ navigation, rout
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={handleGoBack}>
-          <Icon name="arrow-left" size={24} color="#fff" style={{ marginTop: 25 }} />
-        </TouchableOpacity>
-
-        <Text style={styles.headerTitle}>EXERCÍCIOS</Text>
-
-        <TouchableOpacity onPress={() => setShowMenu(!showMenu)}>
-          <Icon name="user-circle" size={32} color="#fff" style={{ marginTop: 25 }} />
-        </TouchableOpacity>
-      </View>
-
-      {/* Dropdown Menu */}
-      {showMenu && (
-        <View style={styles.menu}>
-          <Text style={styles.menuTitle}>NOME DO USUÁRIO</Text>
-
-          <TouchableOpacity style={styles.menuItem}>
-            <Icon name="cog" size={16} color="#1976D2" />
-            <Text style={styles.menuText}>Minha Conta</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.menuItem}>
-            <Icon name="sign-out" size={16} color="#1976D2" />
-            <Text style={styles.menuText}>Sair</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+      <Header title="ADICIONAR EXERCÍCIOS" />
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Info do treino */}
@@ -236,28 +209,6 @@ const AdicionarTreinos: React.FC<AdicionarExerciciosProps> = ({ navigation, rout
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#E0E0E0" },
-  header: {
-    backgroundColor: "#1976D2",
-    height: 90,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 35,
-  },
-  headerTitle: { color: "#fff", fontSize: 18, fontWeight: "bold", paddingTop: 30 },
-  menu: {
-    position: "absolute",
-    top: 90,
-    right: 20,
-    width: 200,
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    padding: 10,
-    elevation: 10,
-  },
-  menuTitle: { fontWeight: "bold", marginBottom: 10, borderBottomWidth: 1, borderBottomColor: "#ccc", paddingBottom: 5 },
-  menuItem: { flexDirection: "row", alignItems: "center", paddingVertical: 8 },
-  menuText: { marginLeft: 8, color: "#1976D2", fontWeight: "600" },
   content: { flex: 1, padding: 20 },
   treinoInfo: {
     flexDirection: 'row',

@@ -18,6 +18,7 @@ import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import MeasurementsService, { MeasureRecord } from "../../services/MeasurementsService";
+import Header from "../../components/Header";
 
 type FormData = {
   date: string;
@@ -41,12 +42,12 @@ function isoFromBR(br: string) {
   const parts = br.split("/");
   if (parts.length !== 3) return "";
   const [d, m, y] = parts;
-  return `${y.padStart(4,"0")}-${m.padStart(2,"0")}-${d.padStart(2,"0")}`;
+  return `${y.padStart(4, "0")}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
 }
 function brToday() {
   const d = new Date();
-  const dd = String(d.getDate()).padStart(2,"0");
-  const mm = String(d.getMonth()+1).padStart(2,"0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
   const yy = d.getFullYear();
   return `${dd}/${mm}/${yy}`;
 }
@@ -106,7 +107,7 @@ export default function GerenciarMedidas() {
   };
 
   const onSubmit = async (data: any) => {
-    if (!userId) { Alert.alert("Erro","Usuário não identificado"); return; }
+    if (!userId) { Alert.alert("Erro", "Usuário não identificado"); return; }
 
     try {
       const payload = {
@@ -131,7 +132,7 @@ export default function GerenciarMedidas() {
       // reset para data no formato BR
       reset({ date: brToday() });
       await refresh();
-    } catch (err:any) {
+    } catch (err: any) {
       console.error(err);
       Alert.alert("Erro", err.message || "Falha ao salvar medida.");
     }
@@ -155,17 +156,19 @@ export default function GerenciarMedidas() {
   const onDelete = (id: string) => {
     Alert.alert("Confirmar", "Remover esta medida?", [
       { text: "Cancelar", style: "cancel" },
-      { text: "Remover", style: "destructive", onPress: async () => {
-        if (!userId) return;
-        await MeasurementsService.remove(userId, id);
-        await refresh();
-      }}
+      {
+        text: "Remover", style: "destructive", onPress: async () => {
+          if (!userId) return;
+          await MeasurementsService.remove(userId, id);
+          await refresh();
+        }
+      }
     ]);
   };
 
   const renderItem = ({ item }: { item: MeasureRecord }) => (
     <View style={styles.record}>
-      <View style={{flex:1}}>
+      <View style={{ flex: 1 }}>
         <Text style={styles.recordDate}>{item.date ? formatBRFromISO(item.date) : ""}</Text>
         <Text style={styles.recordText}>
           {item.weight ? `${item.weight}kg • ` : ""}{item.height ? `${item.height}cm` : ""}
@@ -175,7 +178,7 @@ export default function GerenciarMedidas() {
         <TouchableOpacity onPress={() => onEdit(item)} style={styles.smallBtn}>
           <Icon name="pencil" size={14} color="#1976D2" />
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => onDelete(item.id)} style={[styles.smallBtn, {marginLeft:8}]}>
+        <TouchableOpacity onPress={() => onDelete(item.id)} style={[styles.smallBtn, { marginLeft: 8 }]}>
           <Icon name="trash" size={14} color="#D32F2F" />
         </TouchableOpacity>
       </View>
@@ -183,17 +186,10 @@ export default function GerenciarMedidas() {
   );
 
   return (
-    <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <ScrollView contentContainerStyle={{flexGrow:1}}>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <Header title="Gerenciar Medidas" />
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
         <View style={styles.container}>
-          <View style={styles.header}>
-            <TouchableOpacity onPress={() => navigation.goBack()}>
-              <Icon name="arrow-left" size={20} color="#fff" />
-            </TouchableOpacity>
-            <Text style={styles.title}>Gerenciar Medidas</Text>
-            <View style={{width:24}} />
-          </View>
-
           <View style={styles.introCard}>
             <Text style={styles.introTitle}>Registrar suas medidas</Text>
             <Text style={styles.introText}>
@@ -264,15 +260,15 @@ export default function GerenciarMedidas() {
               </View>
             </View>
 
-            <Text style={[styles.label, {marginTop:6}]}>Observações (opcional)</Text>
+            <Text style={[styles.label, { marginTop: 6 }]}>Observações (opcional)</Text>
             <Controller control={control} name="notes" render={({ field: { onChange, value } }) => (
-              <TextInput style={[styles.input, {height:80}]} placeholder="Ex: medida após treino" value={value} onChangeText={onChange} multiline />
+              <TextInput style={[styles.input, { height: 80 }]} placeholder="Ex: medida após treino" value={value} onChangeText={onChange} multiline />
             )} />
-            <View style={[styles.col, {justifyContent:'flex-end'}]}>
-                <TouchableOpacity style={styles.saveBtn} onPress={handleSubmit(onSubmit)}>
-                  <Text style={styles.saveTxt}>{editingId ? "Atualizar" : "Salvar"}</Text>
-                </TouchableOpacity>
-              </View>
+            <View style={[styles.col, { justifyContent: 'flex-end' }]}>
+              <TouchableOpacity style={styles.saveBtn} onPress={handleSubmit(onSubmit)}>
+                <Text style={styles.saveTxt}>{editingId ? "Atualizar" : "Salvar"}</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           <View style={styles.list}>
@@ -288,26 +284,24 @@ export default function GerenciarMedidas() {
 }
 
 const styles = StyleSheet.create({
-  container:{flex:1, backgroundColor:"#F2F6FA", paddingBottom:24},
-  header:{backgroundColor:"#1976D2", height:80, paddingHorizontal:16, flexDirection:"row", alignItems:"center", justifyContent:"space-between"},
-  title:{color:"#fff", fontWeight:"700", fontSize:18},
-  introCard:{backgroundColor:"#fff", margin:12, borderRadius:10, padding:12, elevation:2, shadowColor:"#000", shadowOpacity:0.06, shadowRadius:6},
-  introTitle:{fontWeight:"700", color:"#1976D2", marginBottom:6},
-  introText:{color:"#444"},
-  formCard:{backgroundColor:"#fff", marginHorizontal:12, borderRadius:10, padding:12, elevation:3, shadowColor:"#000", shadowOpacity:0.08, shadowRadius:8},
-  row:{flexDirection:"row", justifyContent:"space-between"},
-  col:{flex:1, marginRight:8},
-  label:{fontSize:12, color:"#666", marginBottom:6, fontWeight:"600"},
-  input:{backgroundColor:"#fbfdff", padding:10, borderRadius:8, marginBottom:6, borderWidth:1, borderColor:"#e6eef7"},
-  saveBtn:{backgroundColor:"#1976D2", padding:12, borderRadius:8, alignItems:"center"},
-  saveTxt:{color:"#fff", fontWeight:"700"},
-  list:{flex:1, padding:12},
-  sectionTitle:{fontWeight:"700", color:"#1976D2", marginBottom:8},
-  empty:{color:"#666"},
-  record:{flexDirection:"row", backgroundColor:"#fff", padding:10, borderRadius:8, marginBottom:8, alignItems:"center", elevation:1},
-  recordDate:{fontWeight:"700"},
-  recordText:{color:"#666"},
-  recordActions:{flexDirection:"row"},
-  smallBtn:{padding:6},
-  err:{color:"red", marginBottom:6}
+  container: { flex: 1, backgroundColor: "#F2F6FA", paddingBottom: 24 },
+  introCard: { backgroundColor: "#fff", margin: 12, borderRadius: 10, padding: 12, elevation: 2, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 6 },
+  introTitle: { fontWeight: "700", color: "#1976D2", marginBottom: 6 },
+  introText: { color: "#444" },
+  formCard: { backgroundColor: "#fff", marginHorizontal: 12, borderRadius: 10, padding: 12, elevation: 3, shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 8 },
+  row: { flexDirection: "row", justifyContent: "space-between" },
+  col: { flex: 1, marginRight: 8 },
+  label: { fontSize: 12, color: "#666", marginBottom: 6, fontWeight: "600" },
+  input: { backgroundColor: "#fbfdff", padding: 10, borderRadius: 8, marginBottom: 6, borderWidth: 1, borderColor: "#e6eef7" },
+  saveBtn: { backgroundColor: "#1976D2", padding: 12, borderRadius: 8, alignItems: "center" },
+  saveTxt: { color: "#fff", fontWeight: "700" },
+  list: { flex: 1, padding: 12 },
+  sectionTitle: { fontWeight: "700", color: "#1976D2", marginBottom: 8 },
+  empty: { color: "#666" },
+  record: { flexDirection: "row", backgroundColor: "#fff", padding: 10, borderRadius: 8, marginBottom: 8, alignItems: "center", elevation: 1 },
+  recordDate: { fontWeight: "700" },
+  recordText: { color: "#666" },
+  recordActions: { flexDirection: "row" },
+  smallBtn: { padding: 6 },
+  err: { color: "red", marginBottom: 6 }
 });

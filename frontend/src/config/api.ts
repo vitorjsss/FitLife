@@ -1,5 +1,5 @@
 export const API_CONFIG = {
-    BASE_URL: "http://192.168.181.206:5001",
+    BASE_URL: "http://192.168.10.5:5001",
     ENDPOINTS: {
         AUTH: {
             REGISTER: "/auth/register",

@@ -40,7 +40,7 @@ export default function HomeScreen() {
     return (
         <View style={styles.container}>
             {/* Header */}
-            <Header />
+            <Header title="Início" showBackArrow={false} showUserIcon={true} />
 
             {/* Conteúdo */}
             <View style={styles.content}>
@@ -88,7 +88,7 @@ export default function HomeScreen() {
                     onPress={() => navigation.navigate('GerenciarMedidas')}
                 >
                     <Icon name="plus-square" size={20} color="#fff" />
-                    <Text style={styles.navText}>Gerenciar Medidas</Text>
+                    <Text style={styles.navText}>Medidas</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -121,46 +121,6 @@ const styles = StyleSheet.create({
         flex: 1,
         marginTop: 0,
         backgroundColor: "#E0E0E0",
-    },
-    menu: {
-        position: "absolute",
-        top: 80,
-        right: 20,
-        width: 200,
-        backgroundColor: "#fff",
-        borderRadius: 8,
-        padding: 10,
-        elevation: 10,
-        shadowColor: "#000",
-        shadowOpacity: 0.2,
-        shadowRadius: 4,
-        shadowOffset: { width: 0, height: 2 },
-        zIndex: 999,
-    },
-    menuTitle: {
-        fontWeight: "bold",
-        marginBottom: 0,
-        borderBottomWidth: 1,
-        borderBottomColor: "#ccc",
-        paddingBottom: 5,
-        fontSize: 18,
-        textAlign: 'center',
-    },
-    roleText: {
-        fontWeight: '600',
-        fontSize: 15,
-        marginBottom: 10,
-        textAlign: 'center',
-    },
-    menuItem: {
-        flexDirection: "row",
-        alignItems: "center",
-        paddingVertical: 8,
-    },
-    menuText: {
-        marginLeft: 8,
-        color: "#1976D2",
-        fontWeight: "600",
     },
     content: {
         flex: 1,

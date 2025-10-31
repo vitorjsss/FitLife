@@ -20,7 +20,7 @@ const PatientRepository = {
     },
 
     findById: async (id) => {
-        console.log("Finding patient by auth_id:", id);
+        console.log("Finding patient by id:", id);
         const query = 'SELECT * FROM patient WHERE auth_id = $1;';
         const { rows } = await pool.query(query, [id]);
         return rows[0];
@@ -33,21 +33,18 @@ const PatientRepository = {
     },
 
     update: async (id, patient) => {
-        const query = `
-            UPDATE patient
-            SET name = $1, birthdate = $2, sex = $3, contact = $4, avatar_path = $5, auth_id = $6, updated_at = CURRENT_TIMESTAMP
-            WHERE id = $7
-            RETURNING *;
-        `;
-        const values = [
-            patient.name,
-            patient.birthdate,
-            patient.sex,
-            patient.contact,
-            patient.avatar_path,
-            patient.auth_id,
-            id,
-        ];
+        // Monta query dinâmica para atualizar apenas os campos enviados
+        const fields = [];
+        const values = [];
+        let idx = 1;
+        for (const key of Object.keys(patient)) {
+            fields.push(`${key} = $${idx}`);
+            values.push(patient[key]);
+            idx++;
+        }
+        fields.push(`updated_at = CURRENT_TIMESTAMP`);
+        const query = `UPDATE patient SET ${fields.join(", ")} WHERE id = $${idx} RETURNING *;`;
+        values.push(id);
         const { rows } = await pool.query(query, values);
         return rows[0];
     },

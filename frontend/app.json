@@ -13,7 +13,11 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Precisamos acessar suas fotos para selecionar uma imagem de perfil.",
+        "NSCameraUsageDescription": "Precisamos acessar sua câmera para tirar uma foto de perfil."
+      }
     },
     "android": {
       "adaptiveIcon": {

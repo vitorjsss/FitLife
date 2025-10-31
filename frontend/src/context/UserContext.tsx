@@ -3,6 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { patientService } from "../services/PatientService";
 import { nutricionistService } from "../services/NutricionistService";
 import { physicalEducatorService } from "../services/PhysicalEducatorService";
+import { authService } from "../services/authService";
 
 interface UserData {
     id: string;
@@ -37,13 +38,18 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
             let data = null;
             if (userId && userRole) {
                 if (userRole === "Patient") {
-                    data = await patientService.getById(userId);
+                    data = await patientService.getByAuthId(userId);
                 } else if (userRole === "Nutricionist") {
                     data = await nutricionistService.getById(userId);
                 } else if (userRole === "Physical_educator") {
                     data = await physicalEducatorService.getById(userId);
                 }
-                setUser({ ...data, role: userRole });
+                let email = null;
+                if (data?.auth_id) {
+                    const authData = await authService.getAuthById(data.auth_id);
+                    email = authData?.email || null;
+                }
+                setUser({ ...data, role: userRole, email });
             } else {
                 setUser(null);
             }
