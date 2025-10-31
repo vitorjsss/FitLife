@@ -21,7 +21,7 @@ const PatientRepository = {
 
     findById: async (id) => {
         console.log("Finding patient by id:", id);
-        const query = 'SELECT * FROM patient WHERE auth_id = $1;';
+        const query = 'SELECT * FROM patient WHERE id = $1;';
         const { rows } = await pool.query(query, [id]);
         return rows[0];
     },

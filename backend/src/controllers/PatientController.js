@@ -8,6 +8,25 @@ export const PatientController = {
         const userId = req.user?.id;
 
         try {
+            // Verifica se já existe usuário com mesmo email na tabela auth
+            const { AuthService } = await import("../services/AuthService.js");
+            if (patientData.email) {
+                const existingEmail = await AuthService.findByEmail?.(patientData.email.toLowerCase());
+                if (existingEmail) {
+                    await LogService.createLog({
+                        action: "CREATE_PATIENT",
+                        logType: "ERROR",
+                        description: `Tentativa de criação falhou: email '${patientData.email}' já existe`,
+                        ip,
+                        oldValue: null,
+                        newValue: patientData,
+                        status: "FAILURE",
+                        userId: userId
+                    });
+                    return res.status(400).json({ message: "Email já existe" });
+                }
+            }
+
             const patient = await PatientService.create(patientData);
 
             await LogService.createLog({
@@ -194,6 +213,25 @@ export const PatientController = {
                     userId: userId
                 });
                 return res.status(404).json({ message: "Paciente não encontrado" });
+            }
+
+            // Verifica se já existe usuário com mesmo email na tabela auth (e não é o próprio)
+            if (updateData.email) {
+                const { AuthService } = await import("../services/AuthService.js");
+                const existingEmail = await AuthService.findByEmail?.(updateData.email.toLowerCase());
+                if (existingEmail && existingEmail.id !== oldPatient.auth_id) {
+                    await LogService.createLog({
+                        action: "UPDATE_PATIENT",
+                        logType: "ERROR",
+                        description: `Tentativa de atualização falhou: email '${updateData.email}' já existe em outro usuário`,
+                        ip,
+                        oldValue: oldPatient,
+                        newValue: updateData,
+                        status: "FAILURE",
+                        userId: userId
+                    });
+                    return res.status(400).json({ message: "Email já existe" });
+                }
             }
 
             const updated = await PatientService.update(id, updateData);

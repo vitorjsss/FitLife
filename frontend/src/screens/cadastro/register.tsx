@@ -43,7 +43,9 @@ type RegisterFormData = {
 
 const schema = yup.object({
     name: yup.string().required("Nome obrigatório"),
-    email: yup.string().email("E-mail inválido").required("E-mail obrigatório"),
+    email: yup.string()
+        .matches(/^[\w-.]+@[\w-]+\.[a-zA-Z]{2,}$/, "E-mail inválido")
+        .required("E-mail obrigatório"),
     password: yup.string().min(6, "Mínimo 6 caracteres").required("Senha obrigatória"),
     confirmPassword: yup.string().oneOf([yup.ref("password")], "As senhas não coincidem"),
     birthdate: yup.string().when("userType", {
@@ -167,8 +169,18 @@ export default function RegisterScreen() {
             Alert.alert("Sucesso", "Conta criada com sucesso!");
             navigation.navigate("Login");
         } catch (error: any) {
-            console.error("Erro ao cadastrar:", error.response?.data || error);
-            Alert.alert("Erro", "Não foi possível cadastrar. Tente novamente.");
+            if (error?.response?.status === 400 && error?.response?.data?.message === "Email já existe") {
+                Alert.alert("Erro", "Este e-mail já está em uso.");
+            } else {
+                // Log detalhado para depuração
+                console.error("Erro ao cadastrar:", {
+                    status: error?.response?.status,
+                    data: error?.response?.data,
+                    message: error?.message,
+                    error
+                });
+                Alert.alert("Erro", "Não foi possível cadastrar. Tente novamente.");
+            }
         } finally {
             setLoading(false);
         }

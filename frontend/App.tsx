@@ -7,7 +7,7 @@ import React, { useEffect, useState } from 'react';
 import Login from './src/screens/login/login';
 import RegisterScreen from './src/screens/cadastro/register';
 import HomeScreen from './src/screens/home/home';
-import Refeicoes from './src/screens/refeicoes/Refeicoes';
+import Refeicoes from './src/screens/refeicoes/refeicoes';
 import GerenciarRefeicoes from './src/screens/refeicoes/GerenciarRefeicoes';
 import AdicionarAlimentos from './src/screens/refeicoes/AdicionarAlimentos';
 import GerenciarTreinos from './src/screens/treinos/GerenciarTreinos';

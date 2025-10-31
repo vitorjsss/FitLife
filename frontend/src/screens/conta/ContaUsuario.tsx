@@ -25,6 +25,7 @@ const ContaUsuario: React.FC<{ navigation: any }> = ({ navigation }) => {
     const [newEmail, setNewEmail] = useState(user?.email || '');
     const [emailModalLoading, setEmailModalLoading] = useState(false);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [emailError, setEmailError] = useState<string | null>(null);
     const [showAvatarModal, setShowAvatarModal] = useState(false);
     const [avatarLoading, setAvatarLoading] = useState(false);
     const [selectedImage, setSelectedImage] = useState<any>(null);
@@ -82,6 +83,13 @@ const ContaUsuario: React.FC<{ navigation: any }> = ({ navigation }) => {
     };
 
     const handleSaveEmailModal = async () => {
+        // Validação de formato de e-mail
+        const emailRegex = /^[\w-.]+@[\w-]+\.[a-zA-Z]{2,}$/;
+        if (!emailRegex.test(newEmail)) {
+            setEmailError('Formato de e-mail inválido.');
+            return;
+        }
+        setEmailError(null);
         setEmailModalLoading(true);
         try {
             if (!user?.auth_id) throw new Error('auth_id não encontrado');
@@ -89,8 +97,12 @@ const ContaUsuario: React.FC<{ navigation: any }> = ({ navigation }) => {
             if (refreshUser) await refreshUser();
             setShowEmailModal(false);
             setShowSuccessModal(true);
-        } catch (err) {
-            // Pode adicionar um Alert se quiser
+        } catch (err: any) {
+            if (err?.response?.status === 400 && err?.response?.data?.message === "Email já existe") {
+                setEmailError("Este e-mail já está em uso.");
+            } else {
+                setEmailError('Erro ao atualizar e-mail. Tente novamente.');
+            }
         } finally {
             setEmailModalLoading(false);
         }
@@ -229,17 +241,27 @@ const ContaUsuario: React.FC<{ navigation: any }> = ({ navigation }) => {
                                 autoCapitalize="none"
                                 placeholder="novo@email.com"
                             />
+                            {emailError && (
+                                <Text style={{ color: '#D32F2F', marginBottom: 8 }}>{emailError}</Text>
+                            )}
                             <View style={styles.modalActions}>
                                 <TouchableOpacity
-                                    style={[styles.modalButton, emailModalLoading && styles.buttonDisabled]}
+                                    style={[styles.modalButton,
+                                    (emailModalLoading || !newEmail || emailError) && styles.buttonDisabled,
+                                    (!newEmail || emailError) && { backgroundColor: '#B0BEC5' }
+                                    ]}
                                     onPress={handleSaveEmailModal}
-                                    disabled={emailModalLoading}
+                                    disabled={emailModalLoading || !newEmail || !!emailError}
                                 >
                                     <Text style={styles.modalButtonText}>{emailModalLoading ? 'Salvando...' : 'Salvar'}</Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity
-                                    style={[styles.modalButton, { backgroundColor: '#B0BEC5' }]} // corrigido colchete
-                                    onPress={() => setShowEmailModal(false)}
+                                    style={[styles.modalButton, { backgroundColor: '#D32F2F' }]}
+                                    onPress={() => {
+                                        setShowEmailModal(false);
+                                        setNewEmail('');
+                                        setEmailError('');
+                                    }}
                                     disabled={emailModalLoading}
                                 >
                                     <Text style={styles.modalButtonText}>Cancelar</Text>
@@ -287,7 +309,7 @@ const ContaUsuario: React.FC<{ navigation: any }> = ({ navigation }) => {
                                 <Text style={styles.modalButtonText}>{avatarLoading ? 'Enviando...' : 'Salvar'}</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
-                                style={[styles.modalButton, { backgroundColor: '#B0BEC5' }]}
+                                style={[styles.modalButton, { backgroundColor: '#D32F2F' }]}
                                 onPress={() => { setShowAvatarModal(false); setSelectedImage(null); }}
                                 disabled={avatarLoading}
                             >
