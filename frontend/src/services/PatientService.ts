@@ -27,7 +27,7 @@ export interface PatientData {
 }
 
 class PatientService {
-    async create(data: PatientData): Promise<any> {
+    async create(data: PatientData, config: { headers: { Authorization: string; }; }): Promise<any> {
         const response = await apiClient.post(API_CONFIG.ENDPOINTS.PATIENT.CREATE, data);
         return response.data;
     }

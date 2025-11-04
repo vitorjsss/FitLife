@@ -26,11 +26,15 @@ const Refeicoes: React.FC<RefeicoesProps> = ({ route, navigation }) => {
     const [loading, setLoading] = useState(true);
 
     const patientId = route?.params?.patientId || '';
-    // Gera data local (corrige bug do dia anterior)
-    const today = new Date();
-    const dateString = today.getFullYear() + '-' +
-        String(today.getMonth() + 1).padStart(2, '0') + '-' +
-        String(today.getDate()).padStart(2, '0');
+    // Data selecionada (reactiva) — permite navegar dias e filtrar corretamente
+    const [date, setDate] = useState<Date>(new Date());
+    const dateString = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+
+    const changeDay = (delta: number) => {
+        const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        d.setDate(d.getDate() + delta);
+        setDate(d);
+    };
 
     const handleCriarRefeicao = () => {
         navigation?.navigate('GerenciarRefeicoes', {
@@ -45,7 +49,9 @@ const Refeicoes: React.FC<RefeicoesProps> = ({ route, navigation }) => {
         const fetchMeals = async () => {
             setLoading(true);
             try {
+                // dateString e patientId devem estar definidos conforme sua lógica
                 const meals = await DailyMealService.getByDate(dateString, patientId);
+                // agora getByDate retorna já o array (r.data)
                 setDailyMeals(Array.isArray(meals) ? meals : []);
                 console.log('Refeições carregadas do backend:', meals);
             } catch (err) {
@@ -56,12 +62,24 @@ const Refeicoes: React.FC<RefeicoesProps> = ({ route, navigation }) => {
             }
         };
         const unsubscribe = navigation?.addListener('focus', fetchMeals);
+        fetchMeals();
         return unsubscribe;
-    }, [navigation, dateString]);
+    }, [navigation, dateString, patientId]);
 
     return (
         <View style={styles.container}>
             <Header title="REFEIÇÕES" />
+            {/* CONTROLES DE DATA (NAVEGAÇÃO DE DIAS) */}
+            <View style={{ flexDirection: 'row', justifyContent: 'center', padding: 12 }}>
+                <TouchableOpacity onPress={() => changeDay(-1)} style={{ marginRight: 12 }}>
+                    <Icon name="chevron-left" size={20} color="#1976D2" />
+                </TouchableOpacity>
+                <Text style={{ color: '#1976D2', fontWeight: '700' }}>{date.getDate().toString().padStart(2,'0')}/{(date.getMonth()+1).toString().padStart(2,'0')}/{date.getFullYear()}</Text>
+                <TouchableOpacity onPress={() => changeDay(1)} style={{ marginLeft: 12 }}>
+                    <Icon name="chevron-right" size={20} color="#1976D2" />
+                </TouchableOpacity>
+            </View>
+
             {/* CONTEÚDO */}
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
                 {loading ? (

@@ -28,7 +28,7 @@ export interface PhysicalEducatorData {
 }
 
 class PhysicalEducatorService {
-    async create(data: PhysicalEducatorData): Promise<any> {
+    async create(data: PhysicalEducatorData, config: { headers: { Authorization: string; }; }): Promise<any> {
         const response = await apiClient.post(API_CONFIG.ENDPOINTS.PHYSICAL_EDUCATOR.CREATE, data);
         return response.data;
     }

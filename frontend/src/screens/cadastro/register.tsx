@@ -32,29 +32,32 @@ type RegisterFormData = {
     name: string;
     email: string;
     password: string;
-    confirmPassword?: string;
-    birthdate?: string;
-    sex?: string;
-    contact?: string;
-    crn?: string; // Nutricionista
-    cref?: string; // Educador Físico
+    confirmPassword: string | undefined;
+    birthdate: string | undefined;
+    sex: string;
+    contact: string | undefined;
+    crn: string | undefined; // Nutricionista
+    cref: string | undefined; // Educador Físico
     userType: UserType;
 };
 
+const passwordPolicy = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&*()_\-+=\[\]{};':"\\|,.<>/?]).{8,}$/;
 const schema = yup.object({
     name: yup.string().required("Nome obrigatório"),
     email: yup.string()
         .matches(/^[\w-.]+@[\w-]+\.[a-zA-Z]{2,}$/, "E-mail inválido")
         .required("E-mail obrigatório"),
-    password: yup.string().min(6, "Mínimo 6 caracteres").required("Senha obrigatória"),
+    password: yup.string()
+        .matches(passwordPolicy, "Senha deve ter ≥8 caracteres, letras, números e caractere especial")
+        .required("Senha obrigatória"),
     confirmPassword: yup.string().oneOf([yup.ref("password")], "As senhas não coincidem"),
     birthdate: yup.string().when("userType", {
-        is: (val: UserType) => val !== "",
+        is: (val: any) => !!val,
         then: (schema) => schema.required("Data de nascimento obrigatória"),
     }),
     sex: yup.string().required("Sexo obrigatório"),
     contact: yup.string().when("userType", {
-        is: (val: UserType) => val !== "",
+        is: (val: any) => !!val,
         then: (schema) => schema.required("Contato obrigatório"),
     }),
     crn: yup.string().when("userType", {
@@ -83,7 +86,7 @@ export default function RegisterScreen() {
         watch,
         formState: { errors },
     } = useForm<RegisterFormData>({
-        resolver: yupResolver(schema),
+        resolver: yupResolver(schema) as any,
         defaultValues: {
             name: "",
             email: "",
@@ -137,7 +140,7 @@ export default function RegisterScreen() {
                         sex: data.sex!,
                         contact: data.contact!,
                         auth_id,
-                    },
+                    } as any,
                     config
                 );
             } else if (data.userType === "Nutricionist") {
@@ -149,7 +152,7 @@ export default function RegisterScreen() {
                         contact: data.contact!,
                         crn: data.crn!,
                         auth_id,
-                    },
+                    } as any,
                     config
                 );
             } else if (data.userType === "Physical_educator") {
@@ -161,7 +164,7 @@ export default function RegisterScreen() {
                         contact: data.contact!,
                         cref: data.cref!,
                         auth_id,
-                    },
+                    } as any,
                     config
                 );
             }

@@ -240,18 +240,82 @@ export const AuthController = {
     }
   },
 
-  updateEmail: async (req, res) => {
-    const { email, authId } = req.body;
+  requestReauth: async (req, res) => {
+    const { email, password } = req.body;
     const ip = req.ip;
-    if (!email || !authId) {
-      return res.status(400).json({ message: "Email e authId são obrigatórios" });
+    try {
+      const r = await AuthService.requestReauth(email, password);
+      await LogService.createLog({
+        action: "REQ_REAUTH",
+        logType: "ACCESS",
+        description: `Reauth requested for ${email}`,
+        ip,
+        oldValue: null,
+        newValue: JSON.stringify({ email }),
+        status: "SUCCESS",
+        userId: r.authId
+      });
+      // In production you would not return the code here.
+      res.json(r);
+    } catch (err) {
+      await LogService.createLog({
+        action: "REQ_REAUTH",
+        logType: "ERROR",
+        description: `Reauth request failed for ${email}: ${err.message}`,
+        ip,
+        oldValue: null,
+        newValue: null,
+        status: "FAILURE",
+        userId: null
+      });
+      res.status(400).json({ message: err.message });
+    }
+  },
+
+  verifyReauth: async (req, res) => {
+    const { authId, code } = req.body;
+    const ip = req.ip;
+    try {
+      const { reauthToken } = await AuthService.verifyReauth(authId, code);
+      await LogService.createLog({
+        action: "VERIFY_REAUTH",
+        logType: "ACCESS",
+        description: `Reauth verified for authId: ${authId}`,
+        ip,
+        oldValue: null,
+        newValue: null,
+        status: "SUCCESS",
+        userId: authId
+      });
+      res.json({ reauthToken });
+    } catch (err) {
+      await LogService.createLog({
+        action: "VERIFY_REAUTH",
+        logType: "ERROR",
+        description: `Reauth verify failed for authId ${authId}: ${err.message}`,
+        ip,
+        oldValue: null,
+        newValue: null,
+        status: "FAILURE",
+        userId: authId
+      });
+      res.status(400).json({ message: err.message });
+    }
+  },
+
+  // updateEmail now expects body { email, authId, reauthToken }
+  updateEmail: async (req, res) => {
+    const { email, authId, reauthToken } = req.body;
+    const ip = req.ip;
+    if (!email || !authId || !reauthToken) {
+      return res.status(400).json({ message: "email, authId e reauthToken são obrigatórios" });
     }
     try {
-      const updated = await AuthService.updateEmail(authId, email.toLowerCase());
+      const updated = await AuthService.updateEmail(authId, email.toLowerCase(), reauthToken);
       await LogService.createLog({
         action: "UPDATE_EMAIL",
         logType: "ACCESS",
-        description: `Email atualizado para auth_id: ${authId}`,
+        description: `Email atualizado via reauth para auth_id: ${authId}`,
         ip,
         oldValue: null,
         newValue: JSON.stringify({ authId, email }),
@@ -263,14 +327,57 @@ export const AuthController = {
       await LogService.createLog({
         action: "UPDATE_EMAIL",
         logType: "ERROR",
-        description: err.message,
+        description: `Erro ao atualizar email (reauth) para authId ${authId}: ${err.message}`,
         ip,
         oldValue: null,
         newValue: null,
         status: "FAILURE",
         userId: authId
       });
-      res.status(500).json({ message: "Erro ao atualizar email", error: err });
+      res.status(400).json({ message: err.message });
+    }
+  },
+
+  // new endpoint to update password with reauth
+  updatePassword: async (req, res) => {
+    const { authId, newPassword, reauthToken } = req.body;
+    const ip = req.ip;
+    if (!authId || !newPassword || !reauthToken) {
+      return res.status(400).json({ message: "authId, newPassword e reauthToken são obrigatórios" });
+    }
+
+    // validate password strength (example rules)
+    const pwd = newPassword;
+    const strong = /^(?=.*[a-zA-Z])(?=.*\d)(?=.*[!@#$%^&*()_\-+=\[\]{};':"\\|,.<>/?]).{8,}$/.test(pwd);
+    if (!strong) {
+      return res.status(400).json({ message: "Senha não atende aos critérios de segurança" });
+    }
+
+    try {
+      const updated = await AuthService.updatePasswordWithReauth(authId, newPassword, reauthToken);
+      await LogService.createLog({
+        action: "UPDATE_PASSWORD",
+        logType: "ACCESS",
+        description: `Senha atualizada via reauth para auth_id: ${authId}`,
+        ip,
+        oldValue: null,
+        newValue: null,
+        status: "SUCCESS",
+        userId: authId
+      });
+      res.json({ success: true, updated });
+    } catch (err) {
+      await LogService.createLog({
+        action: "UPDATE_PASSWORD",
+        logType: "ERROR",
+        description: `Erro ao atualizar senha (reauth) para authId ${authId}: ${err.message}`,
+        ip,
+        oldValue: null,
+        newValue: null,
+        status: "FAILURE",
+        userId: authId
+      });
+      res.status(400).json({ message: err.message });
     }
   }
 };

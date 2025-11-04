@@ -28,7 +28,7 @@ export interface NutricionistData {
 }
 
 class NutricionistService {
-    async create(data: NutricionistData): Promise<any> {
+    async create(data: NutricionistData, config: { headers: { Authorization: string; }; }): Promise<any> {
         const response = await apiClient.post(API_CONFIG.ENDPOINTS.NUTRICIONIST.CREATE, data);
         return response.data;
     }

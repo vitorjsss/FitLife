@@ -14,7 +14,7 @@ import {
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import * as ImagePicker from 'expo-image-picker';
 import { useUser } from '../../context/UserContext';
-import { authService } from '../../services/authService';
+import { authService, requestReauth, verifyReauth, updateEmailWithReauth } from '../../services/authService';
 import Header from '../../components/Header';
 import { API_CONFIG } from '../../config/api';
 import { patientService } from '../../services/PatientService';
@@ -29,6 +29,13 @@ const ContaUsuario: React.FC<{ navigation: any }> = ({ navigation }) => {
     const [showAvatarModal, setShowAvatarModal] = useState(false);
     const [avatarLoading, setAvatarLoading] = useState(false);
     const [selectedImage, setSelectedImage] = useState<any>(null);
+
+    // estados para reauth flow
+    const [reauthAuthId, setReauthAuthId] = useState<string | null>(null);
+    const [reauthStep, setReauthStep] = useState<"idle" | "sent" | "verify">("idle");
+    const [currentPassword, setCurrentPassword] = useState(''); // para solicitar senha atual
+    const [reauthCode, setReauthCode] = useState('');
+    const [reauthLoading, setReauthLoading] = useState(false);
 
     const handlePickImage = async () => {
         try {
@@ -77,34 +84,62 @@ const ContaUsuario: React.FC<{ navigation: any }> = ({ navigation }) => {
         }
     };
 
+    // ajuste handleOpenEmailModal para iniciar reauth step 1 (ask for current password)
     const handleOpenEmailModal = () => {
         setNewEmail(user?.email || '');
+        setEmailError(null);
+        setCurrentPassword('');
+        setReauthStep("idle");
         setShowEmailModal(true);
     };
 
-    const handleSaveEmailModal = async () => {
-        // Validação de formato de e-mail
+    // função para verificar o código e obter reauthToken
+    const handleVerifyReauthAndUpdateEmail = async () => {
+        if (!reauthAuthId) return;
+        setReauthLoading(true);
+        try {
+            const v = await verifyReauth(reauthAuthId, reauthCode);
+            const reauthToken = v.reauthToken;
+            // now call updateEmailWithReauth
+            const accessToken = await authService.getAccessToken?.();
+            await updateEmailWithReauth(reauthAuthId, newEmail, reauthToken, accessToken || undefined);
+            if (refreshUser) await refreshUser();
+            setShowEmailModal(false);
+            setShowSuccessModal(true);
+            // log already handled server-side
+        } catch (err: any) {
+            const msg = err?.response?.data?.message || err.message || 'Falha na verificação';
+            setEmailError(msg);
+        } finally {
+            setReauthLoading(false);
+        }
+    };
+
+    const handleRequestReauth = async () => {
+        // valida formato do novo email antes de iniciar reauth
         const emailRegex = /^[\w-.]+@[\w-]+\.[a-zA-Z]{2,}$/;
         if (!emailRegex.test(newEmail)) {
             setEmailError('Formato de e-mail inválido.');
             return;
         }
+
+        if (!user?.email) {
+            setEmailError('Usuário inválido.');
+            return;
+        }
         setEmailError(null);
-        setEmailModalLoading(true);
+        setReauthLoading(true);
         try {
-            if (!user?.auth_id) throw new Error('auth_id não encontrado');
-            await authService.updateEmail(user.auth_id, newEmail);
-            if (refreshUser) await refreshUser();
-            setShowEmailModal(false);
-            setShowSuccessModal(true);
+            // solicita reauth: backend valida senha atual e gera código 2FA
+            const res = await requestReauth(user.email, currentPassword);
+            setReauthAuthId(String(res.authId));
+            setReauthStep('sent');
         } catch (err: any) {
-            if (err?.response?.status === 400 && err?.response?.data?.message === "Email já existe") {
-                setEmailError("Este e-mail já está em uso.");
-            } else {
-                setEmailError('Erro ao atualizar e-mail. Tente novamente.');
-            }
+            console.error('requestReauth error:', err);
+            const msg = err?.response?.data?.message || err.message || 'Falha ao solicitar reautenticação';
+            setEmailError(msg);
         } finally {
-            setEmailModalLoading(false);
+            setReauthLoading(false);
         }
     };
 
@@ -244,28 +279,81 @@ const ContaUsuario: React.FC<{ navigation: any }> = ({ navigation }) => {
                             {emailError && (
                                 <Text style={{ color: '#D32F2F', marginBottom: 8 }}>{emailError}</Text>
                             )}
+                            {reauthStep === "idle" && (
+                                <>
+                                    <TextInput
+                                        style={styles.input}
+                                        value={currentPassword}
+                                        onChangeText={setCurrentPassword}
+                                        editable={!reauthLoading}
+                                        secureTextEntry
+                                        placeholder="Senha atual (necessária para confirmar)"
+                                        placeholderTextColor="#999"
+                                    />
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.modalButton,
+                                            (reauthLoading || !currentPassword) && styles.buttonDisabled,
+                                            (!currentPassword) && { backgroundColor: '#B0BEC5' }
+                                        ]}
+                                        onPress={handleRequestReauth}
+                                        disabled={reauthLoading || !currentPassword}
+                                    >
+                                        <Text style={styles.modalButtonText}>{reauthLoading ? 'Enviando código...' : 'Solicitar código'}</Text>
+                                    </TouchableOpacity>
+                                </>
+                            )}
+                            {reauthStep === "sent" && (
+                                <View style={{ width: '100%', alignItems: 'center', marginTop: 12 }}>
+                                    <Text style={{ color: '#666', fontSize: 14, textAlign: 'center', marginBottom: 8 }}>
+                                        Um código de verificação foi enviado para o seu e-mail. Verifique sua caixa de entrada e spam.
+                                    </Text>
+                                    <TextInput
+                                        style={styles.input}
+                                        value={reauthCode}
+                                        onChangeText={setReauthCode}
+                                        editable={!reauthLoading}
+                                        placeholder="Código de verificação"
+                                        keyboardType="numeric"
+                                        maxLength={6}
+                                    />
+                                    <TouchableOpacity
+                                        style={[styles.modalButton, reauthLoading && styles.buttonDisabled]}
+                                        onPress={handleVerifyReauthAndUpdateEmail}
+                                        disabled={reauthLoading || !reauthCode}
+                                    >
+                                        <Text style={styles.modalButtonText}>{reauthLoading ? 'Verificando...' : 'Verificar e Salvar'}</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            )}
                             <View style={styles.modalActions}>
-                                <TouchableOpacity
-                                    style={[styles.modalButton,
-                                    (emailModalLoading || !newEmail || emailError) && styles.buttonDisabled,
-                                    (!newEmail || emailError) && { backgroundColor: '#B0BEC5' }
-                                    ]}
-                                    onPress={handleSaveEmailModal}
-                                    disabled={emailModalLoading || !newEmail || !!emailError}
-                                >
-                                    <Text style={styles.modalButtonText}>{emailModalLoading ? 'Salvando...' : 'Salvar'}</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                    style={[styles.modalButton, { backgroundColor: '#D32F2F' }]}
-                                    onPress={() => {
-                                        setShowEmailModal(false);
-                                        setNewEmail('');
-                                        setEmailError('');
-                                    }}
-                                    disabled={emailModalLoading}
-                                >
-                                    <Text style={styles.modalButtonText}>Cancelar</Text>
-                                </TouchableOpacity>
+                                {reauthStep === "idle" && (
+                                    <TouchableOpacity
+                                        style={[styles.modalButton, { backgroundColor: '#D32F2F' }]}
+                                        onPress={() => {
+                                            setShowEmailModal(false);
+                                            setNewEmail('');
+                                            setEmailError('');
+                                        }}
+                                        disabled={emailModalLoading}
+                                    >
+                                        <Text style={styles.modalButtonText}>Cancelar</Text>
+                                    </TouchableOpacity>
+                                )}
+                                {reauthStep === "sent" && (
+                                    <TouchableOpacity
+                                        style={[styles.modalButton, { backgroundColor: '#D32F2F' }]}
+                                        onPress={() => {
+                                            setReauthStep("idle");
+                                            setReauthAuthId(null);
+                                            setReauthCode('');
+                                            setEmailError('');
+                                        }}
+                                        disabled={reauthLoading}
+                                    >
+                                        <Text style={styles.modalButtonText}>Cancelar</Text>
+                                    </TouchableOpacity>
+                                )}
                             </View>
                         </View>
                     </View>
