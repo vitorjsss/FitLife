@@ -16,10 +16,18 @@ import mealRecordRoutes from "./routes/mealRecordRoutes.js";
 import mealItemRoutes from "./routes/mealItemRoutes.js";
 import workoutRoutes from "./routes/workoutRoutes.js";
 import workoutSessionRoutes from "./routes/workoutSessionRoutes.js";
+import healthCheckRoutes from "./routes/healthCheckRoutes.js";
+import availabilityMonitor from "./middlewares/availabilityMonitor.js";
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// Middleware de monitoramento de disponibilidade (RNF1.0)
+app.use(availabilityMonitor);
+
+// Health Check (público, não requer autenticação)
+app.use("/health", healthCheckRoutes);
 
 app.use("/auth", authRoutes);
 app.use("/patient", patientRoutes);
