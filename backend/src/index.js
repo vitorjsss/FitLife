@@ -17,7 +17,9 @@ import mealItemRoutes from "./routes/mealItemRoutes.js";
 import workoutRoutes from "./routes/workoutRoutes.js";
 import workoutSessionRoutes from "./routes/workoutSessionRoutes.js";
 import healthCheckRoutes from "./routes/healthCheckRoutes.js";
+import backupRoutes from "./routes/backupRoutes.js";
 import availabilityMonitor from "./middlewares/availabilityMonitor.js";
+import BackupScheduler from "./schedulers/BackupScheduler.js";
 
 const app = express();
 app.use(cors());
@@ -40,10 +42,14 @@ app.use("/meal-record", mealRecordRoutes);
 app.use("/meal-item", mealItemRoutes);
 app.use("/workout", workoutRoutes);
 app.use("/workout-session", workoutSessionRoutes);
+app.use("/backup", backupRoutes);
 app.use("/uploads/avatars", express.static("uploads/avatars"));
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => {
     console.log(`FitLife Backend rodando na porta ${PORT} 🚀`);
+    
+    // Inicia agendamento de backups automáticos (RNF1.2)
+    BackupScheduler.start();
 });

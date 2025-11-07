@@ -16,6 +16,7 @@ services:
     command: sh -c "npm start"
     volumes:
       - ./backend:/usr/src
+      - backup-data:/usr/src/backups
     ports:
       - "5001:5001"
     environment:
@@ -25,8 +26,11 @@ services:
       - DB_USER=fitlife
       - DB_PASSWORD=fitlife
       - DB_NAME=fitlife
+      - BACKUP_DIR=/usr/src/backups
+      - BACKUP_RETENTION_DAYS=30
     depends_on:
       - db
 
 volumes:
   db-data:
+  backup-data:
