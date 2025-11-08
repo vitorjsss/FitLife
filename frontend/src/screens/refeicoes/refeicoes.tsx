@@ -70,13 +70,21 @@ const Refeicoes: React.FC<RefeicoesProps> = ({ route, navigation }) => {
         <View style={styles.container}>
             <Header title="REFEIÇÕES" />
             {/* CONTROLES DE DATA (NAVEGAÇÃO DE DIAS) */}
-            <View style={{ flexDirection: 'row', justifyContent: 'center', padding: 12 }}>
-                <TouchableOpacity onPress={() => changeDay(-1)} style={{ marginRight: 12 }}>
-                    <Icon name="chevron-left" size={20} color="#1976D2" />
-                </TouchableOpacity>
-                <Text style={{ color: '#1976D2', fontWeight: '700' }}>{date.getDate().toString().padStart(2,'0')}/{(date.getMonth()+1).toString().padStart(2,'0')}/{date.getFullYear()}</Text>
-                <TouchableOpacity onPress={() => changeDay(1)} style={{ marginLeft: 12 }}>
-                    <Icon name="chevron-right" size={20} color="#1976D2" />
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 12 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <TouchableOpacity onPress={() => changeDay(-1)} style={{ marginRight: 12 }}>
+                        <Icon name="chevron-left" size={20} color="#1976D2" />
+                    </TouchableOpacity>
+                    <Text style={{ color: '#1976D2', fontWeight: '700' }}>{date.getDate().toString().padStart(2, '0')}/{(date.getMonth() + 1).toString().padStart(2, '0')}/{date.getFullYear()}</Text>
+                    <TouchableOpacity onPress={() => changeDay(1)} style={{ marginLeft: 12 }}>
+                        <Icon name="chevron-right" size={20} color="#1976D2" />
+                    </TouchableOpacity>
+                </View>
+                <TouchableOpacity
+                    onPress={() => navigation?.navigate('CalendarioRefeicoes')}
+                    style={{ padding: 8, backgroundColor: '#E3F2FD', borderRadius: 8 }}
+                >
+                    <Icon name="calendar" size={20} color="#1976D2" />
                 </TouchableOpacity>
             </View>
 

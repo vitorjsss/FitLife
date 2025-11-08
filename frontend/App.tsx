@@ -8,6 +8,7 @@ import Login from './src/screens/login/login';
 import RegisterScreen from './src/screens/cadastro/register';
 import HomeScreen from './src/screens/home/home';
 import Refeicoes from './src/screens/refeicoes/refeicoes';
+import CalendarioRefeicoes from './src/screens/refeicoes/CalendarioRefeicoes';
 import GerenciarRefeicoes from './src/screens/refeicoes/GerenciarRefeicoes';
 import AdicionarAlimentos from './src/screens/refeicoes/AdicionarAlimentos';
 import GerenciarTreinos from './src/screens/treinos/GerenciarTreinos';
@@ -27,6 +28,7 @@ export type RootStackParamList = {
   Register: undefined;
   Home: undefined;
   Refeicoes: undefined;
+  CalendarioRefeicoes: undefined;
   CriarDailyMealRegistry: undefined;
   GerenciarRefeicoes: {
     dailyMealRegistryId: string;
@@ -76,6 +78,7 @@ export default function App() {
           <Stack.Screen name="Home" component={HomeScreen} />
           <Stack.Screen name="Checklist" component={ChecklistScreen} />
           <Stack.Screen name="Refeicoes" component={Refeicoes} />
+          <Stack.Screen name="CalendarioRefeicoes" component={CalendarioRefeicoes} />
           <Stack.Screen name="GerenciarRefeicoes" component={GerenciarRefeicoes} />
           <Stack.Screen name="AdicionarAlimentos" component={AdicionarAlimentos} />
           <Stack.Screen name="Treinos" component={Treinos} />
