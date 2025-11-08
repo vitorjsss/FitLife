@@ -1,9 +1,10 @@
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Image } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome";
 import { CommonActions, useNavigation } from "@react-navigation/native";
 import { authService } from "../services/authService";
 import { useUser } from "../context/UserContext";
+import { API_CONFIG } from "../config/api";
 
 interface HeaderProps {
     title?: string;
@@ -13,6 +14,7 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ title = '', showBackArrow = true, showUserIcon = false }) => {
     const [showMenu, setShowMenu] = useState(false);
+    const [avatarError, setAvatarError] = useState(false);
     const navigation = useNavigation();
     const { user, loading } = useUser();
 
@@ -34,6 +36,10 @@ const Header: React.FC<HeaderProps> = ({ title = '', showBackArrow = true, showU
         );
     }
 
+    const avatarUrl = user?.avatar_path
+        ? `${API_CONFIG.BASE_URL}/uploads/avatars/${user.avatar_path.split('/').pop()}`
+        : null;
+
     return (
         <View style={styles.header}>
             <View style={styles.sideContainer}>
@@ -50,8 +56,18 @@ const Header: React.FC<HeaderProps> = ({ title = '', showBackArrow = true, showU
             </View>
             <View style={styles.sideContainer}>
                 {showUserIcon ? (
-                    <TouchableOpacity onPress={() => setShowMenu(!showMenu)}>
-                        <Icon name="user-circle" size={30} color="#fff" style={{ marginTop: 30 }} />
+                    <TouchableOpacity onPress={() => setShowMenu(!showMenu)} style={styles.avatarContainer}>
+                        {avatarUrl && !avatarError ? (
+                            <Image
+                                source={{ uri: avatarUrl }}
+                                style={styles.avatarImage}
+                                onError={() => setAvatarError(true)}
+                            />
+                        ) : (
+                            <View style={styles.iconPlaceholder}>
+                                <Icon name="user-circle" size={36} color="#fff" />
+                            </View>
+                        )}
                     </TouchableOpacity>
                 ) : (
                     <View style={{ width: 25 }} />
@@ -127,6 +143,29 @@ const styles = StyleSheet.create({
     },
     backArrow: {
         width: 25,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    avatarContainer: {
+        marginTop: 30,
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        overflow: 'hidden',
+        borderWidth: 2,
+        borderColor: '#fff',
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#1976D2',
+    },
+    avatarImage: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+    },
+    iconPlaceholder: {
+        width: 36,
+        height: 36,
         justifyContent: 'center',
         alignItems: 'center',
     },

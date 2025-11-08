@@ -68,7 +68,7 @@ const Refeicoes: React.FC<RefeicoesProps> = ({ route, navigation }) => {
 
     return (
         <View style={styles.container}>
-            <Header title="REFEIÇÕES" />
+            <Header title="Refeições" />
             {/* CONTROLES DE DATA (NAVEGAÇÃO DE DIAS) */}
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 12 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
