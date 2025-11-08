@@ -6,6 +6,7 @@ const router = express.Router();
 
 router.post("/register", NutricionistController.create);
 router.get("/all", authenticateToken, NutricionistController.getAll);
+router.get("/by-auth/:auth_id", authenticateToken, NutricionistController.getByAuthId);
 router.get("/:id", authenticateToken, NutricionistController.getById);
 router.patch("/:id", authenticateToken, NutricionistController.update);
 router.delete("/:id", authenticateToken, NutricionistController.deleteNutricionist);

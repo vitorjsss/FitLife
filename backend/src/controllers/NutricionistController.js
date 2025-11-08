@@ -123,6 +123,59 @@ export const NutricionistController = {
         }
     },
 
+    getByAuthId: async (req, res) => {
+        const { auth_id } = req.params;
+        const ip = req.ip;
+        const userId = req.user?.id;
+
+        console.log('[NutricionistController] getByAuthId - auth_id:', auth_id);
+
+        try {
+            const nutricionist = await NutricionistService.getByAuthId(auth_id);
+            console.log('[NutricionistController] getByAuthId - nutricionist found:', nutricionist);
+
+            if (!nutricionist) {
+                await LogService.createLog({
+                    action: "GET_NUTRICIONIST_BY_AUTH_ID",
+                    logType: "read",
+                    description: `Nutricionista com auth_id ${auth_id} não encontrado`,
+                    ip,
+                    oldValue: null,
+                    newValue: null,
+                    status: "NOT_FOUND",
+                    userId: userId
+                });
+                return res.status(404).json({ message: "Nutricionista não encontrado" });
+            }
+
+            await LogService.createLog({
+                action: "GET_NUTRICIONIST_BY_AUTH_ID",
+                logType: "read",
+                description: `Nutricionista ${nutricionist.name} recuperado com sucesso`,
+                ip,
+                oldValue: null,
+                newValue: { id: nutricionist.id, name: nutricionist.name },
+                status: "SUCCESS",
+                userId: userId
+            });
+
+            res.json(nutricionist);
+        } catch (err) {
+            await LogService.createLog({
+                action: "GET_NUTRICIONIST_BY_AUTH_ID",
+                logType: "ERROR",
+                description: err.message,
+                ip,
+                oldValue: null,
+                newValue: { requestedAuthId: auth_id },
+                status: "FAILURE",
+                userId: userId
+            });
+
+            res.status(500).json({ message: "Erro ao buscar nutricionista", error: err });
+        }
+    },
+
     update: async (req, res) => {
         const { id } = req.params;
         const updateData = req.body;

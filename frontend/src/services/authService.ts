@@ -1,10 +1,11 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { jwtDecode } from 'jwt-decode';
 import { API_CONFIG } from '../config/api';
 
 export const apiClient = axios.create({
-  baseURL: API_CONFIG.BASE_URL,
-  timeout: API_CONFIG.TIMEOUT,
+    baseURL: API_CONFIG.BASE_URL,
+    timeout: API_CONFIG.TIMEOUT,
 });
 
 const ACCESS_TOKEN_KEY = '@fitlife:access_token';
@@ -145,39 +146,35 @@ class AuthService {
 export const authService = new AuthService();
 
 export async function requestReauth(email: string, password: string) {
-  const r = await apiClient.post("/auth/reauth/request", { email, password });
-  return r.data; // { authId, message }
+    const r = await apiClient.post("/auth/reauth/request", { email, password });
+    return r.data; // { authId, message }
 }
 
 export async function verifyReauth(authId: string, code: string) {
-  const r = await apiClient.post("/auth/reauth/verify", { authId, code });
-  return r.data; // { reauthToken }
+    const r = await apiClient.post("/auth/reauth/verify", { authId, code });
+    return r.data; // { reauthToken }
 }
 
 export async function updateEmailWithReauth(authId: string, newEmail: string, reauthToken: string, accessToken?: string) {
-  // include access token if available
-  const headers: any = {};
-  if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
-  const r = await apiClient.post("/auth/update-email", { email: newEmail, authId, reauthToken }, { headers });
-  return r.data;
+    // include access token if available
+    const headers: any = {};
+    if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+    const r = await apiClient.post("/auth/update-email", { email: newEmail, authId, reauthToken }, { headers });
+    return r.data;
 }
 
 export async function updatePasswordWithReauth(authId: string, newPassword: string, reauthToken: string, accessToken?: string) {
-  const headers: any = {};
-  if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
-  const r = await apiClient.post("/auth/update-password", { authId, newPassword, reauthToken }, { headers });
-  return r.data;
+    const headers: any = {};
+    if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+    const r = await apiClient.post("/auth/update-password", { authId, newPassword, reauthToken }, { headers });
+    return r.data;
 }
 
 export default {
-  apiClient,
-  requestReauth,
-  verifyReauth,
-  updateEmailWithReauth,
-  updatePasswordWithReauth,
-  // ...other existing functions (login, register, etc.)
+    apiClient,
+    requestReauth,
+    verifyReauth,
+    updateEmailWithReauth,
+    updatePasswordWithReauth,
+    // ...other existing functions (login, register, etc.)
 };
-
-function jwtDecode(token: string): any {
-    throw new Error('Function not implemented.');
-}

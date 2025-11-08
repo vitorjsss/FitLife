@@ -44,6 +44,13 @@ class NutricionistService {
         return response.data;
     }
 
+    async getByAuthId(auth_id: string): Promise<any> {
+        const endpoint = API_CONFIG.ENDPOINTS.NUTRICIONIST.GET_BY_AUTH_ID.replace('{auth_id}', auth_id);
+        console.log('[NutricionistService] getByAuthId - endpoint:', endpoint, 'auth_id:', auth_id);
+        const response = await apiClient.get(endpoint);
+        return response.data;
+    }
+
     async update(id: string, data: Partial<NutricionistData>): Promise<any> {
         const endpoint = API_CONFIG.ENDPOINTS.NUTRICIONIST.UPDATE.replace('{id}', id);
         const response = await apiClient.put(endpoint, data);

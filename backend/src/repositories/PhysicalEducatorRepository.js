@@ -26,6 +26,12 @@ const PhysicalEducatorRepository = {
         return rows[0];
     },
 
+    findByAuthId: async (auth_id) => {
+        const query = 'SELECT * FROM physical_educator WHERE auth_id = $1;';
+        const { rows } = await pool.query(query, [auth_id]);
+        return rows[0];
+    },
+
     findAll: async () => {
         const query = 'SELECT * FROM physical_educator;';
         const { rows } = await pool.query(query);

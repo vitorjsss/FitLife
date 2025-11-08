@@ -123,6 +123,56 @@ export const PhysicalEducatorController = {
         }
     },
 
+    getByAuthId: async (req, res) => {
+        const { auth_id } = req.params;
+        const ip = req.ip;
+        const userId = req.user?.id;
+
+        try {
+            const educator = await PhysicalEducatorService.getByAuthId(auth_id);
+
+            if (!educator) {
+                await LogService.createLog({
+                    action: "GET_PHYSICAL_EDUCATOR_BY_AUTH_ID",
+                    logType: "read",
+                    description: `Educador físico com auth_id ${auth_id} não encontrado`,
+                    ip,
+                    oldValue: null,
+                    newValue: null,
+                    status: "NOT_FOUND",
+                    userId: userId
+                });
+                return res.status(404).json({ message: "Educador físico não encontrado" });
+            }
+
+            await LogService.createLog({
+                action: "GET_PHYSICAL_EDUCATOR_BY_AUTH_ID",
+                logType: "read",
+                description: `Educador físico ${educator.name} recuperado com sucesso`,
+                ip,
+                oldValue: null,
+                newValue: { id: educator.id, name: educator.name },
+                status: "SUCCESS",
+                userId: userId
+            });
+
+            res.json(educator);
+        } catch (err) {
+            await LogService.createLog({
+                action: "GET_PHYSICAL_EDUCATOR_BY_AUTH_ID",
+                logType: "ERROR",
+                description: err.message,
+                ip,
+                oldValue: null,
+                newValue: { requestedAuthId: auth_id },
+                status: "FAILURE",
+                userId: userId
+            });
+
+            res.status(500).json({ message: "Erro ao buscar educador físico", error: err });
+        }
+    },
+
     update: async (req, res) => {
         const { id } = req.params;
         const updateData = req.body;
