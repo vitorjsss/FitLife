@@ -10,3 +10,5 @@ export const pool = new Pool({
     password: process.env.DB_PASSWORD || 'fitlife',
     database: process.env.DB_NAME || 'fitlife'
 });
+
+export default pool;

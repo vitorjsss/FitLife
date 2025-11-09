@@ -1,406 +1,271 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  TextInput,
-  Alert,
-  ScrollView,
-  FlatList,
-  KeyboardAvoidingView,
-  Platform
-} from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, ScrollView, KeyboardAvoidingView, Platform, FlatList, Modal, Dimensions } from 'react-native';
+import WorkoutRecordService, { WorkoutRecord, WorkoutItem } from '../../services/WorkoutRecordService';
 import Icon from "react-native-vector-icons/FontAwesome";
-import MaterialIcons from "react-native-vector-icons/MaterialIcons";
-import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
-import { Ionicons } from '@expo/vector-icons';
 import Header from '../../components/Header';
+import { useUser } from '../../context/UserContext';
 
-/* 
-🏋️ ÍCONES DE TREINO DISPONÍVEIS:
+const { width } = Dimensions.get('window');
 
-📱 MaterialCommunityIcons (react-native-vector-icons):
-  - "dumbbell" - Halteres (atual)
-  - "weight-lifter" - Levantador de peso  
-  - "barbell" - Barra de exercício
-  - "arm-flex" - Braço flexionado
-  - "run" - Pessoa correndo
-  - "bike" - Bicicleta para cardio
-  - "tennis" - Esportes
-  - "heart-pulse" - Batimento cardíaco
-
-📱 MaterialIcons (react-native-vector-icons):
-  - "fitness-center" - Centro de fitness
-  - "sports-gymnastics" - Ginástica
-  - "sports-handball" - Esportes
-
-📱 Ionicons (@expo/vector-icons):
-  - "barbell" - Barra
-  - "fitness" - Fitness
-  - "walk" - Caminhada
-
-🔄 Para trocar um ícone, substitua:
-   <MaterialCommunityIcons name="dumbbell" size={20} color="#40C4FF" />
-*/
-
-interface Exercicio {
-  id: string;
-  nome: string;
-  carga: string;
-  series: string;
-  repeticoes: string;
+interface GerenciarTreinosProps {
+    navigation?: any;
+    route?: any;
 }
 
-interface Treino {
-  id: string;
-  nome: string;
-  exercicios: Exercicio[];
-  createdAt: string;
-  updatedAt: string;
-}
+const GerenciarTreinos: React.FC<GerenciarTreinosProps> = ({ navigation, route }) => {
+    const [workoutName, setWorkoutName] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [workoutRecords, setWorkoutRecords] = useState<WorkoutRecord[]>([]);
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [editingWorkout, setEditingWorkout] = useState<WorkoutRecord | null>(null);
+    const [editWorkoutName, setEditWorkoutName] = useState('');
+    const { user } = useUser();
 
-interface GerenciarTreinoProps {
-  navigation?: any;
-  route?: any;
-}
+    const { date, patientId: routePatientId, workoutId } = route?.params || {};
+    const patientId = routePatientId || user?.id || '';
 
-// Funções de AsyncStorage para treinos
-const saveTreinoLocal = async (treino: Treino) => {
-  try {
-    const treinos = await loadTreinosLocal();
-    const index = treinos.findIndex(t => t.id === treino.id);
+    useEffect(() => {
+        const fetchWorkouts = async () => {
+            setLoading(true);
+            try {
+                if (workoutId) {
+                    // Carregar treino específico
+                    const workout = await WorkoutRecordService.getById(workoutId);
+                    setWorkoutRecords(workout ? [workout] : []);
+                } else if (date && patientId) {
+                    // Carregar todos os treinos da data
+                    const workouts = await WorkoutRecordService.getByDate(date, patientId);
+                    setWorkoutRecords(Array.isArray(workouts) ? workouts : []);
+                }
+            } catch (err) {
+                console.error('Erro ao carregar treinos:', err);
+                setWorkoutRecords([]);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchWorkouts();
+    }, [date, patientId, workoutId]);
 
-    if (index >= 0) {
-      treinos[index] = { ...treino, updatedAt: new Date().toISOString() };
-    } else {
-      treinos.push(treino);
-    }
-
-    await AsyncStorage.setItem('@fitlife_treinos', JSON.stringify(treinos));
-    console.log('Treino salvo localmente:', treino.nome);
-  } catch (error) {
-    console.error('Erro ao salvar treino:', error);
-    Alert.alert('Erro', 'Não foi possível salvar o treino.');
-  }
-};
-
-const loadTreinosLocal = async (): Promise<Treino[]> => {
-  try {
-    const data = await AsyncStorage.getItem('@fitlife_treinos');
-    return data ? JSON.parse(data) : [];
-  } catch (error) {
-    console.error('Erro ao carregar treinos:', error);
-    return [];
-  }
-};
-
-const deleteTreinoLocal = async (treinoId: string) => {
-  try {
-    const treinos = await loadTreinosLocal();
-    const filteredTreinos = treinos.filter(t => t.id !== treinoId);
-    await AsyncStorage.setItem('@fitlife_treinos', JSON.stringify(filteredTreinos));
-    console.log('Treino removido localmente:', treinoId);
-  } catch (error) {
-    console.error('Erro ao remover treino:', error);
-    Alert.alert('Erro', 'Não foi possível remover o treino.');
-  }
-};
-
-const GerenciarTreinos: React.FC<GerenciarTreinoProps> = ({ navigation, route }) => {
-  const [showMenu, setShowMenu] = useState(false);
-  const [exercicios, setExercicios] = useState<Exercicio[]>([]);
-  const [nome, setNome] = useState('');
-  const [carga, setCarga] = useState('');
-  const [series, setSeries] = useState('');
-  const [repeticoes, setRepeticoes] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [treinoAtual, setTreinoAtual] = useState<Treino | null>(null);
-
-  const { treinoNome, treinoId } = route?.params || {};
-
-  useEffect(() => {
-    loadTreinoExistente();
-  }, [treinoId]);
-
-  const loadTreinoExistente = async () => {
-    if (treinoId) {
-      try {
-        const treinos = await loadTreinosLocal();
-        const treino = treinos.find(t => t.id === treinoId);
-        if (treino) {
-          setTreinoAtual(treino);
-          setExercicios(treino.exercicios);
+    const handleAddWorkoutRecord = async () => {
+        if (!workoutName.trim()) {
+            Alert.alert('Atenção', 'Por favor, insira o nome do treino');
+            return;
         }
-      } catch (error) {
-        console.error('Erro ao carregar treino:', error);
-      }
-    }
-  };
+        if (!date || !patientId) {
+            Alert.alert('Erro', 'Data ou ID do paciente não encontrado');
+            return;
+        }
+        try {
+            setLoading(true);
+            // Criar treino diretamente com data e patient_id
+            const newWorkout: WorkoutRecord = {
+                name: workoutName,
+                date: date,
+                patient_id: patientId,
+                checked: false,
+            };
+            await WorkoutRecordService.create(newWorkout);
+            setWorkoutName('');
+            Alert.alert('Sucesso!', 'Treino adicionado com sucesso!');
 
-  const handleGoBack = () => navigation?.goBack();
-
-  const clearForm = () => {
-    setNome('');
-    setCarga('');
-    setSeries('');
-    setRepeticoes('');
-  };
-
-  const handleAddExercicio = () => {
-    if (!nome.trim()) {
-      Alert.alert('Atenção', 'Digite o nome do exercício.');
-      return;
-    }
-    if (!series || !repeticoes) {
-      Alert.alert('Atenção', 'Informe séries e repetições.');
-      return;
-    }
-
-    const novo: Exercicio = {
-      id: `ex_${Date.now()}`,
-      nome,
-      carga,
-      series,
-      repeticoes,
+            // Recarregar treinos da data
+            const workouts = await WorkoutRecordService.getByDate(date, patientId);
+            setWorkoutRecords(Array.isArray(workouts) ? workouts : []);
+        } catch (error) {
+            console.error('Erro ao adicionar treino:', error);
+            Alert.alert('Erro', 'Não foi possível adicionar o treino');
+        } finally {
+            setLoading(false);
+        }
     };
 
-    setExercicios([...exercicios, novo]);
-    clearForm();
-  };
+    const handleEditWorkout = (workout: WorkoutRecord) => {
+        navigation?.navigate('AdicionarExercicios', { workoutRecord: workout });
+    };
 
-  const handleRemoveExercicio = (id: string) => {
-    Alert.alert('Remover exercício?', 'Deseja realmente excluir este exercício?', [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Remover', style: 'destructive', onPress: () => setExercicios(exercicios.filter(e => e.id !== id)) },
-    ]);
-  };
+    const handleLongPressWorkout = (workout: WorkoutRecord) => {
+        Alert.alert(
+            'Opções do Treino',
+            `O que deseja fazer com "${workout.name}"?`,
+            [
+                { text: 'Cancelar', style: 'cancel' },
+                { text: 'Editar', onPress: () => openEditModal(workout) },
+                { text: 'Excluir', style: 'destructive', onPress: () => confirmDeleteWorkout(workout) }
+            ]
+        );
+    };
 
-  const handleSalvarTreino = async () => {
-    if (exercicios.length === 0) {
-      Alert.alert('Atenção', 'Adicione pelo menos um exercício ao treino.');
-      return;
-    }
+    const openEditModal = (workout: WorkoutRecord) => {
+        setEditingWorkout(workout);
+        setEditWorkoutName(workout.name);
+        setShowEditModal(true);
+    };
 
-    setLoading(true);
-    try {
-      const nomeDoTreino = treinoNome || `Treino - ${new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}`;
-      const treino: Treino = {
-        id: treinoAtual?.id || `treino_${Date.now()}`,
-        nome: nomeDoTreino,
-        exercicios,
-        createdAt: treinoAtual?.createdAt || new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
+    const confirmDeleteWorkout = (workout: WorkoutRecord) => {
+        if (!workout.id) return;
+        Alert.alert(
+            'Confirmar Exclusão',
+            `Tem certeza que deseja excluir o treino "${workout.name}"?`,
+            [
+                { text: 'Cancelar', style: 'cancel' },
+                { text: 'Excluir', style: 'destructive', onPress: () => deleteWorkout(workout.id!) }
+            ]
+        );
+    };
 
-      await saveTreinoLocal(treino);
+    const deleteWorkout = async (workoutId: string) => {
+        try {
+            setLoading(true);
+            await WorkoutRecordService.delete(workoutId);
+            setWorkoutRecords((prev) => prev.filter(w => w.id !== workoutId));
+            Alert.alert('Sucesso!', 'Treino excluído com sucesso!');
+        } catch (error) {
+            Alert.alert('Erro', 'Não foi possível excluir o treino');
+        } finally {
+            setLoading(false);
+        }
+    };
 
-      Alert.alert('Sucesso!', 'Treino salvo com sucesso!', [
-        { text: 'OK', onPress: () => navigation?.goBack() }
-      ]);
-    } catch (error) {
-      console.error('Erro ao salvar treino:', error);
-      Alert.alert('Erro', 'Não foi possível salvar o treino.');
-    } finally {
-      setLoading(false);
-    }
-  };
+    const saveEditedWorkout = async () => {
+        if (!editWorkoutName.trim() || !editingWorkout || !editingWorkout.id) {
+            Alert.alert('Atenção', 'Por favor, insira o nome do treino');
+            return;
+        }
+        try {
+            await WorkoutRecordService.update(editingWorkout.id, { name: editWorkoutName });
+            setShowEditModal(false);
+            setEditingWorkout(null);
 
-  const renderExercicio = ({ item }: { item: Exercicio }) => (
-    <View style={styles.exercicioCard}>
-      <View style={{ flex: 1 }}>
-        <Text style={styles.exercicioNome}>{item.nome}</Text>
-        <Text style={styles.exercicioInfo}>
-          {item.series}x{item.repeticoes} — {item.carga || 'sem carga'}
-        </Text>
-      </View>
-      <TouchableOpacity onPress={() => handleRemoveExercicio(item.id)}>
-        <Icon name="trash" size={18} color="#FF5252" />
-      </TouchableOpacity>
-    </View>
-  );
+            // Recarregar treinos
+            if (date && patientId) {
+                const workouts = await WorkoutRecordService.getByDate(date, patientId);
+                setWorkoutRecords(Array.isArray(workouts) ? workouts : []);
+            }
+            Alert.alert('Sucesso!', 'Treino atualizado com sucesso!');
+        } catch (error) {
+            Alert.alert('Erro', 'Não foi possível atualizar o treino');
+        }
+    };
 
-  return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <Header title="EXERCÍCIOS" />
+    const renderWorkoutRecord = ({ item }: { item: WorkoutRecord }) => (
+        <TouchableOpacity
+            style={[styles.workoutCard, item.checked && { backgroundColor: '#E8F5E9', borderLeftColor: '#4caf50' }]}
+            onPress={() => handleEditWorkout(item)}
+            onLongPress={() => handleLongPressWorkout(item)}
+            delayLongPress={500}
+        >
+            <View style={styles.workoutCardHeader}>
+                <Icon name="heartbeat" size={24} color={item.checked ? '#388e3c' : '#FF6B6B'} />
+                <View style={styles.workoutCardInfo}>
+                    <Text style={[styles.workoutCardTitle, item.checked && { color: '#388e3c' }]}>{item.name}</Text>
+                </View>
+                <Icon name="chevron-right" size={16} color="#666" />
+            </View>
+        </TouchableOpacity>
+    );
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Info do treino */}
-        <View style={styles.treinoHeader}>
-          <MaterialCommunityIcons name="dumbbell" size={20} color="#40C4FF" />
-          <Text style={styles.treinoNome}>{treinoNome || 'Treino'}</Text>
-        </View>
-
-        {/* Formulário */}
-        <View style={styles.formContainer}>
-          <Text style={styles.formTitle}>Adicionar Exercício</Text>
-
-          <TextInput
-            style={styles.input}
-            placeholder="Nome do exercício"
-            value={nome}
-            onChangeText={setNome}
-          />
-          <View style={styles.row}>
-            <TextInput
-              style={[styles.input, { flex: 1, marginRight: 6 }]}
-              placeholder="Carga (kg)"
-              keyboardType="numeric"
-              value={carga}
-              onChangeText={setCarga}
-            />
-            <TextInput
-              style={[styles.input, { flex: 1, marginRight: 6 }]}
-              placeholder="Séries"
-              keyboardType="numeric"
-              value={series}
-              onChangeText={setSeries}
-            />
-            <TextInput
-              style={[styles.input, { flex: 1 }]}
-              placeholder="Repetições"
-              keyboardType="numeric"
-              value={repeticoes}
-              onChangeText={setRepeticoes}
-            />
-          </View>
-
-          <TouchableOpacity
-            style={[styles.addButton, loading && styles.addButtonDisabled]}
-            onPress={handleAddExercicio}
-            disabled={loading}
-          >
-            <Icon name="plus" size={18} color="#fff" />
-            <Text style={styles.addButtonText}>Adicionar Exercício</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Lista de exercícios */}
-        {exercicios.length > 0 && (
-          <View style={styles.listaContainer}>
-            <Text style={styles.listaTitulo}>Exercícios do Treino</Text>
-
-            <FlatList
-              data={exercicios}
-              keyExtractor={(item) => item.id}
-              renderItem={renderExercicio}
-              scrollEnabled={false}
-            />
-          </View>
-        )}
-
-        {/* Botão Salvar Treino */}
-        {exercicios.length > 0 && (
-          <TouchableOpacity
-            style={[styles.salvarButton, loading && styles.addButtonDisabled]}
-            onPress={handleSalvarTreino}
-            disabled={loading}
-          >
-            <Icon name="save" size={18} color="#fff" />
-            <Text style={styles.salvarButtonText}>
-              {loading ? 'Salvando...' : 'Salvar Treino'}
-            </Text>
-          </TouchableOpacity>
-        )}
-      </ScrollView>
-    </KeyboardAvoidingView>
-  );
+    return (
+        <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+            <Header title="TREINOS" />
+            <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+                <View style={styles.dateInfo}>
+                    <Icon name="calendar" size={20} color="#FF6B6B" />
+                    <Text style={styles.dateText}>
+                        Treinos de {date ? (() => {
+                            const [year, month, day] = date.split('T')[0].split('-');
+                            return `${day}/${month}/${year}`;
+                        })() : 'hoje'}
+                    </Text>
+                </View>
+                <View style={styles.formContainer}>
+                    <Text style={styles.formTitle}>Adicionar Treino</Text>
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Nome do Treino</Text>
+                        <TextInput
+                            style={styles.textInput}
+                            placeholder="Ex: Treino A, Peito e Tríceps..."
+                            value={workoutName}
+                            onChangeText={setWorkoutName}
+                            placeholderTextColor="#999"
+                        />
+                    </View>
+                    <TouchableOpacity
+                        style={[styles.addButton, loading && styles.addButtonDisabled]}
+                        onPress={handleAddWorkoutRecord}
+                        disabled={loading}
+                    >
+                        <Icon name={loading ? "spinner" : "plus"} size={20} color="#FFFFFF" />
+                        <Text style={styles.addButtonText}>{loading ? 'Adicionando...' : 'Adicionar Treino'}</Text>
+                    </TouchableOpacity>
+                </View>
+                {workoutRecords.length > 0 && (
+                    <View style={styles.workoutsList}>
+                        <Text style={styles.workoutsListTitle}>Treinos do Dia</Text>
+                        <Text style={styles.helpText}>💡 Toque para adicionar exercícios ou segure para editar</Text>
+                        <FlatList
+                            data={workoutRecords}
+                            keyExtractor={(item) => item.id || ''}
+                            renderItem={renderWorkoutRecord}
+                            scrollEnabled={false}
+                        />
+                    </View>
+                )}
+            </ScrollView>
+            <Modal visible={showEditModal} transparent animationType="slide">
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalTitle}>Editar Treino</Text>
+                        <TextInput
+                            style={styles.modalInput}
+                            value={editWorkoutName}
+                            onChangeText={setEditWorkoutName}
+                            placeholder="Nome do treino"
+                        />
+                        <View style={styles.modalButtons}>
+                            <TouchableOpacity style={styles.modalButtonCancel} onPress={() => setShowEditModal(false)}>
+                                <Text style={styles.modalButtonTextCancel}>Cancelar</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.modalButtonSave} onPress={saveEditedWorkout}>
+                                <Text style={styles.modalButtonTextSave}>Salvar</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+        </KeyboardAvoidingView>
+    );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#E0E0E0" },
-  header: {
-    backgroundColor: "#1976D2",
-    height: 90,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 35,
-  },
-  headerTitle: { color: "#fff", fontSize: 18, fontWeight: "bold", paddingTop: 30 },
-  menu: {
-    position: "absolute",
-    top: 90,
-    right: 20,
-    width: 200,
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    padding: 10,
-    elevation: 10,
-  },
-  menuTitle: { fontWeight: "bold", marginBottom: 10, borderBottomWidth: 1, borderBottomColor: "#ccc", paddingBottom: 5 },
-  menuItem: { flexDirection: "row", alignItems: "center", paddingVertical: 8 },
-  menuText: { marginLeft: 8, color: "#1976D2", fontWeight: "600" },
-  content: { padding: 20 },
-  treinoHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 8,
-    marginBottom: 20,
-  },
-  treinoNome: { fontSize: 16, fontWeight: '600', marginLeft: 10, color: '#333' },
-  formContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 24,
-    marginBottom: 20,
-  },
-  formTitle: { fontSize: 20, fontWeight: 'bold', color: '#1976D2', marginBottom: 20, textAlign: 'center' },
-  input: {
-    backgroundColor: '#F8F9FA',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 14,
-    color: '#333',
-    marginBottom: 12,
-  },
-  row: { flexDirection: 'row', justifyContent: 'space-between' },
-  addButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#40C4FF',
-    paddingVertical: 14,
-    borderRadius: 8,
-    marginTop: 10,
-  },
-  addButtonDisabled: { backgroundColor: '#B0BEC5' },
-  addButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold', marginLeft: 8 },
-  listaContainer: { backgroundColor: '#fff', borderRadius: 12, padding: 20 },
-  listaTitulo: { fontSize: 18, fontWeight: 'bold', color: '#1976D2', marginBottom: 16 },
-  exercicioCard: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#F8F9FA',
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 10,
-    borderLeftWidth: 4,
-    borderLeftColor: '#40C4FF',
-  },
-  exercicioNome: { fontSize: 16, fontWeight: '600', color: '#333' },
-  exercicioInfo: { fontSize: 14, color: '#666' },
-  salvarButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#4CAF50',
-    paddingVertical: 16,
-    borderRadius: 8,
-    marginTop: 20,
-    marginBottom: 20,
-  },
-  salvarButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold', marginLeft: 8 },
+    container: { flex: 1, backgroundColor: '#E0E0E0' },
+    content: { flex: 1, padding: 20 },
+    dateInfo: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', padding: 16, borderRadius: 8, marginBottom: 20 },
+    dateText: { fontSize: 16, color: '#333', marginLeft: 12, fontWeight: '600' },
+    formContainer: { backgroundColor: '#FFF', borderRadius: 12, padding: 20, marginBottom: 20 },
+    formTitle: { fontSize: 18, fontWeight: 'bold', color: '#FF6B6B', marginBottom: 16 },
+    inputGroup: { marginBottom: 16 },
+    label: { fontSize: 14, color: '#666', marginBottom: 8, fontWeight: '600' },
+    textInput: { backgroundColor: '#F5F5F5', borderRadius: 8, padding: 12, fontSize: 16, borderWidth: 1, borderColor: '#DDD' },
+    addButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FF6B6B', paddingVertical: 14, paddingHorizontal: 24, borderRadius: 8, justifyContent: 'center' },
+    addButtonDisabled: { backgroundColor: '#CCC' },
+    addButtonText: { color: '#FFF', fontSize: 16, fontWeight: 'bold', marginLeft: 8 },
+    workoutsList: { marginBottom: 40 },
+    workoutsListTitle: { fontSize: 18, fontWeight: 'bold', color: '#FF6B6B', marginBottom: 8 },
+    helpText: { fontSize: 13, color: '#888', marginBottom: 12 },
+    workoutCard: { backgroundColor: '#FFF', borderRadius: 8, padding: 16, marginBottom: 12, borderLeftWidth: 4, borderLeftColor: '#FF6B6B' },
+    workoutCardHeader: { flexDirection: 'row', alignItems: 'center' },
+    workoutCardInfo: { flex: 1, marginLeft: 12 },
+    workoutCardTitle: { fontSize: 16, fontWeight: '600', color: '#333' },
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
+    modalContent: { backgroundColor: '#FFF', borderRadius: 12, padding: 24, width: width * 0.85 },
+    modalTitle: { fontSize: 18, fontWeight: 'bold', color: '#FF6B6B', marginBottom: 16 },
+    modalInput: { backgroundColor: '#F5F5F5', borderRadius: 8, padding: 12, fontSize: 16, borderWidth: 1, borderColor: '#DDD', marginBottom: 20 },
+    modalButtons: { flexDirection: 'row', justifyContent: 'space-between' },
+    modalButtonCancel: { flex: 1, backgroundColor: '#E0E0E0', padding: 14, borderRadius: 8, marginRight: 8, alignItems: 'center' },
+    modalButtonSave: { flex: 1, backgroundColor: '#FF6B6B', padding: 14, borderRadius: 8, marginLeft: 8, alignItems: 'center' },
+    modalButtonTextCancel: { color: '#666', fontWeight: 'bold' },
+    modalButtonTextSave: { color: '#FFF', fontWeight: 'bold' },
 });
 
 export default GerenciarTreinos;

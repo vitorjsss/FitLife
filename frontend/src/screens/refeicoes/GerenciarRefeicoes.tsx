@@ -12,17 +12,10 @@ import {
     FlatList,
     Modal,
 } from 'react-native';
-import DailyMealService from '../../services/DailyMealService';
-import MealRecordService, { MealRecordData } from '../../services/MealRecordService';
+import MealRecordService, { MealRecord } from '../../services/MealRecordService';
 import Icon from "react-native-vector-icons/FontAwesome";
 import Header from '../../components/Header';
-
-interface MealRecord {
-    id: string;
-    name: string;
-    icon_path?: string;
-    checked?: boolean;
-}
+import { useUser } from '../../context/UserContext';
 
 interface GerenciarRefeicoesProps {
     navigation?: any;
@@ -35,6 +28,7 @@ const GerenciarRefeicoes: React.FC<GerenciarRefeicoesProps> = ({ navigation, rou
     const [selectedIcon, setSelectedIcon] = useState('cutlery');
     const [loading, setLoading] = useState(false);
     const [mealRecords, setMealRecords] = useState<MealRecord[]>([]);
+    const { user } = useUser();
 
     // Estados para edição
     const [showEditModal, setShowEditModal] = useState(false);
@@ -43,7 +37,8 @@ const GerenciarRefeicoes: React.FC<GerenciarRefeicoesProps> = ({ navigation, rou
     const [editSelectedIcon, setEditSelectedIcon] = useState('cutlery');
 
     // Parâmetros da navegação
-    const { date, patientId } = route?.params || {};
+    const { date, patientId: routePatientId, mealId } = route?.params || {};
+    const patientId = routePatientId || user?.id || '';
 
     const mealIcons = [
         { name: 'cutlery', label: 'Geral' },
@@ -64,74 +59,51 @@ const GerenciarRefeicoes: React.FC<GerenciarRefeicoesProps> = ({ navigation, rou
         const fetchMeals = async () => {
             setLoading(true);
             try {
-                // Recebe o id do registro diário via props/route
-                const { dailyMealRegistryId } = route?.params || {};
-                console.log('[GerenciarRefeicoes] Carregando refeições para registry:', dailyMealRegistryId);
-                console.log('[GerenciarRefeicoes] Date:', date, 'PatientId:', patientId);
-
-                if (dailyMealRegistryId) {
-                    const records = await MealRecordService.getByRegistry(dailyMealRegistryId);
-                    console.log('[GerenciarRefeicoes] Refeições carregadas:', Array.isArray(records) ? records.length : 0);
-                    setMealRecords(Array.isArray(records) ? records : []);
-                } else {
-                    console.log('[GerenciarRefeicoes] Sem dailyMealRegistryId, limpando lista');
-                    setMealRecords([]);
+                if (mealId) {
+                    // Carregar refeição específica
+                    const meal = await MealRecordService.getById(mealId);
+                    setMealRecords(meal ? [meal] : []);
+                } else if (date && patientId) {
+                    // Carregar todas as refeições da data
+                    const meals = await MealRecordService.getByDate(date, patientId);
+                    setMealRecords(Array.isArray(meals) ? meals : []);
                 }
             } catch (err) {
-                console.error('[GerenciarRefeicoes] Erro ao carregar refeições do backend:', err);
+                console.error('Erro ao carregar refeições:', err);
                 setMealRecords([]);
             } finally {
                 setLoading(false);
             }
         };
         fetchMeals();
-    }, [route?.params?.dailyMealRegistryId, date, patientId]);
+    }, [date, patientId, mealId]);
 
     const handleAddMealRecord = async () => {
         if (!mealName.trim()) {
             Alert.alert('Atenção', 'Por favor, insira o nome da refeição');
             return;
         }
+        if (!date || !patientId) {
+            Alert.alert('Erro', 'Data ou ID do paciente não encontrado');
+            return;
+        }
         try {
             setLoading(true);
-            let { dailyMealRegistryId } = route?.params || {};
-
-            // Se não houver registro diário, cria um novo
-            if (!dailyMealRegistryId) {
-                if (!date || !patientId) {
-                    Alert.alert('Erro', 'Data ou paciente não informados.');
-                    console.log('Data ou paciente não informados:', { date, patientId });
-                    setLoading(false);
-                    return;
-                }
-                const created: any = await DailyMealService.create({
-                    date,
-                    patient_id: patientId,
-                });
-                if (created && created.id) {
-                    dailyMealRegistryId = created.id;
-                    // Atualiza os parâmetros da navegação para manter o novo ID
-                    navigation.setParams({ dailyMealRegistryId });
-                } else {
-                    Alert.alert('Erro', 'Não foi possível criar o registro diário.');
-                    setLoading(false);
-                    return;
-                }
-            }
-
-            // Cria a refeição
-            const newMeal: MealRecordData = {
+            // Criar refeição diretamente com data e patient_id
+            const newMeal: MealRecord = {
                 name: mealName,
+                date: date,
+                patient_id: patientId,
                 icon_path: `/icons/${selectedIcon}.png`,
-                daily_meal_registry_id: dailyMealRegistryId,
                 checked: false,
             };
             await MealRecordService.create(newMeal);
             setMealName('');
             Alert.alert('Sucesso!', 'Refeição adicionada com sucesso!');
-            // Atualiza lista
-            const records = await MealRecordService.getByRegistry(dailyMealRegistryId);
-            setMealRecords(Array.isArray(records) ? records : []);
+
+            // Recarregar refeições da data
+            const meals = await MealRecordService.getByDate(date, patientId);
+            setMealRecords(Array.isArray(meals) ? meals : []);
         } catch (error) {
             Alert.alert('Erro', 'Não foi possível adicionar a refeição');
         } finally {
@@ -181,6 +153,7 @@ const GerenciarRefeicoes: React.FC<GerenciarRefeicoesProps> = ({ navigation, rou
     };
 
     const confirmDeleteMeal = (mealRecord: MealRecord) => {
+        if (!mealRecord.id) return;
         Alert.alert(
             'Confirmar Exclusão',
             `Tem certeza que deseja excluir a refeição "${mealRecord.name}"? Esta ação não pode ser desfeita.`,
@@ -192,7 +165,7 @@ const GerenciarRefeicoes: React.FC<GerenciarRefeicoesProps> = ({ navigation, rou
                 {
                     text: 'Excluir',
                     style: 'destructive',
-                    onPress: () => deleteMeal(mealRecord.id)
+                    onPress: () => deleteMeal(mealRecord.id!)
                 }
             ]
         );
@@ -212,35 +185,25 @@ const GerenciarRefeicoes: React.FC<GerenciarRefeicoesProps> = ({ navigation, rou
     };
 
     const saveEditedMeal = async () => {
-        if (!editMealName.trim()) {
+        if (!editMealName.trim() || !editingMeal || !editingMeal.id) {
             Alert.alert('Atenção', 'Por favor, insira o nome da refeição');
             return;
         }
-        if (!editingMeal) return;
         try {
-            const updatedMeal: MealRecordData = {
-                ...editingMeal,
+            await MealRecordService.update(editingMeal.id, {
                 name: editMealName,
                 icon_path: `/icons/${editSelectedIcon}.png`,
-                daily_meal_registry_id: (editingMeal as any).daily_meal_registry_id,
-                checked: (editingMeal as any).checked ?? false,
-            };
-            await MealRecordService.update(editingMeal.id, updatedMeal);
+            });
             setShowEditModal(false);
             setEditingMeal(null);
             setEditMealName('');
             setEditSelectedIcon('cutlery');
-            // Atualiza lista
-            let dailyMealRegistries = await DailyMealService.getByDate(date, patientId);
-            let registryId = '';
-            if (Array.isArray(dailyMealRegistries) && dailyMealRegistries.length > 0) {
-                registryId = dailyMealRegistries[0].id;
+
+            // Recarregar refeições
+            if (date && patientId) {
+                const meals = await MealRecordService.getByDate(date, patientId);
+                setMealRecords(Array.isArray(meals) ? meals : []);
             }
-            if (registryId) {
-                const records = await MealRecordService.getByRegistry(registryId);
-                setMealRecords(Array.isArray(records) ? records : []);
-            }
-            Alert.alert('Sucesso!', 'Refeição atualizada com sucesso!');
             Alert.alert('Sucesso!', 'Refeição atualizada com sucesso!');
         } catch (error) {
             Alert.alert('Erro', 'Não foi possível atualizar a refeição');
@@ -388,7 +351,7 @@ const GerenciarRefeicoes: React.FC<GerenciarRefeicoesProps> = ({ navigation, rou
                         </Text>
                         <FlatList
                             data={mealRecords}
-                            keyExtractor={(item) => item.id}
+                            keyExtractor={(item) => item.id || ''}
                             renderItem={renderMealRecord}
                             scrollEnabled={false}
                         />

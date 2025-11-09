@@ -105,84 +105,33 @@ CREATE TABLE medidas_nutricionais (
 );
 
 -- ----------------------------
--- Enum para tipos de exercício
+-- Tabela WORKOUT_RECORD (Treino)
 -- ----------------------------
-CREATE TYPE exercise_type_enum AS ENUM (
-    'forca',
-    'cardio',
-    'flexibilidade',
-    'esporte',
-    'funcional',
-    'outro'
-);
-
--- ----------------------------
--- Tabela WORKOUT (Treinos)
--- ----------------------------
-CREATE TABLE workout (
+CREATE TABLE WorkoutRecord (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL,
-    description TEXT,
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW(),
-    patient_id UUID NOT NULL REFERENCES patient(id) ON DELETE CASCADE,
-    physical_educator_id UUID REFERENCES physical_educator(id)
-);
-
--- ----------------------------
--- Tabela WORKOUT_EXERCISE (Exercícios do Treino)
--- ----------------------------
-CREATE TABLE workout_exercise (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(255) NOT NULL,
-    exercise_type exercise_type_enum DEFAULT 'outro',
-    carga FLOAT DEFAULT 0,
-    series INTEGER NOT NULL,
-    repeticoes INTEGER NOT NULL,
-    notes TEXT,
-    order_index INTEGER DEFAULT 0,
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW(),
-    workout_id UUID NOT NULL REFERENCES workout(id) ON DELETE CASCADE
-);
-
--- ----------------------------
--- Tabela WORKOUT_SESSION (Sessão de Treino - Histórico de execução)
--- ----------------------------
-CREATE TABLE workout_session (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    workout_id UUID NOT NULL REFERENCES workout(id) ON DELETE CASCADE,
-    patient_id UUID NOT NULL REFERENCES patient(id) ON DELETE CASCADE,
-    session_date DATE NOT NULL DEFAULT CURRENT_DATE,
-    start_time TIMESTAMP,
-    end_time TIMESTAMP,
-    notes TEXT,
-    completed BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
-);
-
--- ----------------------------
--- Tabela WORKOUT_EXERCISE_LOG (Checklist - Exercícios completados)
--- ----------------------------
-CREATE TABLE workout_exercise_log (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    workout_session_id UUID NOT NULL REFERENCES workout_session(id) ON DELETE CASCADE,
-    workout_exercise_id UUID NOT NULL REFERENCES workout_exercise(id) ON DELETE CASCADE,
-    series_completed INTEGER DEFAULT 0,
-    repeticoes_completed INTEGER DEFAULT 0,
-    carga_used FLOAT DEFAULT 0,
+    date DATE NOT NULL,
     checked BOOLEAN NOT NULL DEFAULT FALSE,
-    completed BOOLEAN DEFAULT FALSE,
-    notes TEXT,
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
+    patient_id UUID NOT NULL REFERENCES patient(id) ON DELETE CASCADE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- Índices para melhor performance
-CREATE INDEX idx_workout_session_patient ON workout_session(patient_id);
-CREATE INDEX idx_workout_session_date ON workout_session(session_date);
-CREATE INDEX idx_workout_exercise_log_session ON workout_exercise_log(workout_session_id);
+-- ----------------------------
+-- Tabela WORKOUT_ITEM (Exercícios do treino)
+-- ----------------------------
+CREATE TABLE WorkoutItem (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    exercise_name VARCHAR(255) NOT NULL,
+    series VARCHAR(100),
+    repeticoes VARCHAR(100),
+    carga VARCHAR(100),
+    workout_record_id UUID NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_workoutitem_record FOREIGN KEY (workout_record_id)
+        REFERENCES WorkoutRecord(id) ON DELETE CASCADE
+);
 
 -- ----------------------------
 -- Tabela LOGS
@@ -206,31 +155,18 @@ CREATE INDEX idx_logs_action ON logs(action);
 CREATE INDEX idx_logs_created_at ON logs(created_at);
 
 -- ----------------------------
--- Tabela DAILY_MEAL_REGISTRY
--- ----------------------------
-
-CREATE TABLE DailyMealRegistry (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    date DATE NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    patient_id UUID NOT NULL REFERENCES patient(id)
-);
-
--- ----------------------------
--- Tabela MEAL_RECORD
+-- Tabela MEAL_RECORD (Refeição)
 -- ----------------------------
 
 CREATE TABLE MealRecord (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL,
+    date DATE NOT NULL,
     icon_path VARCHAR(500),
     checked BOOLEAN NOT NULL DEFAULT FALSE,
+    patient_id UUID NOT NULL REFERENCES patient(id) ON DELETE CASCADE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    daily_meal_registry_id UUID NOT NULL,
-    CONSTRAINT fk_mealrecord_registry FOREIGN KEY (daily_meal_registry_id)
-        REFERENCES DailyMealRegistry(id) ON DELETE CASCADE
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- ----------------------------
@@ -245,10 +181,10 @@ CREATE TABLE MealItem (
     proteins FLOAT,
     carbs FLOAT,
     fats FLOAT,
+    meal_record_id UUID NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    meal_id UUID NOT NULL,
-    CONSTRAINT fk_mealitem_meal FOREIGN KEY (meal_id)
+    CONSTRAINT fk_mealitem_meal FOREIGN KEY (meal_record_id)
         REFERENCES MealRecord(id) ON DELETE CASCADE
 );
 

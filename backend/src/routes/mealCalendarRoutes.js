@@ -1,13 +1,11 @@
-import express from "express";
-import { MealCalendarController } from "../controllers/MealCalendarController.js";
-import { authMiddleware } from "../middlewares/authMiddleware.js";
+import express from 'express';
+import MealCalendarController from '../controllers/MealCalendarController.js';
+import { authenticateToken } from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
 
-// GET /meal-calendar/:patientId/monthly?year=2025&month=11
-router.get("/:patientId/monthly", authMiddleware, MealCalendarController.getMonthlyProgress);
-
-// GET /meal-calendar/:patientId/day?date=2025-11-08
-router.get("/:patientId/day", authMiddleware, MealCalendarController.getDayDetails);
+// Rotas do calendário de refeições
+router.get('/monthly/:patientId/:year/:month', authenticateToken, MealCalendarController.getMonthlyProgress);
+router.get('/day/:patientId/:date', authenticateToken, MealCalendarController.getDayDetails);
 
 export default router;

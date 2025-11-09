@@ -15,8 +15,7 @@ import {
     TouchableWithoutFeedback,
 } from 'react-native';
 import Icon from "react-native-vector-icons/FontAwesome";
-import MealItemService, { MealItemData } from '../../services/MealItemService';
-import MealRecordService from '../../services/MealRecordService';
+import MealRecordService, { MealItem } from '../../services/MealRecordService';
 import Header from '../../components/Header';
 
 interface AdicionarAlimentosProps {
@@ -47,21 +46,19 @@ const AdicionarAlimentos: React.FC<AdicionarAlimentosProps> = ({ navigation, rou
         }
         setLoading(true);
         try {
-            const newMealItem: MealItemData = {
+            const newMealItem: MealItem = {
                 food_name: foodName,
                 quantity: quantity,
                 calories: parseFloat(calories) || 0,
                 proteins: parseFloat(proteins) || 0,
                 carbs: parseFloat(carbs) || 0,
                 fats: parseFloat(fats) || 0,
-                meal_id: mealRecord.id,
             };
-            await MealItemService.create(newMealItem);
+            await MealRecordService.addItem(mealRecord.id, newMealItem);
             clearForm();
             // Refresh list
-            const response = await MealItemService.getByMeal(mealRecord.id);
-            const items = (response as any).data || response;
-            setMealItems(Array.isArray(items) ? items : []);
+            const updatedMeal = await MealRecordService.getById(mealRecord.id);
+            setMealItems(updatedMeal.items || []);
             Alert.alert('Sucesso!', 'Alimento adicionado com sucesso!');
         } catch (error) {
             Alert.alert('Erro', 'Não foi possível adicionar o alimento');
@@ -82,11 +79,10 @@ const AdicionarAlimentos: React.FC<AdicionarAlimentosProps> = ({ navigation, rou
                     style: 'destructive',
                     onPress: async () => {
                         try {
-                            await MealItemService.delete(itemId);
+                            await MealRecordService.deleteItem(mealRecord.id!, itemId);
                             if (mealRecord.id) {
-                                const response = await MealItemService.getByMeal(mealRecord.id);
-                                const items = (response as any).data || response;
-                                setMealItems(Array.isArray(items) ? items : []);
+                                const updatedMeal = await MealRecordService.getById(mealRecord.id);
+                                setMealItems(updatedMeal.items || []);
                             }
                         } catch (error) {
                             Alert.alert('Erro', 'Não foi possível remover o alimento');
@@ -127,7 +123,7 @@ const AdicionarAlimentos: React.FC<AdicionarAlimentosProps> = ({ navigation, rou
     };
 
     // Render meal item
-    const renderMealItem = ({ item }: { item: MealItemData }) => (
+    const renderMealItem = ({ item }: { item: MealItem }) => (
         <View style={styles.itemCard}>
             <View style={styles.itemHeader}>
                 <View style={styles.itemInfo}>
@@ -171,7 +167,7 @@ const AdicionarAlimentos: React.FC<AdicionarAlimentosProps> = ({ navigation, rou
     const [carbs, setCarbs] = useState('');
     const [fats, setFats] = useState('');
     const [loading, setLoading] = useState(false);
-    const [mealItems, setMealItems] = useState<MealItemData[]>([]);
+    const [mealItems, setMealItems] = useState<MealItem[]>([]);
     const [showAddModal, setShowAddModal] = useState(false);
 
     // Parâmetros da navegação: recebe apenas o mealRecord.id e mealName da tela anterior
@@ -194,9 +190,8 @@ const AdicionarAlimentos: React.FC<AdicionarAlimentosProps> = ({ navigation, rou
             if (!mealRecord.id) return;
             setLoading(true);
             try {
-                const response = await MealItemService.getByMeal(mealRecord.id);
-                const items = (response as any).data || response;
-                setMealItems(Array.isArray(items) ? items : []);
+                const meal = await MealRecordService.getById(mealRecord.id);
+                setMealItems(meal.items || []);
             } catch (err) {
                 setMealItems([]);
             } finally {
@@ -565,8 +560,8 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#333',
         width: 270,
-        minHeight: 48,        
-        maxHeight: 48,        
+        minHeight: 48,
+        maxHeight: 48,
         textAlignVertical: 'center',
     },
     sectionTitle: {

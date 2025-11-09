@@ -10,13 +10,12 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Icon from "react-native-vector-icons/FontAwesome";
-import DailyMealService from "../../services/DailyMealService";
-import MealRecordService, { MealRecordData } from "../../services/MealRecordService";
+import MealRecordService, { MealRecord } from "../../services/MealRecordService";
+import WorkoutRecordService, { WorkoutRecord } from "../../services/WorkoutRecordService";
 import { useNavigation } from "@react-navigation/native";
 import { useUser } from "../../context/UserContext";
 import Header from "../../components/Header";
 
-const TRAININGS_KEY = "@fitlife_treinos";
 const { width } = Dimensions.get("window");
 
 function formatDateKey(d: Date) {
@@ -43,48 +42,10 @@ function formatDateBR(d: Date) {
   return `${dd}/${mm}/${yyyy}`;
 }
 
-// helpers to check training scheduling
-function normalizeISO(d?: string) {
-  if (!d) return null;
-  // accepts YYYY-MM-DD or DD/MM/YYYY
-  if (/^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
-  if (/^\d{2}\/\d{2}\/\d{4}$/.test(d)) {
-    const [dd, mm, yyyy] = d.split("/");
-    return `${yyyy}-${mm}-${dd}`;
-  }
-  const parsed = new Date(d);
-  if (!isNaN(parsed.getTime())) {
-    const yyyy = parsed.getFullYear();
-    const mm = String(parsed.getMonth() + 1).padStart(2, "0");
-    const dd = String(parsed.getDate()).padStart(2, "0");
-    return `${yyyy}-${mm}-${dd}`;
-  }
-  return null;
-}
-
-function isPlannedForDate(item: any, targetDate: Date) {
-  // If item explicitly has a date (one-off)
-  const iso = normalizeISO(item.date || item.scheduledDate || item.day);
-  const targetIso = targetDate.toISOString().slice(0, 10);
-  if (iso) return iso === targetIso;
-
-  // If item has daysOfWeek like [1,3,5] (0=Sun)
-  if (Array.isArray(item.daysOfWeek) && item.daysOfWeek.length > 0) {
-    const dow = targetDate.getDay();
-    return item.daysOfWeek.includes(dow);
-  }
-
-  // If item has a `recurring` flag assume it applies every day
-  if (item.recurring === true) return true;
-
-  // If no scheduling info, include as planned so user sees it
-  return true;
-}
-
 export default function ChecklistScreen() {
   const [date, setDate] = useState<Date>(new Date());
-  const [trainings, setTrainings] = useState<any[]>([]);
-  const [meals, setMeals] = useState<any[]>([]);
+  const [trainings, setTrainings] = useState<WorkoutRecord[]>([]);
+  const [meals, setMeals] = useState<MealRecord[]>([]);
   const [completed, setCompleted] = useState<{
     trainings: Record<string, boolean>;
     meals: Record<string, boolean>;
@@ -100,7 +61,7 @@ export default function ChecklistScreen() {
 
   // compute trainings planned for the selected date
   const todaysTrainings = useMemo(() => {
-    return (trainings || []).filter((t) => isPlannedForDate(t, date));
+    return trainings || [];
   }, [trainings, date]);
 
   const loadAll = async () => {
@@ -109,9 +70,13 @@ export default function ChecklistScreen() {
 
   const loadTrainings = async () => {
     try {
-      const raw = await AsyncStorage.getItem(TRAININGS_KEY);
-      const arr = raw ? JSON.parse(raw) : [];
-      setTrainings(arr);
+      if (!user?.id) {
+        setTrainings([]);
+        return;
+      }
+      const dateStr = formatDateKey(date);
+      const records = await WorkoutRecordService.getByDate(dateStr, user.id);
+      setTrainings(Array.isArray(records) ? records : []);
     } catch (err) {
       console.error("Erro ao carregar treinos:", err);
       setTrainings([]);
@@ -125,14 +90,8 @@ export default function ChecklistScreen() {
         return;
       }
       const dateStr = formatDateKey(date);
-      const registries = await DailyMealService.getByDate(dateStr, user.id);
-      if (Array.isArray(registries) && registries.length > 0) {
-        const registryId = registries[0].id;
-        const records = await MealRecordService.getByRegistry(registryId);
-        setMeals(Array.isArray(records) ? records : []);
-      } else {
-        setMeals([]);
-      }
+      const records = await MealRecordService.getByDate(dateStr, user.id);
+      setMeals(Array.isArray(records) ? records : []);
     } catch (err) {
       console.error("Erro ao carregar refeições:", err);
       setMeals([]);
@@ -158,15 +117,6 @@ export default function ChecklistScreen() {
     } catch (err) {
       console.error("Erro ao salvar checklist:", err);
     }
-  };
-
-  const toggleItem = async (type: "trainings" | "meals", id: string) => {
-    const next = {
-      ...completed,
-      [type]: { ...(completed as any)[type], [id]: !((completed as any)[type]?.[id]) },
-    };
-    setCompleted(next);
-    await saveCompleted(next);
   };
 
   const toggleMealItem = async (id?: string) => {
@@ -200,6 +150,37 @@ export default function ChecklistScreen() {
     }
   }
 
+  const toggleWorkoutItem = async (id?: string) => {
+    if (!id) {
+      Alert.alert("Erro", "ID do treino não fornecido.");
+      return;
+    }
+
+    const workout = trainings.find((w) => w.id === id);
+    if (!workout) {
+      Alert.alert("Erro", "Treino não encontrado.");
+      return;
+    }
+
+    const updatedWorkout = { ...workout, checked: !workout.checked };
+    try {
+      await WorkoutRecordService.update(id, updatedWorkout);
+      const updatedWorkouts = trainings.map((w) => (w.id === id ? updatedWorkout : w));
+      setTrainings(updatedWorkouts);
+
+      // Also toggle in completed state
+      const next = {
+        ...completed,
+        trainings: { ...(completed as any).trainings, [id]: updatedWorkout.checked },
+      };
+      setCompleted(next);
+      await saveCompleted(next);
+    } catch (err) {
+      console.error("Erro ao atualizar treino:", err);
+      Alert.alert("Erro", "Não foi possível atualizar o status do treino.");
+    }
+  }
+
   const changeDay = (delta: number) => {
     // Garante que a data seja atualizada corretamente sem problemas de fuso/horário
     const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
@@ -207,17 +188,23 @@ export default function ChecklistScreen() {
     setDate(new Date(d));
   };
 
-  const renderTraining = ({ item }: { item: any }) => {
-    const done = !!completed.trainings[item.id];
+  const renderTraining = ({ item }: { item: WorkoutRecord }) => {
+    const done = item.checked || false;
+    const itemsCount = item.items?.length || 0;
+
     return (
       <View style={[styles.card, done && styles.cardDone]}>
         <TouchableOpacity
           style={styles.cardLeft}
           activeOpacity={0.8}
           onPress={() => {
-            // navigate to training details screen (passes training id)
-            // adapt param name if your GerenciarTreinos expects another prop
-            navigation.navigate("Treinos", { trainingId: item.id });
+            // Navigate to workout details
+            navigation.navigate("GerenciarTreinos", {
+              workoutId: item.id,
+              workoutName: item.name,
+              date: formatDateKey(date),
+              patientId: user?.id
+            });
           }}
         >
           <View style={[styles.iconCircle, { backgroundColor: "#E3F2FD" }]}>
@@ -225,10 +212,10 @@ export default function ChecklistScreen() {
           </View>
           <View style={styles.cardText}>
             <Text style={[styles.cardTitle, done && styles.cardTitleDone]}>
-              {item.nome || item.name || "Treino sem nome"}
+              {item.name || "Treino sem nome"}
             </Text>
             <Text style={styles.cardSubtitle}>
-              {item.exercicios ? `${item.exercicios.length} exercícios` : "Sem exercícios"}
+              {itemsCount > 0 ? `${itemsCount} exercício${itemsCount > 1 ? 's' : ''}` : "Sem exercícios"}
             </Text>
           </View>
         </TouchableOpacity>
@@ -236,7 +223,7 @@ export default function ChecklistScreen() {
         {/* completion toggle separated from navigation */}
         <TouchableOpacity
           style={styles.cardRight}
-          onPress={() => toggleItem("trainings", item.id)}
+          onPress={() => toggleWorkoutItem(item.id)}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
           {done ? (
@@ -249,7 +236,7 @@ export default function ChecklistScreen() {
     );
   };
 
-  const renderMeal = ({ item }: { item: MealRecordData, }) => {
+  const renderMeal = ({ item }: { item: MealRecord }) => {
     return (
       <View style={[styles.card, item.checked && styles.cardDone]}>
         <TouchableOpacity
@@ -265,7 +252,7 @@ export default function ChecklistScreen() {
           </View>
           <View style={styles.cardText}>
             <Text style={[styles.cardTitle, item.checked && styles.cardTitleDone]}>
-              {item.name || item.name || "Refeição"}
+              {item.name || "Refeição"}
             </Text>
           </View>
         </TouchableOpacity>
@@ -320,7 +307,7 @@ export default function ChecklistScreen() {
       ) : (
         <FlatList
           data={todaysTrainings}
-          keyExtractor={(i) => i.id}
+          keyExtractor={(i, index) => i.id || `workout-${index}`}
           renderItem={renderTraining}
           contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 8 }}
           ItemSeparatorComponent={() => <View style={{ height: 8 }} />}

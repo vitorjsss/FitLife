@@ -7,14 +7,14 @@ import {
     ActivityIndicator,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import mealCalendarService from '../services/MealCalendarService';
+import workoutCalendarService from '../services/WorkoutCalendarService';
 
-interface WeeklyMealWidgetProps {
+interface WeeklyWorkoutWidgetProps {
     userId: string;
     onPress: () => void;
 }
 
-const WeeklyMealWidget: React.FC<WeeklyMealWidgetProps> = ({ userId, onPress }) => {
+const WeeklyWorkoutWidget: React.FC<WeeklyWorkoutWidgetProps> = ({ userId, onPress }) => {
     const [weeklyProgress, setWeeklyProgress] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
 
@@ -31,7 +31,7 @@ const WeeklyMealWidget: React.FC<WeeklyMealWidgetProps> = ({ userId, onPress }) 
             const currentYear = today.getFullYear();
             const currentMonth = today.getMonth() + 1;
 
-            const data = await mealCalendarService.getMonthlyProgress(
+            const data = await workoutCalendarService.getMonthlyProgress(
                 userId,
                 currentYear,
                 currentMonth
@@ -52,7 +52,7 @@ const WeeklyMealWidget: React.FC<WeeklyMealWidgetProps> = ({ userId, onPress }) 
 
             setWeeklyProgress(weekData);
         } catch (error) {
-            console.error('Error loading weekly progress:', error);
+            console.error('Error loading weekly workout progress:', error);
         } finally {
             setLoading(false);
         }
@@ -73,11 +73,11 @@ const WeeklyMealWidget: React.FC<WeeklyMealWidgetProps> = ({ userId, onPress }) 
     };
 
     const getColorForPercentage = (percentage: number): string => {
-        if (percentage === 100) return '#4CAF50';
-        if (percentage >= 75) return '#8BC34A';
-        if (percentage >= 50) return '#FFC107';
-        if (percentage >= 25) return '#FF9800';
-        if (percentage > 0) return '#FF5722';
+        if (percentage === 100) return '#FF6B6B';
+        if (percentage >= 75) return '#FF8585';
+        if (percentage >= 50) return '#FFA0A0';
+        if (percentage >= 25) return '#FFB8B8';
+        if (percentage > 0) return '#FFD0D0';
         return '#E0E0E0';
     };
 
@@ -100,15 +100,15 @@ const WeeklyMealWidget: React.FC<WeeklyMealWidgetProps> = ({ userId, onPress }) 
         >
             <View style={styles.widgetHeader}>
                 <View style={styles.widgetHeaderLeft}>
-                    <Icon name="calendar-check-o" size={18} color="#1976D2" />
-                    <Text style={styles.widgetTitle}>Minha dieta</Text>
+                    <Icon name="heartbeat" size={18} color="#FF6B6B" />
+                    <Text style={styles.widgetTitle}>Meus treinos</Text>
                 </View>
                 <Icon name="chevron-right" size={16} color="#666" />
             </View>
 
             {loading ? (
                 <View style={styles.widgetLoading}>
-                    <ActivityIndicator size="small" color="#1976D2" />
+                    <ActivityIndicator size="small" color="#FF6B6B" />
                 </View>
             ) : (
                 <View style={styles.weekDaysContainer}>
@@ -135,9 +135,9 @@ const WeeklyMealWidget: React.FC<WeeklyMealWidgetProps> = ({ userId, onPress }) 
                                         {getDay(day.date)}
                                     </Text>
                                 </View>
-                                {day.progress && day.progress.totalMeals > 0 && (
+                                {day.progress && day.progress.totalWorkouts > 0 && (
                                     <Text style={styles.dayProgress}>
-                                        {day.progress.completedMeals}/{day.progress.totalMeals}
+                                        {day.progress.completedWorkouts}/{day.progress.totalWorkouts}
                                     </Text>
                                 )}
                             </View>
@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
     widgetTitle: {
         fontSize: 16,
         fontWeight: '700',
-        color: '#1976D2',
+        color: '#FF6B6B',
         marginLeft: 8,
     },
     widgetLoading: {
@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
         textTransform: 'uppercase',
     },
     todayDayName: {
-        color: '#1976D2',
+        color: '#FF6B6B',
         fontWeight: '700',
     },
     dayBar: {
@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
     },
     todayBar: {
         borderWidth: 2,
-        borderColor: '#1976D2',
+        borderColor: '#FF6B6B',
     },
     dayNumber: {
         fontSize: 16,
@@ -226,4 +226,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default WeeklyMealWidget;
+export default WeeklyWorkoutWidget;

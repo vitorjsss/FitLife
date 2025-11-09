@@ -9,16 +9,14 @@ import RegisterScreen from './src/screens/cadastro/register';
 import HomeScreen from './src/screens/home/home';
 import NutricionistHomeScreen from './src/screens/home/NutricionistHome';
 import PhysicalEducatorHomeScreen from './src/screens/home/PhysicalEducatorHome';
-import Refeicoes from './src/screens/refeicoes/refeicoes';
+import Refeicoes from './src/screens/refeicoes/Refeicoes';
 import GerenciarRefeicoes from './src/screens/refeicoes/GerenciarRefeicoes';
 import AdicionarAlimentos from './src/screens/refeicoes/AdicionarAlimentos';
+import CalendarioRefeicoes from './src/screens/refeicoes/CalendarioRefeicoes';
 import GerenciarTreinos from './src/screens/treinos/GerenciarTreinos';
 import Treinos from './src/screens/treinos/Treinos';
-import AdicionarTreinos from './src/screens/treinos/AdicionarTreinos';
-import IniciarSessao from './src/screens/treinos/IniciarSessao';
-import VisualizarTreinos from './src/screens/treinos/VisualizarTreinos';
-import ChecklistTreino from './src/screens/treinos/ChecklistTreino';
-import MinhasSessoes from './src/screens/treinos/MinhasSessoes';
+import CalendarioTreinos from './src/screens/treinos/CalendarioTreinos';
+import AdicionarExercicios from './src/screens/treinos/AdicionarExercicios';
 import ChecklistScreen from './src/screens/checklist/Checklist';
 
 import { authService } from './src/services/authService';
@@ -111,13 +109,11 @@ export default function App() {
           <Stack.Screen name="Refeicoes" component={Refeicoes} />
           <Stack.Screen name="GerenciarRefeicoes" component={GerenciarRefeicoes} />
           <Stack.Screen name="AdicionarAlimentos" component={AdicionarAlimentos} />
+          <Stack.Screen name="CalendarioRefeicoes" component={CalendarioRefeicoes} />
           <Stack.Screen name="Treinos" component={Treinos} />
+          <Stack.Screen name="CalendarioTreinos" component={CalendarioTreinos} />
           <Stack.Screen name="GerenciarTreinos" component={GerenciarTreinos} />
-          <Stack.Screen name="AdicionarTreinos" component={AdicionarTreinos} />
-          <Stack.Screen name="IniciarSessao" component={IniciarSessao} />
-          <Stack.Screen name="VisualizarTreinos" component={VisualizarTreinos} />
-          <Stack.Screen name="ChecklistTreino" component={ChecklistTreino} />
-          <Stack.Screen name="MinhasSessoes" component={MinhasSessoes} />
+          <Stack.Screen name="AdicionarExercicios" component={AdicionarExercicios} />
           <Stack.Screen name="GerenciarMedidas" component={require('./src/screens/medidas/GerenciarMedidas').default} />
         </Stack.Navigator>
         <StatusBar style="auto" />

@@ -1,103 +1,95 @@
-import { pool } from "../config/db.js";
-import { v4 as uuidv4 } from 'uuid';
+import pool from '../config/db.js';
 
-const MealRecordRepository = {
-    create: async (data) => {
-        const id = uuidv4();
-        const query = `
-            INSERT INTO MealRecord (id, name, icon_path, daily_meal_registry_id)
-            VALUES ($1, $2, $3, $4)
-            RETURNING *;
-        `;
-        const values = [id, data.name, data.icon_path, data.daily_meal_registry_id];
-        const { rows } = await pool.query(query, values);
-        return rows[0];
-    },
+class MealRecordRepository {
+  // Buscar refeições por data e paciente
+  async findByDateAndPatient(date, patientId) {
+    const query = `
+      SELECT mr.*, 
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'id', mi.id,
+              'food_name', mi.food_name,
+              'quantity', mi.quantity,
+              'calories', mi.calories,
+              'proteins', mi.proteins,
+              'carbs', mi.carbs,
+              'fats', mi.fats
+            ) ORDER BY mi.created_at
+          ) FILTER (WHERE mi.id IS NOT NULL),
+          '[]'
+        ) as items
+      FROM MealRecord mr
+      LEFT JOIN MealItem mi ON mi.meal_record_id = mr.id
+      WHERE mr.date = $1 AND mr.patient_id = $2
+      GROUP BY mr.id
+      ORDER BY mr.created_at
+    `;
+    const result = await pool.query(query, [date, patientId]);
+    return result.rows;
+  }
 
-    findById: async (id) => {
-        const query = 'SELECT * FROM MealRecord WHERE id = $1;';
-        const { rows } = await pool.query(query, [id]);
-        return rows[0];
-    },
+  // Criar nova refeição
+  async create(data) {
+    const { name, date, patient_id, icon_path, checked = false } = data;
+    const query = `
+      INSERT INTO MealRecord (name, date, patient_id, icon_path, checked)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING *
+    `;
+    const result = await pool.query(query, [name, date, patient_id, icon_path, checked]);
+    return result.rows[0];
+  }
 
-    findAll: async () => {
-        const query = 'SELECT * FROM MealRecord ORDER BY created_at DESC;';
-        const { rows } = await pool.query(query);
-        return rows;
-    },
+  // Buscar por ID
+  async findById(id) {
+    const query = `
+      SELECT mr.*, 
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'id', mi.id,
+              'food_name', mi.food_name,
+              'quantity', mi.quantity,
+              'calories', mi.calories,
+              'proteins', mi.proteins,
+              'carbs', mi.carbs,
+              'fats', mi.fats
+            ) ORDER BY mi.created_at
+          ) FILTER (WHERE mi.id IS NOT NULL),
+          '[]'
+        ) as items
+      FROM MealRecord mr
+      LEFT JOIN MealItem mi ON mi.meal_record_id = mr.id
+      WHERE mr.id = $1
+      GROUP BY mr.id
+    `;
+    const result = await pool.query(query, [id]);
+    return result.rows[0];
+  }
 
-    findByDailyMealRegistryId: async (dailyMealRegistryId) => {
-        const query = 'SELECT * FROM MealRecord WHERE daily_meal_registry_id = $1 ORDER BY created_at ASC;';
-        const { rows } = await pool.query(query, [dailyMealRegistryId]);
-        return rows;
-    },
+  // Atualizar refeição
+  async update(id, data) {
+    const { name, icon_path, checked } = data;
+    const query = `
+      UPDATE MealRecord
+      SET name = COALESCE($1, name),
+          icon_path = COALESCE($2, icon_path),
+          checked = COALESCE($3, checked),
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = $4
+      RETURNING *
+    `;
+    const result = await pool.query(query, [name, icon_path, checked, id]);
+    return result.rows[0];
+  }
 
-    findWithItems: async (id) => {
-        const query = `
-            SELECT mr.*, 
-                   json_agg(
-                       json_build_object(
-                           'id', mi.id,
-                           'food_name', mi.food_name,
-                           'quantity', mi.quantity,
-                           'calories', mi.calories,
-                           'proteins', mi.proteins,
-                           'carbs', mi.carbs,
-                           'fats', mi.fats,
-                           'food_id', mi.food_id
-                       )
-                   ) as meal_items
-            FROM MealRecord mr
-            LEFT JOIN MealItem mi ON mr.id = mi.meal_id
-            WHERE mr.id = $1
-            GROUP BY mr.id;
-        `;
-        const { rows } = await pool.query(query, [id]);
-        return rows[0];
-    },
+  // Deletar refeição
+  async delete(id) {
+    const query = 'DELETE FROM MealRecord WHERE id = $1 RETURNING *';
+    const result = await pool.query(query, [id]);
+    return result.rows[0];
+  }
+}
 
-    update: async (id, data) => {
-        // Monta dinamicamente os campos a atualizar
-        const fields = [];
-        const values = [id];
-        let idx = 2;
-        if (data.name !== undefined) {
-            fields.push(`name = $${idx}`);
-            values.push(data.name);
-            idx++;
-        }
-        if (data.icon_path !== undefined) {
-            fields.push(`icon_path = $${idx}`);
-            values.push(data.icon_path);
-            idx++;
-        }
-        if (data.daily_meal_registry_id !== undefined) {
-            fields.push(`daily_meal_registry_id = $${idx}`);
-            values.push(data.daily_meal_registry_id);
-            idx++;
-        }
-        if (data.checked !== undefined) {
-            fields.push(`checked = $${idx}`);
-            values.push(data.checked);
-            idx++;
-        }
-        fields.push(`updated_at = CURRENT_TIMESTAMP`);
-        const query = `
-            UPDATE MealRecord
-            SET ${fields.join(', ')}
-            WHERE id = $1
-            RETURNING *;
-        `;
-        const { rows } = await pool.query(query, values);
-        return rows[0];
-    },
-
-    delete: async (id) => {
-        const query = 'DELETE FROM MealRecord WHERE id = $1;';
-        await pool.query(query, [id]);
-        return true;
-    }
-};
-
-export { MealRecordRepository };
-export default MealRecordRepository;
+export default new MealRecordRepository();

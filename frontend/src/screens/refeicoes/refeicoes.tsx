@@ -9,7 +9,8 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import Header from '../../components/Header';
-import DailyMealService from '../../services/DailyMealService';
+import MealRecordService, { MealRecord } from '../../services/MealRecordService';
+import { useUser } from '../../context/UserContext';
 
 const { width } = Dimensions.get('window');
 
@@ -18,15 +19,12 @@ interface RefeicoesProps {
     navigation?: any;
 }
 
-const STORAGE_KEY = '@fitlife_meal_records';
-
 const Refeicoes: React.FC<RefeicoesProps> = ({ route, navigation }) => {
-    const [showMenu, setShowMenu] = useState(false);
-    const [dailyMeals, setDailyMeals] = useState<any[]>([]);
+    const [meals, setMeals] = useState<MealRecord[]>([]);
     const [loading, setLoading] = useState(true);
+    const { user } = useUser();
 
-    const patientId = route?.params?.patientId || '';
-    // Data selecionada (reactiva) — permite navegar dias e filtrar corretamente
+    const patientId = route?.params?.patientId || user?.id || '';
     const [date, setDate] = useState<Date>(new Date());
     const dateString = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 
@@ -49,14 +47,16 @@ const Refeicoes: React.FC<RefeicoesProps> = ({ route, navigation }) => {
         const fetchMeals = async () => {
             setLoading(true);
             try {
-                // dateString e patientId devem estar definidos conforme sua lógica
-                const meals = await DailyMealService.getByDate(dateString, patientId);
-                // agora getByDate retorna já o array (r.data)
-                setDailyMeals(Array.isArray(meals) ? meals : []);
-                console.log('Refeições carregadas do backend:', meals);
+                if (!patientId) {
+                    setMeals([]);
+                    setLoading(false);
+                    return;
+                }
+                const data = await MealRecordService.getByDate(dateString, patientId);
+                setMeals(Array.isArray(data) ? data : []);
             } catch (err) {
-                console.error('Erro ao carregar refeições do backend:', err);
-                setDailyMeals([]);
+                console.error('Erro ao carregar refeições:', err);
+                setMeals([]);
             } finally {
                 setLoading(false);
             }
@@ -92,7 +92,7 @@ const Refeicoes: React.FC<RefeicoesProps> = ({ route, navigation }) => {
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
                 {loading ? (
                     <Text>Carregando refeições...</Text>
-                ) : dailyMeals.length === 0 ? (
+                ) : meals.length === 0 ? (
                     <>
                         {/* ILUSTRAÇÃO INICIAL */}
                         <View style={styles.illustrationContainer}>
@@ -122,7 +122,7 @@ const Refeicoes: React.FC<RefeicoesProps> = ({ route, navigation }) => {
                     </>
                 ) : (
                     <>
-                        {dailyMeals.map((meal) => (
+                        {meals.map((meal) => (
                             <TouchableOpacity
                                 key={meal.id}
                                 style={{
@@ -136,7 +136,7 @@ const Refeicoes: React.FC<RefeicoesProps> = ({ route, navigation }) => {
                                 }}
                                 onPress={() =>
                                     navigation.navigate('GerenciarRefeicoes', {
-                                        dailyMealRegistryId: meal.id,
+                                        mealId: meal.id,
                                         mealName: meal.name,
                                         date: dateString,
                                         patientId,
@@ -144,24 +144,15 @@ const Refeicoes: React.FC<RefeicoesProps> = ({ route, navigation }) => {
                                 }
                             >
                                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                    <Icon name="cutlery" size={22} color="#40C4FF" />
-                                    <Text style={styles.mealName}>{meal.name}</Text>
-                                    {meal.date && (
-                                        <Text style={{ marginLeft: 8, color: '#888', fontSize: 13 }}>
-                                            {(() => {
-                                                // Ajusta para data local (corrige bug do dia anterior)
-                                                const d = new Date(meal.date);
-                                                const localDate = new Date(d.getTime() + d.getTimezoneOffset() * 60000);
-                                                return localDate instanceof Date && !isNaN(localDate.getTime())
-                                                    ? `${localDate.getDate().toString().padStart(2, '0')}/${(localDate.getMonth() + 1).toString().padStart(2, '0')}/${localDate.getFullYear()}`
-                                                    : '';
-                                            })()}
-                                        </Text>
-                                    )}
+                                    <Icon
+                                        name={meal.checked ? "check-circle" : "circle-o"}
+                                        size={22}
+                                        color={meal.checked ? "#4CAF50" : "#40C4FF"}
+                                    />
+                                    <Text style={[styles.mealName, meal.checked && { textDecorationLine: 'line-through', color: '#999' }]}>
+                                        {meal.name}
+                                    </Text>
                                 </View>
-                                {/* <Text style={styles.mealInfo}>
-                                    {meal.itemCount || 0} alimentos
-                                </Text> */}
                             </TouchableOpacity>
                         ))}
 

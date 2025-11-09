@@ -13,6 +13,7 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import Header from '../../components/Header';
 import { useUser } from '../../context/UserContext';
 import WeeklyMealWidget from '../../components/WeeklyMealWidget';
+import WeeklyWorkoutWidget from '../../components/WeeklyWorkoutWidget';
 
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<
@@ -94,6 +95,14 @@ export default function HomeScreen() {
                         onPress={() => navigation.navigate('CalendarioRefeicoes')}
                     />
                 )}
+
+                {/* Widget de Progresso Semanal de Treinos */}
+                {user?.id && (
+                    <WeeklyWorkoutWidget
+                        userId={user.id}
+                        onPress={() => navigation.navigate('CalendarioTreinos')}
+                    />
+                )}
             </View>
 
             {/* Bottom Navigation */}
@@ -119,7 +128,7 @@ export default function HomeScreen() {
 
 
                 <TouchableOpacity style={styles.navItem}
-                    onPress={() => navigation.navigate('MinhasSessoes')}
+                    onPress={() => navigation.navigate('Checklist')}
                 >
                     <Icon name="list" size={20} color="#fff" />
                     <Text style={styles.navText}>CheckList</Text>

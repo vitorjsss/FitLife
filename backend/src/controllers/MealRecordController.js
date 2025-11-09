@@ -1,332 +1,120 @@
-import { MealRecordService } from "../services/MealRecordService.js";
-import { LogService } from "../services/LogService.js";
+import MealRecordRepository from '../repositories/MealRecordRepository.js';
+import MealItemRepository from '../repositories/MealItemRepository.js';
 
-export const MealRecordController = {
-    create: async (req, res) => {
-        const mealData = req.body;
-        const ip = req.ip;
-        const userId = req.user?.id;
-
-        try {
-            const meal = await MealRecordService.create(mealData);
-
-            await LogService.createLog({
-                action: "CREATE_MEAL_RECORD",
-                logType: "CREATE",
-                description: `Refeição ${meal.name} criada com sucesso`,
-                ip,
-                oldValue: null,
-                newValue: meal,
-                status: "SUCCESS",
-                userId: userId
-            });
-
-            res.status(201).json(meal);
-        } catch (err) {
-            await LogService.createLog({
-                action: "CREATE_MEAL_RECORD",
-                logType: "ERROR",
-                description: err.message,
-                ip,
-                oldValue: null,
-                newValue: mealData,
-                status: "FAILURE",
-                userId: userId
-            });
-
-            res.status(500).json({ message: "Erro ao criar refeição", error: err });
-        }
-    },
-
-    getAll: async (req, res) => {
-        const ip = req.ip;
-        const userId = req.user?.id;
-        const { daily_meal_registry_id } = req.query;
-
-        try {
-            let meals;
-
-            console.log('[MealRecordController] GET /meal-record - Query params:', req.query);
-            console.log('[MealRecordController] daily_meal_registry_id:', daily_meal_registry_id);
-
-            // Se houver daily_meal_registry_id na query, filtra por ele
-            if (daily_meal_registry_id) {
-                console.log('[MealRecordController] Filtrando por registry:', daily_meal_registry_id);
-                meals = await MealRecordService.getByDailyMealRegistryId(daily_meal_registry_id);
-            } else {
-                console.log('[MealRecordController] Buscando todas as refeições');
-                meals = await MealRecordService.getAll();
-            }
-
-            console.log('[MealRecordController] Refeições encontradas:', meals.length);
-
-            await LogService.createLog({
-                action: "GET_ALL_MEAL_RECORDS",
-                logType: "read",
-                description: `Lista de ${meals.length} refeições recuperada`,
-                ip,
-                oldValue: null,
-                newValue: null,
-                status: "SUCCESS",
-                userId: userId
-            });
-
-            res.json(meals);
-        } catch (err) {
-            await LogService.createLog({
-                action: "GET_ALL_MEAL_RECORDS",
-                logType: "ERROR",
-                description: err.message,
-                ip,
-                oldValue: null,
-                newValue: null,
-                status: "FAILURE",
-                userId: userId
-            });
-
-            res.status(500).json({ message: "Erro ao buscar refeições", error: err });
-        }
-    },
-
-    getById: async (req, res) => {
-        const { id } = req.params;
-        const ip = req.ip;
-        const userId = req.user?.id;
-
-        try {
-            const meal = await MealRecordService.getById(id);
-
-            if (!meal) {
-                await LogService.createLog({
-                    action: "GET_MEAL_RECORD_BY_ID",
-                    logType: "read",
-                    description: `Refeição com ID ${id} não encontrada`,
-                    ip,
-                    oldValue: null,
-                    newValue: null,
-                    status: "NOT_FOUND",
-                    userId: userId
-                });
-                return res.status(404).json({ message: "Refeição não encontrada" });
-            }
-
-            await LogService.createLog({
-                action: "GET_MEAL_RECORD_BY_ID",
-                logType: "read",
-                description: `Refeição ${meal.name} recuperada com sucesso`,
-                ip,
-                oldValue: null,
-                newValue: { id: meal.id, name: meal.name },
-                status: "SUCCESS",
-                userId: userId
-            });
-
-            res.json(meal);
-        } catch (err) {
-            await LogService.createLog({
-                action: "GET_MEAL_RECORD_BY_ID",
-                logType: "ERROR",
-                description: err.message,
-                ip,
-                oldValue: null,
-                newValue: { requestedId: id },
-                status: "FAILURE",
-                userId: userId
-            });
-
-            res.status(500).json({ message: "Erro ao buscar refeição", error: err });
-        }
-    },
-
-    getByDailyMealRegistryId: async (req, res) => {
-        const { registryId } = req.params;
-        const ip = req.ip;
-        const userId = req.user?.id;
-
-        try {
-            const meals = await MealRecordService.getByDailyMealRegistryId(registryId);
-
-            await LogService.createLog({
-                action: "GET_MEAL_RECORDS_BY_REGISTRY",
-                logType: "read",
-                description: `${meals.length} refeições do registro ${registryId} recuperadas`,
-                ip,
-                oldValue: null,
-                newValue: { registryId, count: meals.length },
-                status: "SUCCESS",
-                userId: userId
-            });
-
-            res.json(meals);
-        } catch (err) {
-            await LogService.createLog({
-                action: "GET_MEAL_RECORDS_BY_REGISTRY",
-                logType: "ERROR",
-                description: err.message,
-                ip,
-                oldValue: null,
-                newValue: { registryId },
-                status: "FAILURE",
-                userId: userId
-            });
-
-            res.status(500).json({ message: "Erro ao buscar refeições do registro", error: err });
-        }
-    },
-
-    getWithItems: async (req, res) => {
-        const { id } = req.params;
-        const ip = req.ip;
-        const userId = req.user?.id;
-
-        try {
-            const meal = await MealRecordService.getWithItems(id);
-
-            if (!meal) {
-                await LogService.createLog({
-                    action: "GET_MEAL_RECORD_WITH_ITEMS",
-                    logType: "read",
-                    description: `Refeição com ID ${id} não encontrada`,
-                    ip,
-                    oldValue: null,
-                    newValue: null,
-                    status: "NOT_FOUND",
-                    userId: userId
-                });
-                return res.status(404).json({ message: "Refeição não encontrada" });
-            }
-
-            await LogService.createLog({
-                action: "GET_MEAL_RECORD_WITH_ITEMS",
-                logType: "read",
-                description: `Refeição ${meal.name} com itens recuperada com sucesso`,
-                ip,
-                oldValue: null,
-                newValue: { id: meal.id, name: meal.name, itemsCount: meal.meal_items?.length || 0 },
-                status: "SUCCESS",
-                userId: userId
-            });
-
-            res.json(meal);
-        } catch (err) {
-            await LogService.createLog({
-                action: "GET_MEAL_RECORD_WITH_ITEMS",
-                logType: "ERROR",
-                description: err.message,
-                ip,
-                oldValue: null,
-                newValue: { requestedId: id },
-                status: "FAILURE",
-                userId: userId
-            });
-
-            res.status(500).json({ message: "Erro ao buscar refeição com itens", error: err });
-        }
-    },
-
-    update: async (req, res) => {
-        const { id } = req.params;
-        const updateData = req.body;
-        const ip = req.ip;
-        const userId = req.user?.id;
-        console.log('MealRecordController.update - updateData:', updateData);
-
-        try {
-            const oldMeal = await MealRecordService.getById(id);
-
-            if (!oldMeal) {
-                await LogService.createLog({
-                    action: "UPDATE_MEAL_RECORD",
-                    logType: "UPDATE",
-                    description: `Tentativa de atualizar refeição inexistente com ID ${id}`,
-                    ip,
-                    oldValue: null,
-                    newValue: updateData,
-                    status: "NOT_FOUND",
-                    userId: userId
-                });
-                return res.status(404).json({ message: "Refeição não encontrada" });
-            }
-
-            const updated = await MealRecordService.update(id, updateData);
-
-            await LogService.createLog({
-                action: "UPDATE_MEAL_RECORD",
-                logType: "UPDATE",
-                description: `Refeição ${updated.name} atualizada com sucesso`,
-                ip,
-                oldValue: oldMeal,
-                newValue: updated,
-                status: "SUCCESS",
-                userId: userId
-            });
-
-            res.json(updated);
-        } catch (err) {
-            await LogService.createLog({
-                action: "UPDATE_MEAL_RECORD",
-                logType: "ERROR",
-                description: err.message,
-                ip,
-                oldValue: null,
-                newValue: { id, updateData },
-                status: "FAILURE",
-                userId: userId
-            });
-
-            res.status(500).json({ message: "Erro ao atualizar refeição", error: err });
-        }
-    },
-
-    deleteMealRecord: async (req, res) => {
-        const { id } = req.params;
-        const ip = req.ip;
-        const userId = req.user?.id;
-
-        try {
-            const meal = await MealRecordService.getById(id);
-
-            if (!meal) {
-                await LogService.createLog({
-                    action: "DELETE_MEAL_RECORD",
-                    logType: "DELETE",
-                    description: `Tentativa de deletar refeição inexistente com ID ${id}`,
-                    ip,
-                    oldValue: null,
-                    newValue: null,
-                    status: "NOT_FOUND",
-                    userId: userId
-                });
-                return res.status(404).json({ message: "Refeição não encontrada" });
-            }
-
-            await MealRecordService.delete(id);
-
-            await LogService.createLog({
-                action: "DELETE_MEAL_RECORD",
-                logType: "DELETE",
-                description: `Refeição ${meal.name} deletada com sucesso`,
-                ip,
-                oldValue: meal,
-                newValue: null,
-                status: "SUCCESS",
-                userId: userId
-            });
-
-            res.status(204).send();
-        } catch (err) {
-            await LogService.createLog({
-                action: "DELETE_MEAL_RECORD",
-                logType: "ERROR",
-                description: err.message,
-                ip,
-                oldValue: null,
-                newValue: { requestedId: id },
-                status: "FAILURE",
-                userId: userId
-            });
-
-            res.status(500).json({ message: "Erro ao deletar refeição", error: err });
-        }
+class MealRecordController {
+  // GET /meal-record/date/:date/patient/:patientId
+  async getByDateAndPatient(req, res) {
+    try {
+      const { date, patientId } = req.params;
+      const meals = await MealRecordRepository.findByDateAndPatient(date, patientId);
+      res.json(meals);
+    } catch (error) {
+      console.error('Erro ao buscar refeições:', error);
+      res.status(500).json({ error: 'Erro ao buscar refeições' });
     }
-};
+  }
+
+  // GET /meal-record/:id
+  async getById(req, res) {
+    try {
+      const { id } = req.params;
+      const meal = await MealRecordRepository.findById(id);
+      if (!meal) {
+        return res.status(404).json({ error: 'Refeição não encontrada' });
+      }
+      res.json(meal);
+    } catch (error) {
+      console.error('Erro ao buscar refeição:', error);
+      res.status(500).json({ error: 'Erro ao buscar refeição' });
+    }
+  }
+
+  // POST /meal-record
+  async create(req, res) {
+    try {
+      const { name, date, patient_id, icon_path } = req.body;
+      if (!name || !date || !patient_id) {
+        return res.status(400).json({ error: 'Nome, data e patient_id são obrigatórios' });
+      }
+      const meal = await MealRecordRepository.create(req.body);
+      res.status(201).json(meal);
+    } catch (error) {
+      console.error('Erro ao criar refeição:', error);
+      res.status(500).json({ error: 'Erro ao criar refeição' });
+    }
+  }
+
+  // PUT /meal-record/:id
+  async update(req, res) {
+    try {
+      const { id } = req.params;
+      const meal = await MealRecordRepository.update(id, req.body);
+      if (!meal) {
+        return res.status(404).json({ error: 'Refeição não encontrada' });
+      }
+      res.json(meal);
+    } catch (error) {
+      console.error('Erro ao atualizar refeição:', error);
+      res.status(500).json({ error: 'Erro ao atualizar refeição' });
+    }
+  }
+
+  // DELETE /meal-record/:id
+  async delete(req, res) {
+    try {
+      const { id } = req.params;
+      const meal = await MealRecordRepository.delete(id);
+      if (!meal) {
+        return res.status(404).json({ error: 'Refeição não encontrada' });
+      }
+      res.json({ message: 'Refeição deletada com sucesso' });
+    } catch (error) {
+      console.error('Erro ao deletar refeição:', error);
+      res.status(500).json({ error: 'Erro ao deletar refeição' });
+    }
+  }
+
+  // POST /meal-record/:id/items
+  async addItem(req, res) {
+    try {
+      const { id } = req.params;
+      const item = await MealItemRepository.create({ ...req.body, meal_record_id: id });
+      res.status(201).json(item);
+    } catch (error) {
+      console.error('Erro ao adicionar item:', error);
+      res.status(500).json({ error: 'Erro ao adicionar item' });
+    }
+  }
+
+  // PUT /meal-record/:mealId/items/:itemId
+  async updateItem(req, res) {
+    try {
+      const { itemId } = req.params;
+      const item = await MealItemRepository.update(itemId, req.body);
+      if (!item) {
+        return res.status(404).json({ error: 'Item não encontrado' });
+      }
+      res.json(item);
+    } catch (error) {
+      console.error('Erro ao atualizar item:', error);
+      res.status(500).json({ error: 'Erro ao atualizar item' });
+    }
+  }
+
+  // DELETE /meal-record/:mealId/items/:itemId
+  async deleteItem(req, res) {
+    try {
+      const { itemId } = req.params;
+      const item = await MealItemRepository.delete(itemId);
+      if (!item) {
+        return res.status(404).json({ error: 'Item não encontrado' });
+      }
+      res.json({ message: 'Item deletado com sucesso' });
+    } catch (error) {
+      console.error('Erro ao deletar item:', error);
+      res.status(500).json({ error: 'Erro ao deletar item' });
+    }
+  }
+}
+
+export default new MealRecordController();

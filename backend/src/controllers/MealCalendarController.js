@@ -1,90 +1,33 @@
-import { MealCalendarService } from "../services/MealCalendarService.js";
-import { LogService } from "../services/LogService.js";
+import { MealCalendarService } from '../services/MealCalendarService.js';
 
-export const MealCalendarController = {
-    getMonthlyProgress: async (req, res) => {
-        const { patientId } = req.params;
-        const { year, month } = req.query;
-        const ip = req.ip;
-        const userId = req.user?.id;
-
+class MealCalendarController {
+    // GET /meal-calendar/monthly/:patientId/:year/:month
+    async getMonthlyProgress(req, res) {
         try {
-            if (!year || !month) {
-                return res.status(400).json({ message: "Year and month are required" });
-            }
-
-            const progress = await MealCalendarService.getMonthlyProgress(
+            const { patientId, year, month } = req.params;
+            const data = await MealCalendarService.getMonthlyProgress(
                 patientId,
                 parseInt(year),
                 parseInt(month)
             );
-
-            await LogService.createLog({
-                action: "GET_MONTHLY_MEAL_PROGRESS",
-                logType: "READ",
-                description: `Monthly meal progress retrieved for patient ${patientId}, ${year}-${month}`,
-                ip,
-                oldValue: null,
-                newValue: { patientId, year, month, daysCount: progress.length },
-                status: "SUCCESS",
-                userId: userId
-            });
-
-            res.json(progress);
-        } catch (err) {
-            await LogService.createLog({
-                action: "GET_MONTHLY_MEAL_PROGRESS",
-                logType: "ERROR",
-                description: err.message,
-                ip,
-                oldValue: null,
-                newValue: { patientId, year, month },
-                status: "FAILURE",
-                userId: userId
-            });
-
-            res.status(500).json({ message: "Error retrieving monthly progress", error: err });
-        }
-    },
-
-    getDayDetails: async (req, res) => {
-        const { patientId } = req.params;
-        const { date } = req.query;
-        const ip = req.ip;
-        const userId = req.user?.id;
-
-        try {
-            if (!date) {
-                return res.status(400).json({ message: "Date is required" });
-            }
-
-            const details = await MealCalendarService.getDayDetails(patientId, date);
-
-            await LogService.createLog({
-                action: "GET_DAY_MEAL_DETAILS",
-                logType: "READ",
-                description: `Day meal details retrieved for patient ${patientId}, date ${date}`,
-                ip,
-                oldValue: null,
-                newValue: { patientId, date },
-                status: "SUCCESS",
-                userId: userId
-            });
-
-            res.json(details);
-        } catch (err) {
-            await LogService.createLog({
-                action: "GET_DAY_MEAL_DETAILS",
-                logType: "ERROR",
-                description: err.message,
-                ip,
-                oldValue: null,
-                newValue: { patientId, date },
-                status: "FAILURE",
-                userId: userId
-            });
-
-            res.status(500).json({ message: "Error retrieving day details", error: err });
+            res.json(data);
+        } catch (error) {
+            console.error('Erro ao buscar progresso mensal:', error);
+            res.status(500).json({ error: 'Erro ao buscar progresso mensal' });
         }
     }
-};
+
+    // GET /meal-calendar/day/:patientId/:date
+    async getDayDetails(req, res) {
+        try {
+            const { patientId, date } = req.params;
+            const data = await MealCalendarService.getDayDetails(patientId, date);
+            res.json(data);
+        } catch (error) {
+            console.error('Erro ao buscar detalhes do dia:', error);
+            res.status(500).json({ error: 'Erro ao buscar detalhes do dia' });
+        }
+    }
+}
+
+export default new MealCalendarController();

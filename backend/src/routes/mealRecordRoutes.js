@@ -1,19 +1,19 @@
-import express from "express";
-import { MealRecordController } from "../controllers/MealRecordController.js";
-import { authMiddleware } from "../middlewares/authMiddleware.js";
+import express from 'express';
+import MealRecordController from '../controllers/MealRecordController.js';
+import { authenticateToken } from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
 
-// Todas as rotas de meal record requerem autenticação
-router.use(authMiddleware);
+// Rotas de MealRecord
+router.get('/date/:date/patient/:patientId', authenticateToken, MealRecordController.getByDateAndPatient);
+router.get('/:id', authenticateToken, MealRecordController.getById);
+router.post('/', authenticateToken, MealRecordController.create);
+router.put('/:id', authenticateToken, MealRecordController.update);
+router.delete('/:id', authenticateToken, MealRecordController.delete);
 
-// Rotas para registros de refeição
-router.post("/", MealRecordController.create);
-router.get("/", MealRecordController.getAll);
-router.get("/registry/:registryId", MealRecordController.getByDailyMealRegistryId);
-router.get("/with-items/:id", MealRecordController.getWithItems);
-router.get("/:id", MealRecordController.getById);
-router.put("/:id", MealRecordController.update);
-router.delete("/:id", MealRecordController.deleteMealRecord);
+// Rotas de items
+router.post('/:id/items', authenticateToken, MealRecordController.addItem);
+router.put('/:mealId/items/:itemId', authenticateToken, MealRecordController.updateItem);
+router.delete('/:mealId/items/:itemId', authenticateToken, MealRecordController.deleteItem);
 
 export default router;

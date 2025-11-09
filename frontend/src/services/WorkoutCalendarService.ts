@@ -2,27 +2,26 @@ import { apiClient } from './apiClient';
 
 export interface DailyProgress {
     date: string;
-    totalMeals: number;
-    completedMeals: number;
+    totalWorkouts: number;
+    completedWorkouts: number;
     completionPercentage: number;
 }
 
-export interface MealDetail {
+export interface WorkoutDetail {
     id: string;
     name: string;
-    iconPath?: string;
     checked: boolean;
-    foodItemsCount: number;
+    exerciseItemsCount: number;
 }
 
 export interface DayDetails {
     date: string;
-    meals: MealDetail[];
+    workouts: WorkoutDetail[];
 }
 
-class MealCalendarService {
+class WorkoutCalendarService {
     /**
-     * Busca o progresso mensal de refeições
+     * Busca o progresso mensal de treinos
      */
     async getMonthlyProgress(
         patientId: string,
@@ -30,7 +29,7 @@ class MealCalendarService {
         month: number
     ): Promise<DailyProgress[]> {
         return apiClient.get<DailyProgress[]>(
-            `/meal-calendar/monthly/${patientId}/${year}/${month}`
+            `/workout-calendar/monthly/${patientId}/${year}/${month}`
         );
     }
 
@@ -38,9 +37,9 @@ class MealCalendarService {
      * Busca os detalhes de um dia específico
      */
     async getDayDetails(patientId: string, date: string): Promise<DayDetails> {
-        return apiClient.get<DayDetails>(`/meal-calendar/day/${patientId}/${date}`);
+        return apiClient.get<DayDetails>(`/workout-calendar/day/${patientId}/${date}`);
     }
 }
 
-export const mealCalendarService = new MealCalendarService();
-export default mealCalendarService;
+export const workoutCalendarService = new WorkoutCalendarService();
+export default workoutCalendarService;
