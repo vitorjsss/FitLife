@@ -154,12 +154,20 @@ const Treinos: React.FC<InicioTreinosProps> = ({ navigation }) => {
 
           <TouchableOpacity 
             style={[styles.actionButton, styles.secondaryButton]} 
-            onPress={() => navigation?.navigate('VisualizarTreinos')}
+            onPress={() => navigation?.navigate('MinhasSessoes')}
           >
-            <MaterialCommunityIcons name="history" size={24} color="#fff" />
-            <Text style={styles.actionButtonText}>Histórico</Text>
+            <MaterialCommunityIcons name="clipboard-check" size={24} color="#fff" />
+            <Text style={styles.actionButtonText}>Checklist</Text>
           </TouchableOpacity>
         </View>
+
+        <TouchableOpacity 
+          style={[styles.actionButton, styles.tertiaryButton]} 
+          onPress={() => navigation?.navigate('VisualizarTreinos')}
+        >
+          <MaterialCommunityIcons name="history" size={24} color="#fff" />
+          <Text style={styles.actionButtonText}>Histórico de Treinos</Text>
+        </TouchableOpacity>
 
         <TouchableOpacity style={styles.criarButton} onPress={handleCriarTreino}>
           <Icon name="plus" size={20} color="#fff" />
@@ -220,6 +228,10 @@ const styles = StyleSheet.create({
   },
   secondaryButton: {
     backgroundColor: '#FF9800',
+  },
+  tertiaryButton: {
+    backgroundColor: '#9C27B0',
+    marginBottom: 16,
   },
   actionButtonText: {
     color: '#fff',

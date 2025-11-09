@@ -16,7 +16,6 @@ services:
     command: sh -c "npm start"
     volumes:
       - ./backend:/usr/src
-      - backend-node-modules:/usr/src/node_modules
       - backup-data:/usr/src/backups
     ports:
       - "5001:5001"
@@ -35,4 +34,3 @@ services:
 volumes:
   db-data:
   backup-data:
-  backend-node-modules:
