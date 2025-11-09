@@ -16,6 +16,7 @@ import Header from '../../components/Header';
 
 interface CalendarioRefeicoesProps {
     navigation: any;
+    route?: any;
 }
 
 const MONTH_NAMES = [
@@ -25,8 +26,9 @@ const MONTH_NAMES = [
 
 const WEEKDAY_NAMES = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
-const CalendarioRefeicoes: React.FC<CalendarioRefeicoesProps> = ({ navigation }) => {
+const CalendarioRefeicoes: React.FC<CalendarioRefeicoesProps> = ({ navigation, route }) => {
     const { user } = useUser();
+    const patientId = route?.params?.patientId || user?.id; // Usa patientId se passado, senão usa o user.id
     const [currentDate, setCurrentDate] = useState(new Date());
     const [monthlyProgress, setMonthlyProgress] = useState<DailyProgress[]>([]);
     const [loading, setLoading] = useState(false);
@@ -38,18 +40,18 @@ const CalendarioRefeicoes: React.FC<CalendarioRefeicoesProps> = ({ navigation })
     const currentMonth = currentDate.getMonth();
 
     useEffect(() => {
-        if (user?.id) {
+        if (patientId) {
             loadMonthlyProgress();
         }
-    }, [user, currentDate]);
+    }, [patientId, currentDate]);
 
     const loadMonthlyProgress = async () => {
-        if (!user?.id) return;
+        if (!patientId) return;
 
         setLoading(true);
         try {
             const data = await mealCalendarService.getMonthlyProgress(
-                user.id,
+                patientId,
                 currentYear,
                 currentMonth + 1 // Month is 0-indexed, backend expects 1-indexed
             );
@@ -77,7 +79,7 @@ const CalendarioRefeicoes: React.FC<CalendarioRefeicoesProps> = ({ navigation })
     };
 
     const handleDayPress = async (day: number) => {
-        if (!user?.id) return;
+        if (!patientId) return;
 
         const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
@@ -85,7 +87,7 @@ const CalendarioRefeicoes: React.FC<CalendarioRefeicoesProps> = ({ navigation })
         setShowDayModal(true);
 
         try {
-            const details = await mealCalendarService.getDayDetails(user.id, dateStr);
+            const details = await mealCalendarService.getDayDetails(patientId, dateStr);
             setSelectedDay(details);
         } catch (error) {
             console.error('Error loading day details:', error);

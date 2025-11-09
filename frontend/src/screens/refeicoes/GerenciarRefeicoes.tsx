@@ -66,21 +66,26 @@ const GerenciarRefeicoes: React.FC<GerenciarRefeicoesProps> = ({ navigation, rou
             try {
                 // Recebe o id do registro diário via props/route
                 const { dailyMealRegistryId } = route?.params || {};
+                console.log('[GerenciarRefeicoes] Carregando refeições para registry:', dailyMealRegistryId);
+                console.log('[GerenciarRefeicoes] Date:', date, 'PatientId:', patientId);
+
                 if (dailyMealRegistryId) {
                     const records = await MealRecordService.getByRegistry(dailyMealRegistryId);
+                    console.log('[GerenciarRefeicoes] Refeições carregadas:', Array.isArray(records) ? records.length : 0);
                     setMealRecords(Array.isArray(records) ? records : []);
                 } else {
+                    console.log('[GerenciarRefeicoes] Sem dailyMealRegistryId, limpando lista');
                     setMealRecords([]);
                 }
             } catch (err) {
-                console.error('Erro ao carregar refeições do backend:', err);
+                console.error('[GerenciarRefeicoes] Erro ao carregar refeições do backend:', err);
                 setMealRecords([]);
             } finally {
                 setLoading(false);
             }
         };
         fetchMeals();
-    }, [date, patientId]);
+    }, [route?.params?.dailyMealRegistryId, date, patientId]);
 
     const handleAddMealRecord = async () => {
         if (!mealName.trim()) {
@@ -300,7 +305,10 @@ const GerenciarRefeicoes: React.FC<GerenciarRefeicoesProps> = ({ navigation, rou
                 <View style={styles.dateInfo}>
                     <Icon name="calendar" size={20} color="#40C4FF" />
                     <Text style={styles.dateText}>
-                        Refeições de {date ? new Date(date).toLocaleDateString('pt-BR') : 'hoje'}
+                        Refeições de {date ? (() => {
+                            const [year, month, day] = date.split('T')[0].split('-');
+                            return `${day}/${month}/${year}`;
+                        })() : 'hoje'}
                     </Text>
                 </View>
 

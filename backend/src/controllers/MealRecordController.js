@@ -41,9 +41,24 @@ export const MealRecordController = {
     getAll: async (req, res) => {
         const ip = req.ip;
         const userId = req.user?.id;
+        const { daily_meal_registry_id } = req.query;
 
         try {
-            const meals = await MealRecordService.getAll();
+            let meals;
+
+            console.log('[MealRecordController] GET /meal-record - Query params:', req.query);
+            console.log('[MealRecordController] daily_meal_registry_id:', daily_meal_registry_id);
+
+            // Se houver daily_meal_registry_id na query, filtra por ele
+            if (daily_meal_registry_id) {
+                console.log('[MealRecordController] Filtrando por registry:', daily_meal_registry_id);
+                meals = await MealRecordService.getByDailyMealRegistryId(daily_meal_registry_id);
+            } else {
+                console.log('[MealRecordController] Buscando todas as refeições');
+                meals = await MealRecordService.getAll();
+            }
+
+            console.log('[MealRecordController] Refeições encontradas:', meals.length);
 
             await LogService.createLog({
                 action: "GET_ALL_MEAL_RECORDS",

@@ -7,6 +7,8 @@ import React, { useEffect, useState } from 'react';
 import Login from './src/screens/login/login';
 import RegisterScreen from './src/screens/cadastro/register';
 import HomeScreen from './src/screens/home/home';
+import NutricionistHomeScreen from './src/screens/home/NutricionistHome';
+import PhysicalEducatorHomeScreen from './src/screens/home/PhysicalEducatorHome';
 import Refeicoes from './src/screens/refeicoes/refeicoes';
 import CalendarioRefeicoes from './src/screens/refeicoes/CalendarioRefeicoes';
 import GerenciarRefeicoes from './src/screens/refeicoes/GerenciarRefeicoes';
@@ -21,12 +23,15 @@ import ChecklistScreen from './src/screens/checklist/Checklist';
 
 import { authService } from './src/services/authService';
 import ContaUsuario from './src/screens/conta/ContaUsuario';
+import ConnectionCodeScreen from './src/screens/conta/ConnectionCodeScreen';
 import { UserProvider } from './src/context/UserContext';
 
 export type RootStackParamList = {
   Login: undefined;
   Register: undefined;
   Home: undefined;
+  NutricionistHome: undefined;
+  PhysicalEducatorHome: undefined;
   Refeicoes: undefined;
   CalendarioRefeicoes: undefined;
   CriarDailyMealRegistry: undefined;
@@ -40,6 +45,9 @@ export type RootStackParamList = {
     dailyMealRegistryId: string;
   };
   GerenciarMedidas: undefined;
+  Treinos: undefined;
+  Checklist: undefined;
+  ConnectionCode: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -51,7 +59,28 @@ export default function App() {
   useEffect(() => {
     const checkLogin = async () => {
       const loggedIn = await authService.ensureLoggedIn();
-      setInitialRoute(loggedIn ? 'Home' : 'Login');
+
+      if (loggedIn) {
+        // Verifica o tipo de usuário e redireciona para a home correta
+        const accessToken = await authService.getAccessToken();
+        if (accessToken) {
+          const decoded = authService.decodeToken(accessToken);
+          const userRole = decoded?.user_type;
+
+          if (userRole === 'Nutricionist') {
+            setInitialRoute('NutricionistHome');
+          } else if (userRole === 'Physical_educator') {
+            setInitialRoute('PhysicalEducatorHome');
+          } else {
+            setInitialRoute('Home');
+          }
+        } else {
+          setInitialRoute('Home');
+        }
+      } else {
+        setInitialRoute('Login');
+      }
+
       setLoading(false);
     };
     checkLogin();
@@ -74,8 +103,11 @@ export default function App() {
         >
           <Stack.Screen name="Login" component={Login} />
           <Stack.Screen name="ContaUsuario" component={ContaUsuario} />
+          <Stack.Screen name="ConnectionCode" component={ConnectionCodeScreen} />
           <Stack.Screen name="Register" component={RegisterScreen} />
           <Stack.Screen name="Home" component={HomeScreen} />
+          <Stack.Screen name="NutricionistHome" component={NutricionistHomeScreen} />
+          <Stack.Screen name="PhysicalEducatorHome" component={PhysicalEducatorHomeScreen} />
           <Stack.Screen name="Checklist" component={ChecklistScreen} />
           <Stack.Screen name="Refeicoes" component={Refeicoes} />
           <Stack.Screen name="CalendarioRefeicoes" component={CalendarioRefeicoes} />

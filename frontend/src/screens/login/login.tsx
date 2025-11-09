@@ -57,9 +57,23 @@ export default function LoginScreen() {
 
             if (token) {
                 console.log("Login bem-sucedido:", token);
+
+                // Decodifica o token para obter o userRole
+                const decoded = authService.decodeToken(token.accessToken);
+                const userRole = decoded?.user_type;
+
                 // força o contexto a recarregar os dados do usuário
                 if (refreshUser) await refreshUser();
-                navigation.replace("Home");
+
+                // Redireciona baseado no tipo de usuário
+                if (userRole === 'Nutricionist') {
+                    navigation.replace("NutricionistHome");
+                } else if (userRole === 'Physical_educator') {
+                    navigation.replace("PhysicalEducatorHome");
+                } else {
+                    // Patient ou qualquer outro tipo
+                    navigation.replace("Home");
+                }
             } else {
                 alert("Credenciais inválidas.");
             }

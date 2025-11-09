@@ -81,7 +81,7 @@ const Refeicoes: React.FC<RefeicoesProps> = ({ route, navigation }) => {
                     </TouchableOpacity>
                 </View>
                 <TouchableOpacity
-                    onPress={() => navigation?.navigate('CalendarioRefeicoes')}
+                    onPress={() => navigation?.navigate('CalendarioRefeicoes', { patientId })}
                     style={{ padding: 8, backgroundColor: '#E3F2FD', borderRadius: 8 }}
                 >
                     <Icon name="calendar" size={20} color="#1976D2" />

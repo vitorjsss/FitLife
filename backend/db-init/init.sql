@@ -251,3 +251,44 @@ CREATE TABLE MealItem (
     CONSTRAINT fk_mealitem_meal FOREIGN KEY (meal_id)
         REFERENCES MealRecord(id) ON DELETE CASCADE
 );
+
+-- ----------------------------
+-- Tabela PATIENT_PROFESSIONAL_ASSOCIATION
+-- (Associa pacientes com nutricionistas e educadores físicos)
+-- ----------------------------
+
+CREATE TABLE patient_professional_association (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    patient_id UUID NOT NULL REFERENCES patient(id) ON DELETE CASCADE,
+    nutricionist_id UUID REFERENCES nutricionist(id) ON DELETE SET NULL,
+    physical_educator_id UUID REFERENCES physical_educator(id) ON DELETE SET NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
+    UNIQUE(patient_id) -- Garante que cada paciente tem apenas uma associação ativa
+);
+
+-- Índices para melhor performance
+CREATE INDEX idx_patient_association_patient ON patient_professional_association(patient_id);
+CREATE INDEX idx_patient_association_nutricionist ON patient_professional_association(nutricionist_id);
+CREATE INDEX idx_patient_association_physical_educator ON patient_professional_association(physical_educator_id);
+CREATE INDEX idx_patient_association_active ON patient_professional_association(is_active);
+
+-- ----------------------------
+-- Tabela PATIENT_CONNECTION_CODE
+-- (Códigos temporários para conexão entre pacientes e profissionais)
+-- ----------------------------
+
+CREATE TABLE patient_connection_code (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    patient_id UUID NOT NULL REFERENCES patient(id) ON DELETE CASCADE,
+    code VARCHAR(6) NOT NULL UNIQUE,
+    created_at TIMESTAMP DEFAULT NOW(),
+    expires_at TIMESTAMP NOT NULL,
+    used BOOLEAN DEFAULT FALSE,
+    UNIQUE(patient_id)
+);
+
+-- Índices para melhor performance
+CREATE INDEX idx_connection_code ON patient_connection_code(code);
+CREATE INDEX idx_connection_patient ON patient_connection_code(patient_id);

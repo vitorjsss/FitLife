@@ -12,6 +12,7 @@ import { RootStackParamList } from "../../../App";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import Header from '../../components/Header';
 import { useUser } from '../../context/UserContext';
+import WeeklyMealWidget from '../../components/WeeklyMealWidget';
 
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<
@@ -73,8 +74,26 @@ export default function HomeScreen() {
                     </TouchableOpacity>
                 </View>
 
-                {/* <View style={styles.bigCard}>
-                </View> */}
+                {/* Botão de Código de Conexão */}
+                <TouchableOpacity
+                    style={styles.connectionCard}
+                    onPress={() => navigation.navigate('ConnectionCode')}
+                >
+                    <Icon name="key" size={24} color="#1976D2" />
+                    <View style={styles.connectionInfo}>
+                        <Text style={styles.connectionTitle}>Conectar com Profissional</Text>
+                        <Text style={styles.connectionSubtitle}>Gere um código para se conectar</Text>
+                    </View>
+                    <Icon name="chevron-right" size={20} color="#1976D2" />
+                </TouchableOpacity>
+
+                {/* Widget de Progresso Semanal */}
+                {user?.id && (
+                    <WeeklyMealWidget
+                        userId={user.id}
+                        onPress={() => navigation.navigate('CalendarioRefeicoes')}
+                    />
+                )}
             </View>
 
             {/* Bottom Navigation */}
@@ -147,12 +166,32 @@ const styles = StyleSheet.create({
         fontSize: 16,
         lineHeight: 20,
     },
-    bigCard: {
-        flex: 1,
-        backgroundColor: "#40C4FF",
+    connectionCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#fff',
         borderRadius: 12,
-        marginTop: 20,
-        marginBottom: 150,
+        padding: 16,
+        marginBottom: 20,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    connectionInfo: {
+        flex: 1,
+        marginLeft: 16,
+    },
+    connectionTitle: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#1976D2',
+    },
+    connectionSubtitle: {
+        fontSize: 14,
+        color: '#666',
+        marginTop: 4,
     },
     bottomNav: {
         flexDirection: "row",
