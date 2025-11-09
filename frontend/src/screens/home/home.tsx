@@ -100,7 +100,7 @@ export default function HomeScreen() {
 
 
                 <TouchableOpacity style={styles.navItem}
-                    onPress={() => navigation.navigate('Checklist', user?.id ? { patientId: user.id } : {})}
+                    onPress={() => navigation.navigate('MinhasSessoes')}
                 >
                     <Icon name="list" size={20} color="#fff" />
                     <Text style={styles.navText}>CheckList</Text>
