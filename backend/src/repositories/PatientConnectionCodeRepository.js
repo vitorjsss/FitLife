@@ -10,7 +10,6 @@ const PatientConnectionCodeRepository = {
     // Cria ou atualiza o código do paciente
     createOrUpdate: async (patientId) => {
         const code = PatientConnectionCodeRepository.generateCode();
-        const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutos
 
         // Remove código anterior se existir
         await pool.query('DELETE FROM patient_connection_code WHERE patient_id = $1', [patientId]);
@@ -18,32 +17,16 @@ const PatientConnectionCodeRepository = {
         const id = uuidv4();
         const query = `
             INSERT INTO patient_connection_code (id, patient_id, code, expires_at)
-            VALUES ($1, $2, $3, $4)
+            VALUES ($1, $2, $3, NOW() + INTERVAL '5 minutes')
             RETURNING *;
         `;
-        const values = [id, patientId, code, expiresAt];
+        const values = [id, patientId, code];
         const { rows } = await pool.query(query, values);
         return rows[0];
     },
 
     // Busca código válido pelo código
     findValidByCode: async (code) => {
-        console.log('[PatientConnectionCodeRepository] findValidByCode - code:', code);
-
-        // Primeiro busca o código sem validação para debug
-        const debugQuery = `
-            SELECT pcc.*, p.name as patient_name, 
-                   pcc.expires_at,
-                   NOW() as current_time,
-                   (pcc.expires_at > NOW()) as is_not_expired,
-                   pcc.used
-            FROM patient_connection_code pcc
-            INNER JOIN patient p ON pcc.patient_id = p.id
-            WHERE pcc.code = $1;
-        `;
-        const debugResult = await pool.query(debugQuery, [code]);
-        console.log('[PatientConnectionCodeRepository] Debug - código encontrado:', debugResult.rows[0]);
-
         const query = `
             SELECT pcc.*, p.name as patient_name
             FROM patient_connection_code pcc
@@ -53,7 +36,6 @@ const PatientConnectionCodeRepository = {
               AND pcc.used = false;
         `;
         const { rows } = await pool.query(query, [code]);
-        console.log('[PatientConnectionCodeRepository] Código válido?', rows[0] ? 'SIM' : 'NÃO');
         return rows[0];
     },
 

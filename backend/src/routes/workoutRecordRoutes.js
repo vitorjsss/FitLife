@@ -1,11 +1,12 @@
 import express from 'express';
 import WorkoutRecordController from '../controllers/WorkoutRecordController.js';
 import { authenticateToken } from '../middlewares/authMiddleware.js';
+import { checkPatientAccess } from '../middlewares/patientAccessMiddleware.js';
 
 const router = express.Router();
 
 // Rotas de WorkoutRecord
-router.get('/date/:date/patient/:patientId', authenticateToken, WorkoutRecordController.getByDateAndPatient);
+router.get('/date/:date/patient/:patientId', authenticateToken, checkPatientAccess('workout'), WorkoutRecordController.getByDateAndPatient);
 router.get('/:id', authenticateToken, WorkoutRecordController.getById);
 router.post('/', authenticateToken, WorkoutRecordController.create);
 router.put('/:id', authenticateToken, WorkoutRecordController.update);

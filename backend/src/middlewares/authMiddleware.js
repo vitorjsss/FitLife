@@ -8,6 +8,7 @@ export const authenticateToken = (req, res, next) => {
 
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        console.log('🔑 [DEBUG] Token decodificado:', JSON.stringify(decoded, null, 2));
         req.user = decoded; // salva dados do usuário no request
         next();
     } catch (err) {

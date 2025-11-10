@@ -1,6 +1,7 @@
 import express from "express";
 import { PatientProfessionalAssociationController } from "../controllers/PatientProfessionalAssociationController.js";
 import { authMiddleware } from "../middlewares/authMiddleware.js";
+import { checkPatientAccess } from '../middlewares/patientAccessMiddleware.js';
 
 const router = express.Router();
 
@@ -9,7 +10,7 @@ router.use(authMiddleware);
 
 // Rotas para associações
 router.post("/", PatientProfessionalAssociationController.create);
-router.get("/patient/:patientId", PatientProfessionalAssociationController.getByPatientId);
+router.get("/patient/:patientId", checkPatientAccess(), PatientProfessionalAssociationController.getByPatientId);
 router.get("/nutricionist/:nutricionistId/patients", PatientProfessionalAssociationController.getPatientsByNutricionistId);
 router.get("/physical-educator/:physicalEducatorId/patients", PatientProfessionalAssociationController.getPatientsByPhysicalEducatorId);
 router.get("/:id", PatientProfessionalAssociationController.getById);

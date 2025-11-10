@@ -39,8 +39,23 @@ export const AuthService = {
       // Resetar tentativas falhas ao logar com sucesso
       await AuthRepository.resetFailedAttempts(user.email);
 
+      // Buscar professionalId se for nutricionista ou educador físico
+      let professionalId = null;
+      if (user.user_type === 'Nutricionist') {
+        const result = await pool.query("SELECT id FROM nutricionist WHERE auth_id = $1", [user.id]);
+        professionalId = result.rows[0]?.id || null;
+      } else if (user.user_type === 'Physical_educator') {
+        const result = await pool.query("SELECT id FROM physical_educator WHERE auth_id = $1", [user.id]);
+        professionalId = result.rows[0]?.id || null;
+      }
+
       const accessToken = jwt.sign(
-        { email: user.email, user_type: user.user_type },
+        {
+          id: user.id,  // ← ADICIONAR auth_id no token
+          email: user.email,
+          user_type: user.user_type,
+          professionalId: professionalId
+        },
         process.env.JWT_SECRET,
         { expiresIn: "1h" }
       );
@@ -58,7 +73,8 @@ export const AuthService = {
         accessToken,
         refreshToken,
         userId: user.id,
-        userType: user.user_type
+        userType: user.user_type,
+        professionalId: professionalId
       };
     } catch (err) {
       console.error("Erro no login:", err);
