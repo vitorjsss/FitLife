@@ -36,7 +36,7 @@ const Header: React.FC<HeaderProps> = ({ title = '', showBackArrow = true, showU
         );
     }
 
-    const avatarUrl = user?.avatar_path
+    const avatarUrl = user?.avatar_path && typeof user.avatar_path === 'string'
         ? `${API_CONFIG.BASE_URL}/uploads/avatars/${user.avatar_path.split('/').pop()}`
         : null;
 

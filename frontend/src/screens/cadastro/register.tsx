@@ -7,6 +7,8 @@ import {
     StyleSheet,
     ScrollView,
     Alert,
+    KeyboardAvoidingView,
+    Platform,
 } from "react-native";
 import Icon from "react-native-vector-icons/Feather";
 import { useForm, Controller, SubmitHandler } from "react-hook-form";
@@ -190,224 +192,234 @@ export default function RegisterScreen() {
     };
 
     return (
-        <ScrollView contentContainerStyle={styles.container}>
-            <Text style={styles.logo}>FitLife</Text>
-            <Text style={styles.title}>Crie sua conta</Text>
-
-            {/* Seleção do tipo de usuário */}
-            <View style={{ flexDirection: 'row', justifyContent: 'center', marginBottom: 16 }}>
-                {["Patient", "Nutricionist", "Physical_educator"].map((type) => (
-                    <TouchableOpacity
-                        key={type}
-                        style={[
-                            styles.typeButton,
-                            userType === type && styles.typeButtonSelected,
-                        ]}
-                        onPress={() => setValue("userType", type as UserType)}
-                    >
-                        <Text style={[
-                            styles.typeButtonText,
-                            userType === type && styles.typeButtonTextSelected,
-                        ]}>
-                            {type === "Patient" ? "Paciente" : type === "Nutricionist" ? "Nutricionista" : "Educador Físico"}
-                        </Text>
-                    </TouchableOpacity>
-                ))}
-            </View>
-            {errors.userType && <Text style={styles.error}>{errors.userType.message}</Text>}
-
-            {/* Nome */}
-            <Controller
-                control={control}
-                name="name"
-                render={({ field: { onChange, value } }) => (
-                    <TextInput
-                        style={styles.input}
-                        placeholder="Nome completo"
-                        value={value}
-                        onChangeText={onChange}
-                    />
-                )}
-            />
-            {errors.name && <Text style={styles.error}>{errors.name.message}</Text>}
-
-            {/* Email */}
-            <Controller
-                control={control}
-                name="email"
-                render={({ field: { onChange, value } }) => (
-                    <TextInput
-                        style={styles.input}
-                        placeholder="E-mail"
-                        keyboardType="email-address"
-                        autoCapitalize="none"
-                        value={value}
-                        onChangeText={onChange}
-                    />
-                )}
-            />
-            {errors.email && <Text style={styles.error}>{errors.email.message}</Text>}
-
-            {/* Senha */}
-            <Controller
-                control={control}
-                name="password"
-                render={({ field: { onChange, value } }) => (
-                    <View style={styles.passwordContainer}>
-                        <TextInput
-                            style={styles.inputPassword}
-                            placeholder="Crie sua senha"
-                            secureTextEntry={hidePassword}
-                            value={value}
-                            onChangeText={onChange}
-                        />
-                        <TouchableOpacity onPress={() => setHidePassword(!hidePassword)}>
-                            <Icon
-                                name={hidePassword ? "eye-off" : "eye"}
-                                size={20}
-                                color="gray"
-                            />
-                        </TouchableOpacity>
-                    </View>
-                )}
-            />
-            {errors.password && (
-                <Text style={styles.error}>{errors.password.message}</Text>
-            )}
-
-            {/* Confirmar Senha */}
-            <Controller
-                control={control}
-                name="confirmPassword"
-                render={({ field: { onChange, value } }) => (
-                    <View style={styles.passwordContainer}>
-                        <TextInput
-                            style={styles.inputPassword}
-                            placeholder="Confirme sua senha"
-                            secureTextEntry={hideConfirmPassword}
-                            value={value}
-                            onChangeText={onChange}
-                        />
-                        <TouchableOpacity
-                            onPress={() => setHideConfirmPassword(!hideConfirmPassword)}
-                        >
-                            <Icon
-                                name={hideConfirmPassword ? "eye-off" : "eye"}
-                                size={20}
-                                color="gray"
-                            />
-                        </TouchableOpacity>
-                    </View>
-                )}
-            />
-            {errors.confirmPassword && (
-                <Text style={styles.error}>{errors.confirmPassword.message}</Text>
-            )}
-
-            {/* Campos dinâmicos */}
-            {/* Data de nascimento */}
-            <Controller
-                control={control}
-                name="birthdate"
-                render={({ field: { onChange, value } }) => (
-                    <TextInput
-                        style={styles.input}
-                        placeholder="Data de nascimento (YYYY-MM-DD)"
-                        value={value}
-                        onChangeText={onChange}
-                    />
-                )}
-            />
-            {errors.birthdate && <Text style={styles.error}>{errors.birthdate.message}</Text>}
-
-            {/* Contato */}
-            <Controller
-                control={control}
-                name="contact"
-                render={({ field: { onChange, value } }) => (
-                    <TextInput
-                        style={styles.input}
-                        placeholder="Telefone +55 (XX) XXXXX-XXXX"
-                        value={value}
-                        onChangeText={onChange}
-                    />
-                )}
-            />
-            {errors.contact && <Text style={styles.error}>{errors.contact.message}</Text>}
-
-            {/* CRN (Nutricionista) */}
-            {userType === "Nutricionist" && (
-                <Controller
-                    control={control}
-                    name="crn"
-                    render={({ field: { onChange, value } }) => (
-                        <TextInput
-                            style={styles.input}
-                            placeholder="CRN"
-                            value={value}
-                            onChangeText={onChange}
-                        />
-                    )}
-                />
-            )}
-            {errors.crn && <Text style={styles.error}>{errors.crn.message}</Text>}
-
-            {/* CREF (Educador Físico) */}
-            {userType === "Physical_educator" && (
-                <Controller
-                    control={control}
-                    name="cref"
-                    render={({ field: { onChange, value } }) => (
-                        <TextInput
-                            style={styles.input}
-                            placeholder="CREF"
-                            value={value}
-                            onChangeText={onChange}
-                        />
-                    )}
-                />
-            )}
-            {errors.cref && <Text style={styles.error}>{errors.cref.message}</Text>}
-
-            {/* Sexo (todos os tipos) - botões M/F */}
-            <Controller
-                control={control}
-                name="sex"
-                render={({ field: { onChange, value } }) => (
-                    <View style={styles.sexContainer}>
-                        <Text style={{ marginBottom: 8 }}>Sexo</Text>
-                        <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
-                            {['M', 'F'].map((option) => (
-                                <TouchableOpacity
-                                    key={option}
-                                    style={[styles.sexButton, value === option && styles.sexButtonSelected]}
-                                    onPress={() => onChange(option)}
-                                >
-                                    <Text style={[styles.sexButtonText, value === option && styles.sexButtonTextSelected]}>{option === 'M' ? 'Masculino' : 'Feminino'}</Text>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
-                    </View>
-                )}
-            />
-            {errors.sex && <Text style={styles.error}>{errors.sex.message}</Text>}
-
-            {/* Botão Cadastrar */}
-            <TouchableOpacity
-                style={[styles.button, loading && { opacity: 0.7 }]}
-                onPress={handleSubmit(onSubmit)}
-                disabled={loading}
+        <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+        >
+            <ScrollView
+                contentContainerStyle={styles.container}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
             >
-                <Text style={styles.buttonText}>
-                    {loading ? "Cadastrando..." : "Cadastrar"}
-                </Text>
-            </TouchableOpacity>
+                <Text style={styles.logo}>FitLife</Text>
+                <Text style={styles.title}>Crie sua conta</Text>
 
-            {/* Voltar */}
-            <TouchableOpacity onPress={() => navigation.goBack()}>
-                <Text style={styles.back}>VOLTAR</Text>
-            </TouchableOpacity>
-        </ScrollView>
+                {/* Seleção do tipo de usuário */}
+                <View style={{ flexDirection: 'row', justifyContent: 'center', marginBottom: 16 }}>
+                    {["Patient", "Nutricionist", "Physical_educator"].map((type) => (
+                        <TouchableOpacity
+                            key={type}
+                            style={[
+                                styles.typeButton,
+                                userType === type && styles.typeButtonSelected,
+                            ]}
+                            onPress={() => setValue("userType", type as UserType)}
+                        >
+                            <Text style={[
+                                styles.typeButtonText,
+                                userType === type && styles.typeButtonTextSelected,
+                            ]}>
+                                {type === "Patient" ? "Paciente" : type === "Nutricionist" ? "Nutricionista" : "Educador Físico"}
+                            </Text>
+                        </TouchableOpacity>
+                    ))}
+                </View>
+                {errors.userType && <Text style={styles.error}>{errors.userType.message}</Text>}
+
+                {/* Nome */}
+                <Controller
+                    control={control}
+                    name="name"
+                    render={({ field: { onChange, value } }) => (
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Nome completo"
+                            value={value}
+                            onChangeText={onChange}
+                        />
+                    )}
+                />
+                {errors.name && <Text style={styles.error}>{errors.name.message}</Text>}
+
+                {/* Email */}
+                <Controller
+                    control={control}
+                    name="email"
+                    render={({ field: { onChange, value } }) => (
+                        <TextInput
+                            style={styles.input}
+                            placeholder="E-mail"
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                            value={value}
+                            onChangeText={onChange}
+                        />
+                    )}
+                />
+                {errors.email && <Text style={styles.error}>{errors.email.message}</Text>}
+
+                {/* Senha */}
+                <Controller
+                    control={control}
+                    name="password"
+                    render={({ field: { onChange, value } }) => (
+                        <View style={styles.passwordContainer}>
+                            <TextInput
+                                style={styles.inputPassword}
+                                placeholder="Crie sua senha"
+                                secureTextEntry={hidePassword}
+                                value={value}
+                                onChangeText={onChange}
+                            />
+                            <TouchableOpacity onPress={() => setHidePassword(!hidePassword)}>
+                                <Icon
+                                    name={hidePassword ? "eye-off" : "eye"}
+                                    size={20}
+                                    color="gray"
+                                />
+                            </TouchableOpacity>
+                        </View>
+                    )}
+                />
+                {errors.password && (
+                    <Text style={styles.error}>{errors.password.message}</Text>
+                )}
+
+                {/* Confirmar Senha */}
+                <Controller
+                    control={control}
+                    name="confirmPassword"
+                    render={({ field: { onChange, value } }) => (
+                        <View style={styles.passwordContainer}>
+                            <TextInput
+                                style={styles.inputPassword}
+                                placeholder="Confirme sua senha"
+                                secureTextEntry={hideConfirmPassword}
+                                value={value}
+                                onChangeText={onChange}
+                            />
+                            <TouchableOpacity
+                                onPress={() => setHideConfirmPassword(!hideConfirmPassword)}
+                            >
+                                <Icon
+                                    name={hideConfirmPassword ? "eye-off" : "eye"}
+                                    size={20}
+                                    color="gray"
+                                />
+                            </TouchableOpacity>
+                        </View>
+                    )}
+                />
+                {errors.confirmPassword && (
+                    <Text style={styles.error}>{errors.confirmPassword.message}</Text>
+                )}
+
+                {/* Campos dinâmicos */}
+                {/* Data de nascimento */}
+                <Controller
+                    control={control}
+                    name="birthdate"
+                    render={({ field: { onChange, value } }) => (
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Data de nascimento (YYYY-MM-DD)"
+                            value={value}
+                            onChangeText={onChange}
+                        />
+                    )}
+                />
+                {errors.birthdate && <Text style={styles.error}>{errors.birthdate.message}</Text>}
+
+                {/* Contato */}
+                <Controller
+                    control={control}
+                    name="contact"
+                    render={({ field: { onChange, value } }) => (
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Telefone +55 (XX) XXXXX-XXXX"
+                            value={value}
+                            onChangeText={onChange}
+                        />
+                    )}
+                />
+                {errors.contact && <Text style={styles.error}>{errors.contact.message}</Text>}
+
+                {/* CRN (Nutricionista) */}
+                {userType === "Nutricionist" && (
+                    <Controller
+                        control={control}
+                        name="crn"
+                        render={({ field: { onChange, value } }) => (
+                            <TextInput
+                                style={styles.input}
+                                placeholder="CRN"
+                                value={value}
+                                onChangeText={onChange}
+                            />
+                        )}
+                    />
+                )}
+                {errors.crn && <Text style={styles.error}>{errors.crn.message}</Text>}
+
+                {/* CREF (Educador Físico) */}
+                {userType === "Physical_educator" && (
+                    <Controller
+                        control={control}
+                        name="cref"
+                        render={({ field: { onChange, value } }) => (
+                            <TextInput
+                                style={styles.input}
+                                placeholder="CREF"
+                                value={value}
+                                onChangeText={onChange}
+                            />
+                        )}
+                    />
+                )}
+                {errors.cref && <Text style={styles.error}>{errors.cref.message}</Text>}
+
+                {/* Sexo (todos os tipos) - botões M/F */}
+                <Controller
+                    control={control}
+                    name="sex"
+                    render={({ field: { onChange, value } }) => (
+                        <View style={styles.sexContainer}>
+                            <Text style={{ marginBottom: 8 }}>Sexo</Text>
+                            <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
+                                {['M', 'F'].map((option) => (
+                                    <TouchableOpacity
+                                        key={option}
+                                        style={[styles.sexButton, value === option && styles.sexButtonSelected]}
+                                        onPress={() => onChange(option)}
+                                    >
+                                        <Text style={[styles.sexButtonText, value === option && styles.sexButtonTextSelected]}>{option === 'M' ? 'Masculino' : 'Feminino'}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        </View>
+                    )}
+                />
+                {errors.sex && <Text style={styles.error}>{errors.sex.message}</Text>}
+
+                {/* Botão Cadastrar */}
+                <TouchableOpacity
+                    style={[styles.button, loading && { opacity: 0.7 }]}
+                    onPress={handleSubmit(onSubmit)}
+                    disabled={loading}
+                >
+                    <Text style={styles.buttonText}>
+                        {loading ? "Cadastrando..." : "Cadastrar"}
+                    </Text>
+                </TouchableOpacity>
+
+                {/* Voltar */}
+                <TouchableOpacity onPress={() => navigation.goBack()}>
+                    <Text style={styles.back}>VOLTAR</Text>
+                </TouchableOpacity>
+            </ScrollView>
+        </KeyboardAvoidingView>
     );
 }
 
@@ -415,6 +427,7 @@ const styles = StyleSheet.create({
     container: {
         flexGrow: 1,
         padding: 20,
+        paddingBottom: 40,
         justifyContent: "center",
         backgroundColor: "#fff",
     },

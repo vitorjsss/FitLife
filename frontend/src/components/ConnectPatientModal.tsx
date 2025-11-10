@@ -8,6 +8,8 @@ import {
     TouchableOpacity,
     ActivityIndicator,
     Alert,
+    KeyboardAvoidingView,
+    Platform,
 } from 'react-native';
 import Icon from "react-native-vector-icons/FontAwesome";
 import PatientConnectionCodeService from '../services/PatientConnectionCodeService';
@@ -91,7 +93,10 @@ export default function ConnectPatientModal({ visible, onClose, onSuccess }: Con
             transparent={true}
             onRequestClose={handleClose}
         >
-            <View style={styles.modalOverlay}>
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                style={styles.modalOverlay}
+            >
                 <View style={styles.modalContent}>
                     <View style={styles.modalHeader}>
                         <Text style={styles.modalTitle}>Conectar Paciente</Text>
@@ -146,7 +151,7 @@ export default function ConnectPatientModal({ visible, onClose, onSuccess }: Con
                         </TouchableOpacity>
                     </View>
                 </View>
-            </View>
+            </KeyboardAvoidingView>
         </Modal>
     );
 }

@@ -276,5 +276,48 @@ export const PhysicalEducatorController = {
 
             res.status(500).json({ message: "Erro ao deletar educador físico", error: err });
         }
+    },
+
+    uploadAvatar: async (req, res) => {
+        const { id } = req.params;
+        if (!req.file) return res.status(400).json({ message: "Nenhum arquivo enviado" });
+
+        // Caminho relativo para salvar no banco
+        const avatarPath = "uploads/avatars/" + req.file.filename;
+
+        try {
+            // Buscar educador físico pelo id (chave primária)
+            const oldEducator = await PhysicalEducatorService.getById(id);
+            if (!oldEducator) return res.status(404).json({ message: "Educador físico não encontrado" });
+
+            // Atualizar apenas avatar_path
+            const updated = await PhysicalEducatorService.update(id, { avatar_path: avatarPath });
+
+            await LogService.createLog({
+                action: "UPLOAD_AVATAR",
+                logType: "UPDATE",
+                description: `Avatar do educador físico ${id} atualizado com sucesso`,
+                ip: req.ip,
+                oldValue: null,
+                newValue: { avatar_path: avatarPath },
+                status: "SUCCESS",
+                userId: req.user?.id
+            });
+
+            res.json({ avatar_path: avatarPath, physical_educator: updated });
+        } catch (err) {
+            await LogService.createLog({
+                action: "UPLOAD_AVATAR",
+                logType: "ERROR",
+                description: err.message,
+                ip: req.ip,
+                oldValue: null,
+                newValue: { requestedId: id },
+                status: "FAILURE",
+                userId: req.user?.id
+            });
+
+            res.status(500).json({ message: "Erro ao salvar avatar", error: err });
+        }
     }
 };

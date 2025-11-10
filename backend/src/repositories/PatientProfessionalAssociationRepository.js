@@ -31,8 +31,16 @@ const PatientProfessionalAssociationRepository = {
         const query = `
             SELECT ppa.*, 
                    p.name as patient_name,
+                   n.id as nutricionist_id,
                    n.name as nutricionist_name,
-                   pe.name as physical_educator_name
+                   n.contact as nutricionist_contact,
+                   n.crn as nutricionist_crn,
+                   n.avatar_path as nutricionist_avatar,
+                   pe.id as physical_educator_id,
+                   pe.name as physical_educator_name,
+                   pe.contact as physical_educator_contact,
+                   pe.cref as physical_educator_cref,
+                   pe.avatar_path as physical_educator_avatar
             FROM patient_professional_association ppa
             LEFT JOIN patient p ON ppa.patient_id = p.id
             LEFT JOIN nutricionist n ON ppa.nutricionist_id = n.id

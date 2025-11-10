@@ -62,7 +62,7 @@ export default function NutricionistHomeScreen() {
 
     const renderPatientCard = ({ item }: { item: PatientInfo }) => {
         const isSelected = selectedPatient?.patient_id === item.patient_id;
-        const avatarUrl = item.avatar_path
+        const avatarUrl = item.avatar_path && typeof item.avatar_path === 'string'
             ? `${API_CONFIG.BASE_URL}/uploads/avatars/${item.avatar_path.split('/').pop()}`
             : null;
 
@@ -180,9 +180,10 @@ export default function NutricionistHomeScreen() {
             <ConnectPatientModal
                 visible={showConnectModal}
                 onClose={() => setShowConnectModal(false)}
-                onSuccess={() => {
+                onSuccess={async () => {
                     setShowConnectModal(false);
-                    loadPatients(); // Recarrega a lista de pacientes
+                    setSelectedPatient(null); // Limpa a seleção atual
+                    await loadPatients(); // Recarrega a lista de pacientes
                 }}
             />
         </View>

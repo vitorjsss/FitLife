@@ -62,7 +62,7 @@ export default function PhysicalEducatorHomeScreen() {
 
     const renderPatientCard = ({ item }: { item: PatientInfo }) => {
         const isSelected = selectedPatient?.patient_id === item.patient_id;
-        const avatarUrl = item.avatar_path
+        const avatarUrl = item.avatar_path && typeof item.avatar_path === 'string'
             ? `${API_CONFIG.BASE_URL}/uploads/avatars/${item.avatar_path.split('/').pop()}`
             : null;
 
@@ -166,10 +166,10 @@ export default function PhysicalEducatorHomeScreen() {
 
                             <TouchableOpacity
                                 style={styles.actionCard}
-                                onPress={() => navigation.navigate('Checklist', { patientId: selectedPatient.patient_id })}
+                                onPress={() => navigation.navigate('CalendarioTreinos', { patientId: selectedPatient.patient_id })}
                             >
-                                <Icon name="list" size={32} color="#fff" />
-                                <Text style={styles.actionCardText}>Checklist</Text>
+                                <Icon name="calendar" size={32} color="#fff" />
+                                <Text style={styles.actionCardText}>Calendário</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -180,9 +180,10 @@ export default function PhysicalEducatorHomeScreen() {
             <ConnectPatientModal
                 visible={showConnectModal}
                 onClose={() => setShowConnectModal(false)}
-                onSuccess={() => {
+                onSuccess={async () => {
                     setShowConnectModal(false);
-                    loadPatients(); // Recarrega a lista de pacientes
+                    setSelectedPatient(null); // Limpa a seleção atual
+                    await loadPatients(); // Recarrega a lista de pacientes
                 }}
             />
         </View>

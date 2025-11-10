@@ -39,22 +39,18 @@ const PhysicalEducatorRepository = {
     },
 
     update: async (id, data) => {
-        const query = `
-            UPDATE physical_educator
-            SET name = $1, birthdate = $2, sex = $3, contact = $4, cref = $5, avatar_path = $6, auth_id = $7, updated_at = CURRENT_TIMESTAMP
-            WHERE id = $8
-            RETURNING *;
-        `;
-        const values = [
-            data.name,
-            data.birthdate,
-            data.sex,
-            data.contact,
-            data.cref,
-            data.avatar_path,
-            data.auth_id,
-            id,
-        ];
+        // Monta query dinâmica para atualizar apenas os campos enviados
+        const fields = [];
+        const values = [];
+        let idx = 1;
+        for (const key of Object.keys(data)) {
+            fields.push(`${key} = $${idx}`);
+            values.push(data[key]);
+            idx++;
+        }
+        fields.push(`updated_at = CURRENT_TIMESTAMP`);
+        const query = `UPDATE physical_educator SET ${fields.join(", ")} WHERE id = $${idx} RETURNING *;`;
+        values.push(id);
         const { rows } = await pool.query(query, values);
         return rows[0];
     },

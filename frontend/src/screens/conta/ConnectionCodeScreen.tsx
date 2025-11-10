@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     codeText: {
-        fontSize: 48,
+        fontSize: 40,
         fontWeight: 'bold',
         color: '#40C4FF',
         letterSpacing: 8,

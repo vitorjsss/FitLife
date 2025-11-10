@@ -208,25 +208,37 @@ const AdicionarAlimentos: React.FC<AdicionarAlimentosProps> = ({ navigation, rou
             <Modal
                 visible={showAddModal}
                 transparent
-                animationType="fade"
+                animationType="slide"
                 onRequestClose={() => {
                     setShowAddModal(false);
                     clearForm();
                 }}
             >
-                <KeyboardAvoidingView
-                    style={styles.modalOverlay}
-                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                    keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 60}
-                >
-                    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-                        <View style={styles.modalOverlay}>
+                <View style={styles.modalOverlay}>
+                    <KeyboardAvoidingView
+                        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                        style={styles.modalContainer}
+                    >
+                        <View style={styles.modalContent}>
+                            <View style={styles.modalHeader}>
+                                <Text style={styles.modalTitle}>Adicionar Alimento</Text>
+                                <TouchableOpacity
+                                    onPress={() => {
+                                        setShowAddModal(false);
+                                        clearForm();
+                                    }}
+                                    style={styles.closeButton}
+                                >
+                                    <Icon name="times" size={24} color="#666" />
+                                </TouchableOpacity>
+                            </View>
+
                             <ScrollView
-                                contentContainerStyle={styles.modalContent}
+                                style={styles.modalScrollView}
+                                contentContainerStyle={styles.modalScrollContent}
                                 keyboardShouldPersistTaps="handled"
                                 showsVerticalScrollIndicator={false}
                             >
-                                <Text style={styles.formTitle}>Adicionar Alimento</Text>
                                 {/* Nome do Alimento */}
                                 <View style={styles.inputGroup}>
                                     <Text style={styles.label}>Nome do Alimento</Text>
@@ -238,6 +250,7 @@ const AdicionarAlimentos: React.FC<AdicionarAlimentosProps> = ({ navigation, rou
                                         placeholderTextColor="#999"
                                     />
                                 </View>
+
                                 {/* Quantidade */}
                                 <View style={styles.inputGroup}>
                                     <Text style={styles.label}>Quantidade</Text>
@@ -249,8 +262,10 @@ const AdicionarAlimentos: React.FC<AdicionarAlimentosProps> = ({ navigation, rou
                                         placeholderTextColor="#999"
                                     />
                                 </View>
+
                                 {/* Informações Nutricionais */}
                                 <Text style={styles.sectionTitle}>Informações Nutricionais</Text>
+
                                 <View style={styles.nutrientInputsRow}>
                                     <View style={styles.nutrientInputGroup}>
                                         <Text style={styles.label}>Calorias</Text>
@@ -275,6 +290,7 @@ const AdicionarAlimentos: React.FC<AdicionarAlimentosProps> = ({ navigation, rou
                                         />
                                     </View>
                                 </View>
+
                                 <View style={styles.nutrientInputsRow}>
                                     <View style={styles.nutrientInputGroup}>
                                         <Text style={styles.label}>Carboidratos (g)</Text>
@@ -299,42 +315,45 @@ const AdicionarAlimentos: React.FC<AdicionarAlimentosProps> = ({ navigation, rou
                                         />
                                     </View>
                                 </View>
-                                {/* Botões do Modal */}
-                                <View style={styles.modalButtonsRow}>
-                                    <TouchableOpacity
-                                        style={[styles.addButton, loading && styles.addButtonDisabled]}
-                                        onPress={async () => {
-                                            await handleAddMealItem();
-                                            setShowAddModal(false);
-                                        }}
-                                        disabled={loading}
-                                        activeOpacity={0.8}
-                                    >
-                                        <Icon
-                                            name={loading ? "spinner" : "plus"}
-                                            size={20}
-                                            color="#FFFFFF"
-                                        />
-                                        <Text style={styles.addButtonText}>
-                                            {loading ? 'Adicionando...' : 'Adicionar'}
-                                        </Text>
-                                    </TouchableOpacity>
-                                    <TouchableOpacity
-                                        style={styles.cancelButton}
-                                        onPress={() => {
-                                            setShowAddModal(false);
-                                            clearForm();
-                                        }}
-                                        activeOpacity={0.8}
-                                    >
-                                        <Text style={styles.cancelButtonText}>Cancelar</Text>
-                                    </TouchableOpacity>
-                                </View>
                             </ScrollView>
+
+                            {/* Botões fixos no rodapé */}
+                            <View style={styles.modalFooter}>
+                                <TouchableOpacity
+                                    style={styles.cancelButton}
+                                    onPress={() => {
+                                        setShowAddModal(false);
+                                        clearForm();
+                                    }}
+                                    activeOpacity={0.8}
+                                >
+                                    <Text style={styles.cancelButtonText}>Cancelar</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    style={[styles.addButton, loading && styles.addButtonDisabled]}
+                                    onPress={async () => {
+                                        await handleAddMealItem();
+                                        setShowAddModal(false);
+                                    }}
+                                    disabled={loading}
+                                    activeOpacity={0.8}
+                                >
+                                    <Icon
+                                        name={loading ? "spinner" : "check"}
+                                        size={18}
+                                        color="#FFFFFF"
+                                    />
+                                    <Text style={styles.addButtonText}>
+                                        {loading ? 'Salvando...' : 'Adicionar'}
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
                         </View>
-                    </TouchableWithoutFeedback>
-                </KeyboardAvoidingView>
+                    </KeyboardAvoidingView>
+                </View>
             </Modal>
+
             <KeyboardAvoidingView
                 style={styles.container}
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -439,49 +458,88 @@ const styles = StyleSheet.create({
         marginLeft: 8,
     },
     modalOverlay: {
-        position: 'absolute',
-        top: 90,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(177, 177, 177, 0.45)',
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
         justifyContent: 'center',
         alignItems: 'center',
-        zIndex: 9999,
+        padding: 20,
+    },
+    modalContainer: {
         width: '100%',
-        height: '100%',
+        maxWidth: 400,
     },
     modalContent: {
         backgroundColor: '#fff',
-        borderRadius: 18,
-        padding: 32,
-        width: '80%',
-        maxWidth: 350,
-        alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.25,
-        shadowRadius: 12,
-        elevation: 20,
+        borderRadius: 20,
+        maxHeight: '95%',
+        shadowColor: '#1976D2',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.15,
+        shadowRadius: 20,
+        elevation: 25,
     },
-    modalButtonsRow: {
+    modalHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginTop: 18,
+        alignItems: 'center',
+        paddingHorizontal: 24,
+        paddingTop: 24,
+        paddingBottom: 20,
+        backgroundColor: '#F0F8FF',
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+    },
+    modalTitle: {
+        fontSize: 24,
+        fontWeight: '700',
+        color: '#1976D2',
+        letterSpacing: 0.5,
+    },
+    closeButton: {
+        padding: 8,
+        backgroundColor: '#fff',
+        borderRadius: 20,
+        width: 36,
+        height: 36,
+        alignItems: 'center',
+        justifyContent: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    modalScrollView: {
+        maxHeight: '100%',
+    },
+    modalScrollContent: {
+        paddingHorizontal: 24,
+        paddingVertical: 20,
+    },
+    modalFooter: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        paddingHorizontal: 24,
+        paddingVertical: 20,
+        backgroundColor: '#FAFAFA',
+        borderBottomLeftRadius: 20,
+        borderBottomRightRadius: 20,
+        gap: 12,
     },
     cancelButton: {
-        backgroundColor: '#B0BEC5',
-        borderRadius: 8,
-        paddingVertical: 14,
-        paddingHorizontal: 15,
+        flex: 1,
+        backgroundColor: '#F5F5F5',
+        borderRadius: 12,
+        paddingVertical: 16,
         justifyContent: 'center',
         alignItems: 'center',
-        marginLeft: 10,
+        borderWidth: 1,
+        borderColor: '#E0E0E0',
     },
     cancelButtonText: {
-        color: '#fff',
+        color: '#616161',
         fontSize: 16,
-        fontWeight: 'bold',
+        fontWeight: '600',
     },
     menu: {
         position: "absolute",
@@ -539,37 +597,41 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
     inputGroup: {
-        marginBottom: 16,
+        marginBottom: 18,
         width: '100%',
-        alignItems: 'center',
     },
     label: {
-        fontSize: 14,
+        fontSize: 13,
         fontWeight: '600',
-        color: '#333',
-        marginBottom: 6,
-
+        color: '#1976D2',
+        marginBottom: 8,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
     },
     textInput: {
-        backgroundColor: '#F8F9FA',
-        borderWidth: 1,
-        borderColor: '#E0E0E0',
-        borderRadius: 8,
+        backgroundColor: '#FFFFFF',
+        borderWidth: 2,
+        borderColor: '#E3F2FD',
+        borderRadius: 12,
         paddingHorizontal: 16,
-        paddingVertical: 12,
+        paddingVertical: 14,
         fontSize: 16,
         color: '#333',
-        width: 270,
-        minHeight: 48,
-        maxHeight: 48,
-        textAlignVertical: 'center',
+        width: '100%',
+        shadowColor: '#1976D2',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 2,
     },
     sectionTitle: {
         fontSize: 16,
-        fontWeight: 'bold',
+        fontWeight: '700',
         color: '#1976D2',
-        marginTop: 16,
-        marginBottom: 12,
+        marginTop: 8,
+        marginBottom: 16,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
     },
     nutrientInputsRow: {
         flexDirection: 'row',
@@ -581,28 +643,41 @@ const styles = StyleSheet.create({
         marginHorizontal: 4,
     },
     nutrientInput: {
-        backgroundColor: '#F8F9FA',
-        borderWidth: 1,
-        borderColor: '#E0E0E0',
-        borderRadius: 8,
+        backgroundColor: '#FFFFFF',
+        borderWidth: 2,
+        borderColor: '#E3F2FD',
+        borderRadius: 12,
         paddingHorizontal: 12,
-        paddingVertical: 10,
-        fontSize: 14,
+        paddingVertical: 12,
+        fontSize: 15,
         color: '#333',
         textAlign: 'center',
+        fontWeight: '600',
+        shadowColor: '#1976D2',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 2,
     },
     addButton: {
+        flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#40C4FF',
-        paddingVertical: 14,
-        paddingHorizontal: 15,
-        borderRadius: 8,
+        backgroundColor: '#1976D2',
+        paddingVertical: 16,
+        borderRadius: 12,
         justifyContent: 'center',
-        shadowColor: '#40C4FF',
+        gap: 8,
+        shadowColor: '#1976D2',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 6,
     },
     addButtonDisabled: {
         backgroundColor: '#B0BEC5',
+        shadowOpacity: 0,
+        elevation: 0,
     },
     addButtonText: {
         color: '#FFFFFF',

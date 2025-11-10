@@ -56,6 +56,26 @@ class NutricionistService {
         const response = await apiClient.put(endpoint, data);
         return response.data;
     }
+
+    async uploadAvatar(id: string, file: { uri: string; type: string; name: string }): Promise<any> {
+        const formData = new FormData();
+        formData.append('avatar', {
+            uri: file.uri,
+            type: file.type,
+            name: file.name,
+        } as any);
+
+        const endpoint = API_CONFIG.ENDPOINTS.NUTRICIONIST.UPLOAD_AVATAR.replace('{id}', id);
+        const token = await AsyncStorage.getItem('@fitlife:access_token');
+
+        const response = await apiClient.patch(endpoint, formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+                'Authorization': `Bearer ${token}`,
+            },
+        });
+        return response.data;
+    }
 }
 
 export const nutricionistService = new NutricionistService();

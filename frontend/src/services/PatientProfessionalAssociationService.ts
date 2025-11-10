@@ -8,6 +8,16 @@ export interface PatientProfessionalAssociation {
     is_active?: boolean;
     created_at?: string;
     updated_at?: string;
+    // Dados do nutricionista
+    nutricionist_name?: string;
+    nutricionist_contact?: string;
+    nutricionist_crn?: string;
+    nutricionist_avatar?: string;
+    // Dados do educador físico
+    physical_educator_name?: string;
+    physical_educator_contact?: string;
+    physical_educator_cref?: string;
+    physical_educator_avatar?: string;
 }
 
 export interface PatientInfo {

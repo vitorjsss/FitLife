@@ -5,6 +5,9 @@ import {
     TextInput,
     TouchableOpacity,
     StyleSheet,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
 } from "react-native";
 import Icon from "react-native-vector-icons/Feather";
 import { useForm, Controller, set, SubmitHandler } from "react-hook-form";
@@ -86,68 +89,78 @@ export default function LoginScreen() {
     };
 
     return (
-        <View style={styles.container}>
-            <Text style={styles.logo}>FitLife</Text>
-            <Text style={styles.title}>ENTRAR</Text>
+        <KeyboardAvoidingView
+            style={{ flex: 1, backgroundColor: "#fff" }}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+            <ScrollView
+                contentContainerStyle={styles.container}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+            >
+                <Text style={styles.logo}>FitLife</Text>
+                <Text style={styles.title}>Entrar</Text>
 
-            <Controller
-                control={control}
-                name="email"
-                render={({ field: { onChange, value } }) => (
-                    <TextInput
-                        placeholder="E-mail ou número de telefone"
-                        style={styles.input}
-                        value={value}
-                        onChangeText={onChange}
-                        keyboardType="email-address"
-                        autoCapitalize="none"
-                    />
-                )}
-            />
-            {errors.email && <Text style={styles.error}>{errors.email.message}</Text>}
-
-            <Controller
-                control={control}
-                name="password"
-                render={({ field: { onChange, value } }) => (
-                    <View style={styles.passwordContainer}>
+                <Controller
+                    control={control}
+                    name="email"
+                    render={({ field: { onChange, value } }) => (
                         <TextInput
-                            placeholder="Digite sua senha"
-                            style={styles.inputPassword}
-                            secureTextEntry={hidePassword}
+                            placeholder="E-mail ou número de telefone"
+                            style={styles.input}
                             value={value}
                             onChangeText={onChange}
+                            keyboardType="email-address"
+                            autoCapitalize="none"
                         />
-                        <TouchableOpacity onPress={() => setHidePassword(!hidePassword)}>
-                            <Icon name={hidePassword ? "eye-off" : "eye"} size={20} color="gray" />
-                        </TouchableOpacity>
-                    </View>
-                )}
-            />
-            {errors.password && <Text style={styles.error}>{errors.password.message}</Text>}
+                    )}
+                />
+                {errors.email && <Text style={styles.error}>{errors.email.message}</Text>}
 
-            <TouchableOpacity>
-                <Text style={styles.forgot}>Esqueceu sua senha?</Text>
-            </TouchableOpacity>
+                <Controller
+                    control={control}
+                    name="password"
+                    render={({ field: { onChange, value } }) => (
+                        <View style={styles.passwordContainer}>
+                            <TextInput
+                                placeholder="Digite sua senha"
+                                style={styles.inputPassword}
+                                secureTextEntry={hidePassword}
+                                value={value}
+                                onChangeText={onChange}
+                            />
+                            <TouchableOpacity onPress={() => setHidePassword(!hidePassword)}>
+                                <Icon name={hidePassword ? "eye-off" : "eye"} size={20} color="gray" />
+                            </TouchableOpacity>
+                        </View>
+                    )}
+                />
+                {errors.password && <Text style={styles.error}>{errors.password.message}</Text>}
 
-            <TouchableOpacity style={[styles.button, loading && { opacity: 0.7 }]} onPress={handleSubmit(onSubmit)} disabled={loading}>
-                <Text style={styles.buttonText}>{loading ? "Entrando..." : "Entrar"}</Text>
-            </TouchableOpacity>
-
-            <View style={styles.registerContainer}>
-                <Text>Ainda não tem conta? </Text>
-                <TouchableOpacity onPress={() => navigation.navigate("Register")}>
-                    <Text style={styles.register}>Cadastre-se</Text>
+                <TouchableOpacity>
+                    <Text style={styles.forgot}>Esqueceu sua senha?</Text>
                 </TouchableOpacity>
-            </View>
-        </View>
+
+                <TouchableOpacity style={[styles.button, loading && { opacity: 0.7 }]} onPress={handleSubmit(onSubmit)} disabled={loading}>
+                    <Text style={styles.buttonText}>{loading ? "Entrando..." : "Entrar"}</Text>
+                </TouchableOpacity>
+
+                <View style={styles.registerContainer}>
+                    <Text>Ainda não tem conta? </Text>
+                    <TouchableOpacity onPress={() => navigation.navigate("Register")}>
+                        <Text style={styles.register}>Cadastre-se</Text>
+                    </TouchableOpacity>
+                </View>
+            </ScrollView>
+        </KeyboardAvoidingView>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
-        flex: 1,
+        flexGrow: 1,
         padding: 20,
+        paddingBottom: 40,
         justifyContent: "center",
         backgroundColor: "#fff",
     },

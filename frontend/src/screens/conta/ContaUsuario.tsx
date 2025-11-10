@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     SafeAreaView,
     ScrollView,
@@ -18,6 +18,9 @@ import { authService, requestReauth, verifyReauth, updateEmailWithReauth } from 
 import Header from '../../components/Header';
 import { API_CONFIG } from '../../config/api';
 import { patientService } from '../../services/PatientService';
+import { nutricionistService } from '../../services/NutricionistService';
+import { physicalEducatorService } from '../../services/PhysicalEducatorService';
+import PatientProfessionalAssociationService, { PatientProfessionalAssociation } from '../../services/PatientProfessionalAssociationService';
 
 const ContaUsuario: React.FC<{ navigation: any }> = ({ navigation }) => {
     const { user, loading, refreshUser } = useUser();
@@ -29,6 +32,7 @@ const ContaUsuario: React.FC<{ navigation: any }> = ({ navigation }) => {
     const [showAvatarModal, setShowAvatarModal] = useState(false);
     const [avatarLoading, setAvatarLoading] = useState(false);
     const [selectedImage, setSelectedImage] = useState<any>(null);
+    const [professionals, setProfessionals] = useState<PatientProfessionalAssociation | null>(null);
 
     // estados para reauth flow
     const [reauthAuthId, setReauthAuthId] = useState<string | null>(null);
@@ -36,6 +40,22 @@ const ContaUsuario: React.FC<{ navigation: any }> = ({ navigation }) => {
     const [currentPassword, setCurrentPassword] = useState(''); // para solicitar senha atual
     const [reauthCode, setReauthCode] = useState('');
     const [reauthLoading, setReauthLoading] = useState(false);
+
+    // Buscar profissionais associados ao paciente
+    useEffect(() => {
+        const fetchProfessionals = async () => {
+            if (user?.role === 'Patient' && user?.id) {
+                try {
+                    const response: any = await PatientProfessionalAssociationService.getByPatientId(user.id);
+                    console.log('Profissionais carregados:', response);
+                    setProfessionals(response);
+                } catch (error) {
+                    console.error('Erro ao buscar profissionais:', error);
+                }
+            }
+        };
+        fetchProfessionals();
+    }, [user]);
 
     const handlePickImage = async () => {
         try {
@@ -68,16 +88,29 @@ const ContaUsuario: React.FC<{ navigation: any }> = ({ navigation }) => {
         if (!selectedImage || !user?.id) return;
         setAvatarLoading(true);
         try {
-            await patientService.uploadAvatar(user.id, {
+            const fileData = {
                 uri: selectedImage.uri,
                 type: selectedImage.type || 'image/jpeg',
                 name: selectedImage.name || 'avatar.jpg',
-            });
+            };
+
+            // Usa o serviço correto baseado no tipo de usuário
+            if (user.role === 'Patient') {
+                await patientService.uploadAvatar(user.id, fileData);
+            } else if (user.role === 'Nutricionist') {
+                await nutricionistService.uploadAvatar(user.id, fileData);
+            } else if (user.role === 'Physical_educator') {
+                await physicalEducatorService.uploadAvatar(user.id, fileData);
+            } else {
+                throw new Error('Tipo de usuário não suportado');
+            }
+
             setShowAvatarModal(false);
             setSelectedImage(null);
             if (refreshUser) await refreshUser();
             alert('Foto de perfil atualizada com sucesso!');
         } catch (err) {
+            console.error('Erro ao enviar avatar:', err);
             alert('Erro ao enviar foto de perfil. Tente novamente.');
         } finally {
             setAvatarLoading(false);
@@ -200,16 +233,6 @@ const ContaUsuario: React.FC<{ navigation: any }> = ({ navigation }) => {
                                 </View>
                                 <Text style={styles.smallText}>{user.birthdate ? `• ${new Date(user.birthdate).toLocaleDateString('pt-BR')}` : ''}</Text>
                             </View>
-                            <View style={styles.actionRow}>
-                                <TouchableOpacity style={styles.actionBtn} onPress={handleEditProfile}>
-                                    <Icon name="pencil" size={16} color="#1976D2" />
-                                    <Text style={styles.actionTxt}>Editar</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity style={[styles.actionBtn, styles.logoutBtn]} onPress={handleLogout}>
-                                    <Icon name="logout" size={16} color="#D32F2F" />
-                                    <Text style={[styles.actionTxt, { color: '#D32F2F' }]}>Sair</Text>
-                                </TouchableOpacity>
-                            </View>
                         </View>
                     </View>
 
@@ -258,6 +281,86 @@ const ContaUsuario: React.FC<{ navigation: any }> = ({ navigation }) => {
                             </View>
                         </View>
                     </View>
+
+                    {/* Seção de Profissionais - Apenas para Pacientes */}
+                    {user.role === 'Patient' && (
+                        <View style={styles.infoSection}>
+                            <Text style={styles.sectionTitle}>Meus Profissionais</Text>
+
+                            {professionals && professionals.nutricionist_id && (
+                                <View style={styles.professionalCard}>
+                                    <View style={styles.professionalHeader}>
+                                        {professionals.nutricionist_avatar ? (
+                                            <Image
+                                                source={{ uri: `${API_CONFIG.BASE_URL}/${professionals.nutricionist_avatar}` }}
+                                                style={styles.professionalAvatar}
+                                            />
+                                        ) : (
+                                            <View style={styles.professionalAvatarFallback}>
+                                                <Icon name="account" size={24} color="#1976D2" />
+                                            </View>
+                                        )}
+                                        <View style={styles.professionalInfo}>
+                                            <Text style={styles.professionalName}>{professionals.nutricionist_name || '—'}</Text>
+                                            <View style={styles.professionalBadge}>
+                                                <Icon name="food-apple" size={14} color="#4CAF50" />
+                                                <Text style={styles.professionalRole}>Nutricionista</Text>
+                                            </View>
+                                            {professionals.nutricionist_crn && (
+                                                <Text style={styles.professionalCrn}>CRN: {professionals.nutricionist_crn}</Text>
+                                            )}
+                                        </View>
+                                    </View>
+                                    {professionals.nutricionist_contact && (
+                                        <View style={styles.professionalContact}>
+                                            <Icon name="phone" size={16} color="#666" />
+                                            <Text style={styles.professionalContactText}>{professionals.nutricionist_contact}</Text>
+                                        </View>
+                                    )}
+                                </View>
+                            )}
+
+                            {professionals && professionals.physical_educator_id && (
+                                <View style={styles.professionalCard}>
+                                    <View style={styles.professionalHeader}>
+                                        {professionals.physical_educator_avatar ? (
+                                            <Image
+                                                source={{ uri: `${API_CONFIG.BASE_URL}/${professionals.physical_educator_avatar}` }}
+                                                style={styles.professionalAvatar}
+                                            />
+                                        ) : (
+                                            <View style={styles.professionalAvatarFallback}>
+                                                <Icon name="account" size={24} color="#1976D2" />
+                                            </View>
+                                        )}
+                                        <View style={styles.professionalInfo}>
+                                            <Text style={styles.professionalName}>{professionals.physical_educator_name || '—'}</Text>
+                                            <View style={[styles.professionalBadge, { backgroundColor: '#FFF3E0' }]}>
+                                                <Icon name="run" size={14} color="#FF9800" />
+                                                <Text style={[styles.professionalRole, { color: '#FF9800' }]}>Educador Físico</Text>
+                                            </View>
+                                            {professionals.physical_educator_cref && (
+                                                <Text style={styles.professionalCrn}>CREF: {professionals.physical_educator_cref}</Text>
+                                            )}
+                                        </View>
+                                    </View>
+                                    {professionals.physical_educator_contact && (
+                                        <View style={styles.professionalContact}>
+                                            <Icon name="phone" size={16} color="#666" />
+                                            <Text style={styles.professionalContactText}>{professionals.physical_educator_contact}</Text>
+                                        </View>
+                                    )}
+                                </View>
+                            )}
+
+                            {(!professionals || (!professionals.nutricionist_id && !professionals.physical_educator_id)) && (
+                                <View style={styles.emptyState}>
+                                    <Icon name="account-multiple-outline" size={48} color="#CCC" />
+                                    <Text style={styles.emptyText}>Nenhum profissional vinculado</Text>
+                                </View>
+                            )}
+                        </View>
+                    )}
 
                     <View style={{ height: 24 }} />
                 </ScrollView>
@@ -568,6 +671,87 @@ const styles = StyleSheet.create({
 
     centerLoading: { flex: 1, justifyContent: 'center', alignItems: 'center' },
     loadingText: { color: '#666' },
+
+    // Estilos para seção de profissionais
+    professionalCard: {
+        backgroundColor: '#F9FBFD',
+        padding: 12,
+        borderRadius: 10,
+        marginBottom: 12,
+        borderWidth: 1,
+        borderColor: '#E3F2FD',
+    },
+    professionalHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    professionalAvatar: {
+        width: 50,
+        height: 50,
+        borderRadius: 25,
+        marginRight: 12,
+        backgroundColor: '#EEE',
+    },
+    professionalAvatarFallback: {
+        width: 50,
+        height: 50,
+        borderRadius: 25,
+        marginRight: 12,
+        backgroundColor: '#EEF7FF',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    professionalInfo: {
+        flex: 1,
+    },
+    professionalName: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#222',
+        marginBottom: 4,
+    },
+    professionalBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#E8F5E9',
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 10,
+        alignSelf: 'flex-start',
+        marginBottom: 4,
+    },
+    professionalRole: {
+        color: '#4CAF50',
+        fontSize: 12,
+        fontWeight: '600',
+        marginLeft: 4,
+    },
+    professionalCrn: {
+        fontSize: 12,
+        color: '#666',
+    },
+    professionalContact: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingTop: 8,
+        borderTopWidth: 1,
+        borderTopColor: '#E3F2FD',
+    },
+    professionalContactText: {
+        marginLeft: 8,
+        color: '#555',
+        fontSize: 14,
+    },
+    emptyState: {
+        alignItems: 'center',
+        paddingVertical: 32,
+    },
+    emptyText: {
+        marginTop: 12,
+        color: '#999',
+        fontSize: 15,
+    },
 });
 
 export default ContaUsuario;
