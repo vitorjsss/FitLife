@@ -1,0 +1,120 @@
+import { pool } from '../config/db.js';
+
+class MedidasCorporaisRepository {
+    /**
+     * Criar nova medida corporal
+     */
+    async create(medidasData) {
+        const { patient_id, data, peso, altura, imc, circunferencia } = medidasData;
+        
+        const query = `
+            INSERT INTO medidas_corporais 
+            (patient_id, data, peso, altura, imc, circunferencia)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            RETURNING *
+        `;
+        
+        const values = [patient_id, data, peso, altura, imc, circunferencia];
+        const result = await pool.query(query, values);
+        return result.rows[0];
+    }
+
+    /**
+     * Buscar todas as medidas de um paciente
+     */
+    async findByPatientId(patientId) {
+        const query = `
+            SELECT * FROM medidas_corporais
+            WHERE patient_id = $1
+            ORDER BY data DESC
+        `;
+        
+        const result = await pool.query(query, [patientId]);
+        return result.rows;
+    }
+
+    /**
+     * Buscar medida por ID
+     */
+    async findById(id) {
+        const query = 'SELECT * FROM medidas_corporais WHERE id = $1';
+        const result = await pool.query(query, [id]);
+        return result.rows[0];
+    }
+
+    /**
+     * Buscar medidas por período
+     */
+    async findByDateRange(patientId, dataInicio, dataFim) {
+        const query = `
+            SELECT * FROM medidas_corporais
+            WHERE patient_id = $1 
+            AND data BETWEEN $2 AND $3
+            ORDER BY data DESC
+        `;
+        
+        const result = await pool.query(query, [patientId, dataInicio, dataFim]);
+        return result.rows;
+    }
+
+    /**
+     * Buscar última medida do paciente
+     */
+    async findLatestByPatientId(patientId) {
+        const query = `
+            SELECT * FROM medidas_corporais
+            WHERE patient_id = $1
+            ORDER BY data DESC
+            LIMIT 1
+        `;
+        
+        const result = await pool.query(query, [patientId]);
+        return result.rows[0];
+    }
+
+    /**
+     * Atualizar medida corporal
+     */
+    async update(id, medidasData) {
+        const { data, peso, altura, imc, circunferencia } = medidasData;
+        
+        const query = `
+            UPDATE medidas_corporais
+            SET data = $1, peso = $2, altura = $3, imc = $4, 
+                circunferencia = $5, updated_at = NOW()
+            WHERE id = $6
+            RETURNING *
+        `;
+        
+        const values = [data, peso, altura, imc, circunferencia, id];
+        const result = await pool.query(query, values);
+        return result.rows[0];
+    }
+
+    /**
+     * Deletar medida corporal
+     */
+    async delete(id) {
+        const query = 'DELETE FROM medidas_corporais WHERE id = $1 RETURNING *';
+        const result = await pool.query(query, [id]);
+        return result.rows[0];
+    }
+
+    /**
+     * Calcular evolução de peso
+     */
+    async getEvolutionData(patientId, limit = 10) {
+        const query = `
+            SELECT data, peso, altura, imc, circunferencia, created_at
+            FROM medidas_corporais
+            WHERE patient_id = $1
+            ORDER BY data DESC
+            LIMIT $2
+        `;
+        
+        const result = await pool.query(query, [patientId, limit]);
+        return result.rows;
+    }
+}
+
+export default new MedidasCorporaisRepository();

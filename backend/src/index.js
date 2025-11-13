@@ -18,6 +18,8 @@ import workoutCalendarRoutes from "./routes/workoutCalendarRoutes.js";
 import healthCheckRoutes from "./routes/healthCheckRoutes.js";
 import backupRoutes from "./routes/backupRoutes.js";
 import persistenceTestRoutes from "./routes/persistenceTestRoutes.js";
+import medidasCorporaisRoutes from "./routes/medidasCorporaisRoutes.js";
+import medidasNutricionaisRoutes from "./routes/medidasNutricionaisRoutes.js";
 import patientProfessionalAssociationRoutes from "./routes/patientProfessionalAssociationRoutes.js";
 import patientConnectionCodeRoutes from "./routes/patientConnectionCodeRoutes.js";
 import availabilityMonitor from "./middlewares/availabilityMonitor.js";
@@ -48,6 +50,8 @@ app.use("/patient-professional-association", patientProfessionalAssociationRoute
 app.use("/patient-connection-code", patientConnectionCodeRoutes);
 app.use("/backup", backupRoutes);
 app.use("/persistence-test", persistenceTestRoutes);
+app.use("/medidas-corporais", medidasCorporaisRoutes);
+app.use("/medidas-nutricionais", medidasNutricionaisRoutes);
 app.use("/uploads/avatars", express.static("uploads/avatars"));
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
