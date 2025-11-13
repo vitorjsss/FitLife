@@ -9,7 +9,7 @@ import RegisterScreen from './src/screens/cadastro/register';
 import HomeScreen from './src/screens/home/home';
 import NutricionistHomeScreen from './src/screens/home/NutricionistHome';
 import PhysicalEducatorHomeScreen from './src/screens/home/PhysicalEducatorHome';
-import Refeicoes from './src/screens/refeicoes/Refeicoes';
+import Refeicoes from './src/screens/refeicoes/refeicoes';
 import GerenciarRefeicoes from './src/screens/refeicoes/GerenciarRefeicoes';
 import AdicionarAlimentos from './src/screens/refeicoes/AdicionarAlimentos';
 import CalendarioRefeicoes from './src/screens/refeicoes/CalendarioRefeicoes';
@@ -18,6 +18,8 @@ import Treinos from './src/screens/treinos/Treinos';
 import CalendarioTreinos from './src/screens/treinos/CalendarioTreinos';
 import AdicionarExercicios from './src/screens/treinos/AdicionarExercicios';
 import ChecklistScreen from './src/screens/checklist/Checklist';
+import GraficosProgresso from './src/screens/medidas/GraficosProgresso';
+import Relatorios from './src/screens/relatorios/Relatorios';
 
 import { authService } from './src/services/authService';
 import ContaUsuario from './src/screens/conta/ContaUsuario';
@@ -42,6 +44,8 @@ export type RootStackParamList = {
     dailyMealRegistryId: string;
   };
   GerenciarMedidas: undefined;
+  GraficosProgresso: undefined;
+  Relatorios: undefined;
   Treinos: undefined;
   Checklist: undefined;
   ConnectionCode: undefined;
@@ -115,6 +119,8 @@ export default function App() {
           <Stack.Screen name="GerenciarTreinos" component={GerenciarTreinos} />
           <Stack.Screen name="AdicionarExercicios" component={AdicionarExercicios} />
           <Stack.Screen name="GerenciarMedidas" component={require('./src/screens/medidas/GerenciarMedidas').default} />
+          <Stack.Screen name="GraficosProgresso" component={GraficosProgresso} />
+          <Stack.Screen name="Relatorios" component={Relatorios} />
         </Stack.Navigator>
         <StatusBar style="auto" />
       </NavigationContainer>

@@ -5,6 +5,7 @@ import {
     TouchableOpacity,
     StyleSheet,
     ActivityIndicator,
+    ScrollView,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome";
 import { useNavigation } from "@react-navigation/native";
@@ -14,6 +15,7 @@ import Header from '../../components/Header';
 import { useUser } from '../../context/UserContext';
 import WeeklyMealWidget from '../../components/WeeklyMealWidget';
 import WeeklyWorkoutWidget from '../../components/WeeklyWorkoutWidget';
+import MeasuresProgressWidget from '../../components/MeasuresProgressWidget';
 
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<
@@ -44,8 +46,8 @@ export default function HomeScreen() {
             {/* Header */}
             <Header title="Início" showBackArrow={false} showUserIcon={true} />
 
-            {/* Conteúdo */}
-            <View style={styles.content}>
+            {/* Conteúdo com ScrollView */}
+            <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
                 {/* Texto de boas-vindas */}
                 <View style={{ alignItems: 'center', marginBottom: 18 }}>
                     {user?.name ? (
@@ -58,21 +60,6 @@ export default function HomeScreen() {
                     ) : (
                         <Text style={{ fontSize: 20, color: '#1976D2' }}>Bem-vindo!</Text>
                     )}
-                </View>
-
-                <View style={styles.row}>
-                    <TouchableOpacity
-                        style={styles.card}
-                        onPress={() => navigation.navigate('Refeicoes', user?.id ? { patientId: user.id } : {})}
-                    >
-                        <Icon name="cutlery" size={32} color="#fff" />
-                        <Text style={styles.cardText}>Minhas Refeições</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('Treinos')}>
-                        <Icon name="heartbeat" size={32} color="#fff" />
-                        <Text style={styles.cardText}>Meus Treinos</Text>
-                    </TouchableOpacity>
                 </View>
 
                 {/* Botão de Código de Conexão */}
@@ -103,13 +90,36 @@ export default function HomeScreen() {
                         onPress={() => navigation.navigate('CalendarioTreinos')}
                     />
                 )}
-            </View>
+
+                {/* Widget de Progresso das Medidas */}
+                {user?.id && (
+                    <MeasuresProgressWidget userId={user.id} />
+                )}
+            </ScrollView>
 
             {/* Bottom Navigation */}
             <View style={styles.bottomNav}>
-                <TouchableOpacity style={styles.navItem}>
-                    <Icon name="bar-chart" size={20} color="#fff" />
-                    <Text style={styles.navText}>Relatórios</Text>
+                <TouchableOpacity 
+                    style={styles.navItem}
+                    onPress={() => navigation.navigate('Refeicoes', user?.id ? { patientId: user.id } : {})}
+                >
+                    <Icon name="cutlery" size={20} color="#fff" />
+                    <Text style={styles.navText}>Refeições</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                    style={styles.navItem}
+                    onPress={() => navigation.navigate('Treinos')}
+                >
+                    <Icon name="heartbeat" size={20} color="#fff" />
+                    <Text style={styles.navText}>Treinos</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.navItem}
+                    onPress={() => navigation.navigate('Checklist')}
+                >
+                    <Icon name="list" size={20} color="#fff" />
+                    <Text style={styles.navText}>CheckList</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity style={styles.navItem}
@@ -119,25 +129,12 @@ export default function HomeScreen() {
                     <Text style={styles.navText}>Medidas</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity
+                <TouchableOpacity 
                     style={styles.navItem}
+                    onPress={() => navigation.navigate('Relatorios')}
                 >
-                    <Icon name="home" size={20} color="#fff" />
-                    <Text style={styles.navText}>Início</Text>
-                </TouchableOpacity>
-
-
-                <TouchableOpacity style={styles.navItem}
-                    onPress={() => navigation.navigate('Checklist')}
-                >
-                    <Icon name="list" size={20} color="#fff" />
-                    <Text style={styles.navText}>CheckList</Text>
-                </TouchableOpacity>
-
-
-                <TouchableOpacity style={styles.navItem}>
-                    <Icon name="calendar" size={20} color="#fff" />
-                    <Text style={styles.navText}>Calendário</Text>
+                    <Icon name="file-text" size={20} color="#fff" />
+                    <Text style={styles.navText}>Relatórios</Text>
                 </TouchableOpacity>
             </View>
         </View>

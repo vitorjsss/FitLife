@@ -44,6 +44,8 @@ type RegisterFormData = {
 };
 
 const passwordPolicy = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&*()_\-+=\[\]{};':"\\|,.<>/?]).{8,}$/;
+const dateRegex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+
 const schema = yup.object({
     name: yup.string().required("Nome obrigatório"),
     email: yup.string()
@@ -53,10 +55,24 @@ const schema = yup.object({
         .matches(passwordPolicy, "Senha deve ter ≥8 caracteres, letras, números e caractere especial")
         .required("Senha obrigatória"),
     confirmPassword: yup.string().oneOf([yup.ref("password")], "As senhas não coincidem"),
-    birthdate: yup.string().when("userType", {
-        is: (val: any) => !!val,
-        then: (schema) => schema.required("Data de nascimento obrigatória"),
-    }),
+    birthdate: yup.string()
+        .matches(dateRegex, "Formato inválido. Use DD/MM/AAAA")
+        .test("valid-date", "Data inválida", (value) => {
+            if (!value) return true;
+            const match = value.match(dateRegex);
+            if (!match) return false;
+            const day = parseInt(match[1], 10);
+            const month = parseInt(match[2], 10);
+            const year = parseInt(match[3], 10);
+            if (month < 1 || month > 12) return false;
+            if (day < 1 || day > 31) return false;
+            if (year < 1900 || year > new Date().getFullYear()) return false;
+            return true;
+        })
+        .when("userType", {
+            is: (val: any) => !!val,
+            then: (schema) => schema.required("Data de nascimento obrigatória"),
+        }),
     sex: yup.string().required("Sexo obrigatório"),
     contact: yup.string().when("userType", {
         is: (val: any) => !!val,
@@ -105,6 +121,14 @@ export default function RegisterScreen() {
         setSelectedType(userType as UserType);
     }, [userType]);
 
+    // Função para converter data brasileira (DD/MM/AAAA) para ISO (AAAA-MM-DD)
+    const convertBRDateToISO = (brDate: string): string => {
+        const match = brDate.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+        if (!match) return brDate;
+        const [, day, month, year] = match;
+        return `${year}-${month}-${day}`;
+    };
+
     const onSubmit: SubmitHandler<RegisterFormData> = async (data) => {
         setLoading(true);
         try {
@@ -133,12 +157,15 @@ export default function RegisterScreen() {
 
             const config = { headers: { Authorization: `Bearer ${token}` } };
 
+            // Converter data de nascimento para ISO antes de enviar
+            const birthdateISO = data.birthdate ? convertBRDateToISO(data.birthdate) : undefined;
+
             // 3️⃣ Criar registro específico no backend
             if (data.userType === "Patient") {
                 await patientService.create(
                     {
                         name: data.name,
-                        birthdate: data.birthdate!,
+                        birthdate: birthdateISO!,
                         sex: data.sex!,
                         contact: data.contact!,
                         auth_id,
@@ -149,7 +176,7 @@ export default function RegisterScreen() {
                 await nutricionistService.create(
                     {
                         name: data.name,
-                        birthdate: data.birthdate!,
+                        birthdate: birthdateISO!,
                         sex: data.sex!,
                         contact: data.contact!,
                         crn: data.crn!,
@@ -161,7 +188,7 @@ export default function RegisterScreen() {
                 await physicalEducatorService.create(
                     {
                         name: data.name,
-                        birthdate: data.birthdate!,
+                        birthdate: birthdateISO!,
                         sex: data.sex!,
                         contact: data.contact!,
                         cref: data.cref!,
@@ -323,9 +350,21 @@ export default function RegisterScreen() {
                     render={({ field: { onChange, value } }) => (
                         <TextInput
                             style={styles.input}
-                            placeholder="Data de nascimento (YYYY-MM-DD)"
+                            placeholder="Data de nascimento (DD/MM/AAAA)"
                             value={value}
-                            onChangeText={onChange}
+                            onChangeText={(text) => {
+                                // Máscara de data DD/MM/AAAA
+                                let formatted = text.replace(/\D/g, '');
+                                if (formatted.length >= 3) {
+                                    formatted = formatted.slice(0, 2) + '/' + formatted.slice(2);
+                                }
+                                if (formatted.length >= 6) {
+                                    formatted = formatted.slice(0, 5) + '/' + formatted.slice(5, 9);
+                                }
+                                onChange(formatted);
+                            }}
+                            keyboardType="numeric"
+                            maxLength={10}
                         />
                     )}
                 />
