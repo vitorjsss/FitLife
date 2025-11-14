@@ -5,7 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  FlatList,
   Alert,
   KeyboardAvoidingView,
   Platform,
@@ -16,27 +15,24 @@ import Icon from "react-native-vector-icons/FontAwesome";
 import { Controller, useForm, Resolver } from "react-hook-form";
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import MeasurementsService, { MeasureRecord } from "../../services/MeasurementsService";
 import Header from "../../components/Header";
+import { useUser } from "../../context/UserContext";
 
 type FormData = {
-  date: string;
-  weight?: string;
-  height?: string;
-  waist?: string;
-  hip?: string;
-  arm?: string;
-  leg?: string;
-  notes?: string;
+  data: string; // Data em formato DD/MM/YYYY para exibição
+  peso?: string;
+  altura?: string;
+  circunferencia?: string;
 };
 
-// helpers para conversão de datas
+// Helpers para conversão de datas
 function formatBRFromISO(iso?: string) {
   if (!iso) return "";
   const [y, m, d] = iso.split("-");
   return `${d}/${m}/${y}`;
 }
+
 function isoFromBR(br: string) {
   if (!br) return "";
   const parts = br.split("/");
@@ -44,6 +40,7 @@ function isoFromBR(br: string) {
   const [d, m, y] = parts;
   return `${y.padStart(4, "0")}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
 }
+
 function brToday() {
   const d = new Date();
   const dd = String(d.getDate()).padStart(2, "0");
@@ -52,88 +49,103 @@ function brToday() {
   return `${dd}/${mm}/${yy}`;
 }
 
-// alterar schema para aceitar DD/MM/YYYY
+// Schema de validação
 const schema = yup.object().shape({
-  date: yup
+  data: yup
     .string()
     .required("Data obrigatória")
     .matches(/^\d{2}\/\d{2}\/\d{4}$/, "Formato DD/MM/YYYY"),
-  weight: yup.number().nullable().transform(v => (isNaN(v) ? undefined : v)).min(20, "Peso muito baixo").max(300, "Peso muito alto"),
-  height: yup.number().nullable().transform(v => (isNaN(v) ? undefined : v)).min(100, "Altura muito baixa (cm)").max(250, "Altura muito alta (cm)"),
-  waist: yup.number().nullable().transform(v => (isNaN(v) ? undefined : v)).min(20).max(200),
-  hip: yup.number().nullable().transform(v => (isNaN(v) ? undefined : v)).min(20).max(200),
-  arm: yup.number().nullable().transform(v => (isNaN(v) ? undefined : v)).min(5).max(100),
-  leg: yup.number().nullable().transform(v => (isNaN(v) ? undefined : v)).min(20).max(150),
-  notes: yup.string().nullable()
+  peso: yup
+    .number()
+    .nullable()
+    .transform(v => (isNaN(v) ? undefined : v))
+    .min(20, "Peso muito baixo")
+    .max(300, "Peso muito alto"),
+  altura: yup
+    .number()
+    .nullable()
+    .transform(v => (isNaN(v) ? undefined : v))
+    .min(1.0, "Altura muito baixa (em metros)")
+    .max(2.5, "Altura muito alta (em metros)"),
+  circunferencia: yup
+    .number()
+    .nullable()
+    .transform(v => (isNaN(v) ? undefined : v))
+    .min(20, "Circunferência muito baixa")
+    .max(200, "Circunferência muito alta"),
 });
-
-const USER_KEY = "@fitlife:user_id";
 
 export default function GerenciarMedidas() {
   const navigation = useNavigation();
-  const [userId, setUserId] = useState<string | null>(null);
+  const { user } = useUser();
   const [records, setRecords] = useState<MeasureRecord[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const { control, handleSubmit, reset, formState: { errors } } = useForm<FormData>({
     resolver: yupResolver(schema) as unknown as Resolver<FormData, any, FormData>,
     defaultValues: {
-      date: brToday(),
-      weight: undefined,
-      height: undefined,
-      waist: undefined,
-      hip: undefined,
-      arm: undefined,
-      leg: undefined,
-      notes: undefined
+      data: brToday(),
+      peso: undefined,
+      altura: undefined,
+      circunferencia: undefined,
     }
   });
 
   useEffect(() => {
-    (async () => {
-      const uid = await AsyncStorage.getItem(USER_KEY);
-      setUserId(uid);
-      if (uid) {
-        const list = await MeasurementsService.list(uid);
-        setRecords(list);
-      }
-    })();
-  }, []);
+    if (user?.id) {
+      refresh();
+    }
+  }, [user]);
 
   const refresh = async () => {
-    if (!userId) return;
-    const list = await MeasurementsService.list(userId);
-    setRecords(list);
+    if (!user?.id) return;
+    try {
+      const list = await MeasurementsService.list(user.id);
+      // Ordenar por data (mais recente primeiro)
+      const sorted = list.sort((a, b) => {
+        const dateA = a.data ? new Date(a.data).getTime() : 0;
+        const dateB = b.data ? new Date(b.data).getTime() : 0;
+        return dateB - dateA;
+      });
+      setRecords(sorted);
+    } catch (error) {
+      console.error('[GerenciarMedidas] Erro ao carregar medidas:', error);
+    }
   };
 
-  const onSubmit = async (data: any) => {
-    if (!userId) { Alert.alert("Erro", "Usuário não identificado"); return; }
+  const onSubmit = async (data: FormData) => {
+    if (!user?.id) {
+      Alert.alert("Erro", "Usuário não identificado");
+      return;
+    }
 
     try {
       const payload = {
-        date: data.date ? isoFromBR(data.date) : undefined, // grava ISO internamente
-        weight: data.weight ? Number(data.weight) : undefined,
-        height: data.height ? Number(data.height) : undefined,
-        waist: data.waist ? Number(data.waist) : undefined,
-        hip: data.hip ? Number(data.hip) : undefined,
-        arm: data.arm ? Number(data.arm) : undefined,
-        leg: data.leg ? Number(data.leg) : undefined,
-        notes: data.notes
+        patient_id: user.id,
+        data: data.data ? isoFromBR(data.data) : new Date().toISOString().split('T')[0], // Converte para ISO YYYY-MM-DD
+        peso: data.peso ? Number(data.peso) : null,
+        altura: data.altura ? Number(data.altura) : null,
+        circunferencia: data.circunferencia ? Number(data.circunferencia) : null,
       };
 
       if (editingId) {
-        await MeasurementsService.update(userId, editingId, payload);
-        Alert.alert("Sucesso", "Medida atualizada.");
+        await MeasurementsService.update(editingId, {
+          data: payload.data,
+          peso: payload.peso,
+          altura: payload.altura,
+          circunferencia: payload.circunferencia,
+        });
+        Alert.alert("Sucesso", "Medida atualizada com sucesso!");
       } else {
-        await MeasurementsService.create(userId, payload);
-        Alert.alert("Sucesso", "Medida registrada.");
+        await MeasurementsService.create(payload);
+        Alert.alert("Sucesso", "Medida registrada com sucesso!");
       }
+
       setEditingId(null);
-      // reset para data no formato BR
-      reset({ date: brToday() });
+      reset({ data: brToday(), peso: undefined, altura: undefined, circunferencia: undefined });
       await refresh();
     } catch (err: any) {
-      console.error(err);
+      console.error('[GerenciarMedidas] Erro ao salvar:', err);
       Alert.alert("Erro", err.message || "Falha ao salvar medida.");
     }
   };
@@ -141,49 +153,61 @@ export default function GerenciarMedidas() {
   const onEdit = (rec: MeasureRecord) => {
     setEditingId(rec.id);
     reset({
-      date: rec.date ? formatBRFromISO(rec.date) : brToday(),
-      weight: rec.weight?.toString(),
-      height: rec.height?.toString(),
-      waist: rec.waist?.toString(),
-      hip: rec.hip?.toString(),
-      arm: rec.arm?.toString(),
-      leg: rec.leg?.toString(),
-      notes: rec.notes
+      data: rec.data ? formatBRFromISO(rec.data) : brToday(),
+      peso: rec.peso?.toString(),
+      altura: rec.altura?.toString(),
+      circunferencia: rec.circunferencia?.toString(),
     });
-    // scroll to form if needed
   };
 
   const onDelete = (id: string) => {
-    Alert.alert("Confirmar", "Remover esta medida?", [
+    Alert.alert("Confirmar", "Deseja remover esta medida?", [
       { text: "Cancelar", style: "cancel" },
       {
-        text: "Remover", style: "destructive", onPress: async () => {
-          if (!userId) return;
-          await MeasurementsService.remove(userId, id);
-          await refresh();
+        text: "Remover",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await MeasurementsService.remove(id);
+            Alert.alert("Sucesso", "Medida removida!");
+            await refresh();
+          } catch (err: any) {
+            console.error('[GerenciarMedidas] Erro ao remover:', err);
+            Alert.alert("Erro", "Falha ao remover medida.");
+          }
         }
       }
     ]);
   };
 
-  const renderItem = ({ item }: { item: MeasureRecord }) => (
-    <View style={styles.record}>
-      <View style={{ flex: 1 }}>
-        <Text style={styles.recordDate}>{item.date ? formatBRFromISO(item.date) : ""}</Text>
-        <Text style={styles.recordText}>
-          {item.weight ? `${item.weight}kg • ` : ""}{item.height ? `${item.height}cm` : ""}
-        </Text>
+  const renderItem = ({ item }: { item: MeasureRecord }) => {
+    const imc = item.imc ? item.imc.toFixed(1) : 
+                (item.peso && item.altura) ? MeasurementsService.calcularIMC(item.peso, item.altura).toFixed(1) : '-';
+    
+    return (
+      <View style={styles.record}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.recordDate}>{item.data ? formatBRFromISO(item.data) : ""}</Text>
+          <Text style={styles.recordText}>
+            {item.peso ? `Peso: ${item.peso}kg` : ""}
+            {item.altura ? ` • Altura: ${item.altura}m` : ""}
+            {imc !== '-' ? ` • IMC: ${imc}` : ""}
+          </Text>
+          {item.circunferencia && (
+            <Text style={styles.recordText}>Circunferência: {item.circunferencia}cm</Text>
+          )}
+        </View>
+        <View style={styles.recordActions}>
+          <TouchableOpacity onPress={() => onEdit(item)} style={styles.smallBtn}>
+            <Icon name="pencil" size={14} color="#1976D2" />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => onDelete(item.id)} style={[styles.smallBtn, { marginLeft: 8 }]}>
+            <Icon name="trash" size={14} color="#D32F2F" />
+          </TouchableOpacity>
+        </View>
       </View>
-      <View style={styles.recordActions}>
-        <TouchableOpacity onPress={() => onEdit(item)} style={styles.smallBtn}>
-          <Icon name="pencil" size={14} color="#1976D2" />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => onDelete(item.id)} style={[styles.smallBtn, { marginLeft: 8 }]}>
-          <Icon name="trash" size={14} color="#D32F2F" />
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
+    );
+  };
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
@@ -191,91 +215,121 @@ export default function GerenciarMedidas() {
       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
         <View style={styles.container}>
           <View style={styles.introCard}>
-            <Text style={styles.introTitle}>Registrar suas medidas</Text>
+            <Text style={styles.introTitle}>Registrar suas medidas corporais</Text>
             <Text style={styles.introText}>
-              Insira peso, altura e circunferências. Você pode editar ou remover registros depois.
+              Insira peso, altura e circunferências. O IMC será calculado automaticamente.
             </Text>
           </View>
 
           <View style={styles.formCard}>
-            {/* date + basic fields in rows */}
             <View style={styles.row}>
               <View style={styles.col}>
-                <Text style={styles.label}>Data</Text>
-                <Controller control={control} name="date" render={({ field: { onChange, value } }) => (
-                  <TextInput style={styles.input} placeholder="DD/MM/YYYY" value={value} onChangeText={onChange} />
-                )} />
-                {errors.date && <Text style={styles.err}>{errors.date.message}</Text>}
+                <Text style={styles.label}>Data *</Text>
+                <Controller
+                  control={control}
+                  name="data"
+                  render={({ field: { onChange, value } }) => (
+                    <TextInput
+                      style={styles.input}
+                      placeholder="DD/MM/YYYY"
+                      value={value}
+                      onChangeText={onChange}
+                    />
+                  )}
+                />
+                {errors.data && <Text style={styles.err}>{errors.data.message}</Text>}
               </View>
               <View style={styles.col}>
                 <Text style={styles.label}>Peso (kg)</Text>
-                <Controller control={control} name="weight" render={({ field: { onChange, value } }) => (
-                  <TextInput style={styles.input} placeholder="Ex: 70" keyboardType="numeric" value={value} onChangeText={onChange} />
-                )} />
-                {errors.weight && <Text style={styles.err}>{errors.weight.message}</Text>}
+                <Controller
+                  control={control}
+                  name="peso"
+                  render={({ field: { onChange, value } }) => (
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Ex: 70.5"
+                      keyboardType="numeric"
+                      value={value}
+                      onChangeText={onChange}
+                    />
+                  )}
+                />
+                {errors.peso && <Text style={styles.err}>{errors.peso.message}</Text>}
               </View>
             </View>
 
             <View style={styles.row}>
               <View style={styles.col}>
-                <Text style={styles.label}>Altura (cm)</Text>
-                <Controller control={control} name="height" render={({ field: { onChange, value } }) => (
-                  <TextInput style={styles.input} placeholder="Ex: 175" keyboardType="numeric" value={value} onChangeText={onChange} />
-                )} />
-                {errors.height && <Text style={styles.err}>{errors.height.message}</Text>}
+                <Text style={styles.label}>Altura (m)</Text>
+                <Controller
+                  control={control}
+                  name="altura"
+                  render={({ field: { onChange, value } }) => (
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Ex: 1.75"
+                      keyboardType="numeric"
+                      value={value}
+                      onChangeText={onChange}
+                    />
+                  )}
+                />
+                {errors.altura && <Text style={styles.err}>{errors.altura.message}</Text>}
               </View>
               <View style={styles.col}>
-                <Text style={styles.label}>Cintura (cm)</Text>
-                <Controller control={control} name="waist" render={({ field: { onChange, value } }) => (
-                  <TextInput style={styles.input} placeholder="Ex: 80" keyboardType="numeric" value={value} onChangeText={onChange} />
-                )} />
-                {errors.waist && <Text style={styles.err}>{errors.waist.message}</Text>}
+                <Text style={styles.label}>Circunferência (cm)</Text>
+                <Controller
+                  control={control}
+                  name="circunferencia"
+                  render={({ field: { onChange, value } }) => (
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Ex: 80"
+                      keyboardType="numeric"
+                      value={value}
+                      onChangeText={onChange}
+                    />
+                  )}
+                />
+                {errors.circunferencia && <Text style={styles.err}>{errors.circunferencia.message}</Text>}
               </View>
             </View>
 
-            <View style={styles.row}>
-              <View style={styles.col}>
-                <Text style={styles.label}>Quadril (cm)</Text>
-                <Controller control={control} name="hip" render={({ field: { onChange, value } }) => (
-                  <TextInput style={styles.input} placeholder="Ex: 95" keyboardType="numeric" value={value} onChangeText={onChange} />
-                )} />
-                {errors.hip && <Text style={styles.err}>{errors.hip.message}</Text>}
-              </View>
-              <View style={styles.col}>
-                <Text style={styles.label}>Braço (cm)</Text>
-                <Controller control={control} name="arm" render={({ field: { onChange, value } }) => (
-                  <TextInput style={styles.input} placeholder="Ex: 30" keyboardType="numeric" value={value} onChangeText={onChange} />
-                )} />
-                {errors.arm && <Text style={styles.err}>{errors.arm.message}</Text>}
-              </View>
-            </View>
+            <TouchableOpacity style={styles.saveBtn} onPress={handleSubmit(onSubmit)}>
+              <Icon name={editingId ? "check" : "plus"} size={16} color="#fff" style={{ marginRight: 8 }} />
+              <Text style={styles.saveTxt}>{editingId ? "Atualizar Medida" : "Salvar Medida"}</Text>
+            </TouchableOpacity>
 
-            <View style={styles.row}>
-              <View style={styles.col}>
-                <Text style={styles.label}>Perna (cm)</Text>
-                <Controller control={control} name="leg" render={({ field: { onChange, value } }) => (
-                  <TextInput style={styles.input} placeholder="Ex: 55" keyboardType="numeric" value={value} onChangeText={onChange} />
-                )} />
-                {errors.leg && <Text style={styles.err}>{errors.leg.message}</Text>}
-              </View>
-            </View>
-
-            <Text style={[styles.label, { marginTop: 6 }]}>Observações (opcional)</Text>
-            <Controller control={control} name="notes" render={({ field: { onChange, value } }) => (
-              <TextInput style={[styles.input, { height: 80 }]} placeholder="Ex: medida após treino" value={value} onChangeText={onChange} multiline />
-            )} />
-            <View style={[styles.col, { justifyContent: 'flex-end' }]}>
-              <TouchableOpacity style={styles.saveBtn} onPress={handleSubmit(onSubmit)}>
-                <Text style={styles.saveTxt}>{editingId ? "Atualizar" : "Salvar"}</Text>
+            {editingId && (
+              <TouchableOpacity
+                style={[styles.saveBtn, { backgroundColor: "#757575", marginTop: 8 }]}
+                onPress={() => {
+                  setEditingId(null);
+                  reset({ data: brToday(), peso: undefined, altura: undefined, circunferencia: undefined });
+                }}
+              >
+                <Text style={styles.saveTxt}>Cancelar Edição</Text>
               </TouchableOpacity>
-            </View>
+            )}
           </View>
 
           <View style={styles.list}>
-            <Text style={styles.sectionTitle}>Medidas registradas</Text>
-            {records.length === 0 ? <Text style={styles.empty}>Nenhuma medida.</Text> :
-              <FlatList data={records} keyExtractor={i => i.id} renderItem={renderItem} />
-            }
+            <Text style={styles.sectionTitle}>Histórico de Medidas</Text>
+            {records.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <Icon name="line-chart" size={48} color="#E0E0E0" />
+                <Text style={styles.empty}>Nenhuma medida registrada ainda.</Text>
+                <Text style={styles.emptySubtext}>Adicione sua primeira medida acima!</Text>
+              </View>
+            ) : (
+              <>
+                {records.map(item => (
+                  <View key={item.id}>
+                    {renderItem({ item })}
+                  </View>
+                ))}
+              </>
+            )}
           </View>
         </View>
       </ScrollView>
@@ -284,24 +338,138 @@ export default function GerenciarMedidas() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F2F6FA", paddingBottom: 24 },
-  introCard: { backgroundColor: "#fff", margin: 12, borderRadius: 10, padding: 12, elevation: 2, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 6 },
-  introTitle: { fontWeight: "700", color: "#1976D2", marginBottom: 6 },
-  introText: { color: "#444" },
-  formCard: { backgroundColor: "#fff", marginHorizontal: 12, borderRadius: 10, padding: 12, elevation: 3, shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 8 },
-  row: { flexDirection: "row", justifyContent: "space-between" },
-  col: { flex: 1, marginRight: 8 },
-  label: { fontSize: 12, color: "#666", marginBottom: 6, fontWeight: "600" },
-  input: { backgroundColor: "#fbfdff", padding: 10, borderRadius: 8, marginBottom: 6, borderWidth: 1, borderColor: "#e6eef7" },
-  saveBtn: { backgroundColor: "#1976D2", padding: 12, borderRadius: 8, alignItems: "center" },
-  saveTxt: { color: "#fff", fontWeight: "700" },
-  list: { flex: 1, padding: 12 },
-  sectionTitle: { fontWeight: "700", color: "#1976D2", marginBottom: 8 },
-  empty: { color: "#666" },
-  record: { flexDirection: "row", backgroundColor: "#fff", padding: 10, borderRadius: 8, marginBottom: 8, alignItems: "center", elevation: 1 },
-  recordDate: { fontWeight: "700" },
-  recordText: { color: "#666" },
-  recordActions: { flexDirection: "row" },
-  smallBtn: { padding: 6 },
-  err: { color: "red", marginBottom: 6 }
+  container: {
+    flex: 1,
+    backgroundColor: "#F2F6FA",
+    paddingBottom: 24
+  },
+  introCard: {
+    backgroundColor: "#fff",
+    margin: 12,
+    borderRadius: 10,
+    padding: 16,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowRadius: 6
+  },
+  introTitle: {
+    fontWeight: "700",
+    color: "#1976D2",
+    fontSize: 16,
+    marginBottom: 6
+  },
+  introText: {
+    color: "#666",
+    fontSize: 14
+  },
+  formCard: {
+    backgroundColor: "#fff",
+    marginHorizontal: 12,
+    borderRadius: 10,
+    padding: 16,
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    marginBottom: 16
+  },
+  row: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 12
+  },
+  col: {
+    flex: 1,
+    marginRight: 8
+  },
+  label: {
+    fontSize: 13,
+    color: "#666",
+    marginBottom: 6,
+    fontWeight: "600"
+  },
+  input: {
+    backgroundColor: "#F8FAFB",
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#E0E7EE",
+    fontSize: 14
+  },
+  saveBtn: {
+    backgroundColor: "#1976D2",
+    padding: 14,
+    borderRadius: 8,
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "center",
+    marginTop: 8
+  },
+  saveTxt: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 15
+  },
+  list: {
+    flex: 1,
+    padding: 12
+  },
+  sectionTitle: {
+    fontWeight: "700",
+    color: "#1976D2",
+    fontSize: 16,
+    marginBottom: 12
+  },
+  emptyContainer: {
+    alignItems: "center",
+    paddingVertical: 32
+  },
+  empty: {
+    color: "#666",
+    marginTop: 12,
+    fontSize: 14,
+    fontWeight: "600"
+  },
+  emptySubtext: {
+    color: "#999",
+    fontSize: 12,
+    marginTop: 4,
+    fontStyle: "italic"
+  },
+  record: {
+    flexDirection: "row",
+    backgroundColor: "#fff",
+    padding: 14,
+    borderRadius: 10,
+    marginBottom: 10,
+    alignItems: "center",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOpacity: 0.04,
+    shadowRadius: 4
+  },
+  recordDate: {
+    fontWeight: "700",
+    color: "#1976D2",
+    fontSize: 14,
+    marginBottom: 4
+  },
+  recordText: {
+    color: "#666",
+    fontSize: 13
+  },
+  recordActions: {
+    flexDirection: "row"
+  },
+  smallBtn: {
+    padding: 8,
+    backgroundColor: "#F5F9FC",
+    borderRadius: 6
+  },
+  err: {
+    color: "#D32F2F",
+    fontSize: 11,
+    marginTop: 4
+  }
 });
