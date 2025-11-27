@@ -61,7 +61,7 @@ async function setup() {
   console.log(`${colors.reset}`);
 
   console.log(`${colors.cyan}\n[1/7] Preparando ambiente de teste...${colors.reset}`);
-  
+
   // Buscar paciente de teste
   const patients = await pool.query('SELECT id FROM patient LIMIT 1');
   if (patients.rows.length > 0) {
@@ -375,13 +375,13 @@ async function testViews() {
 
 async function cleanup() {
   console.log(`${colors.cyan}\n[7/7] Limpando dados de teste...${colors.reset}`);
-  
+
   // Limpar refeições de teste
   await pool.query(
     'DELETE FROM mealrecord WHERE patient_id = $1',
     [testPatientId]
   );
-  
+
   console.log(`${colors.green}✓ Dados de teste removidos${colors.reset}`);
 }
 
@@ -393,7 +393,7 @@ async function showSummary() {
   console.log(`${colors.green}Testes passaram: ${testResults.passed}${colors.reset}`);
   console.log(`${colors.red}Testes falharam: ${testResults.failed}${colors.reset}`);
   console.log('\n==================================================');
-  
+
   if (testResults.failed === 0) {
     console.log(`${colors.green}✅ TODOS OS TESTES PASSARAM!${colors.reset}`);
     console.log(`${colors.green}Sistema de auditoria funcionando corretamente${colors.reset}`);
@@ -401,7 +401,7 @@ async function showSummary() {
     console.log(`${colors.red}⚠️ ALGUNS TESTES FALHARAM${colors.reset}`);
     console.log(`${colors.red}Verifique as implementações acima${colors.reset}`);
   }
-  
+
   console.log('==================================================\n');
 }
 
