@@ -5,6 +5,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import React, { useEffect, useState } from 'react';
 
 import Login from './src/screens/login/login';
+import ForgotPasswordScreen from './src/screens/login/ForgotPasswordScreen';
 import RegisterScreen from './src/screens/cadastro/register';
 import HomeScreen from './src/screens/home/home';
 import NutricionistHomeScreen from './src/screens/home/NutricionistHome';
@@ -28,6 +29,7 @@ import { UserProvider } from './src/context/UserContext';
 
 export type RootStackParamList = {
   Login: undefined;
+  ForgotPassword: undefined;
   Register: undefined;
   Home: undefined;
   NutricionistHome: undefined;
@@ -103,6 +105,7 @@ export default function App() {
           screenOptions={{ headerShown: false }}
         >
           <Stack.Screen name="Login" component={Login} />
+          <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
           <Stack.Screen name="ContaUsuario" component={ContaUsuario} />
           <Stack.Screen name="ConnectionCode" component={ConnectionCodeScreen} />
           <Stack.Screen name="Register" component={RegisterScreen} />

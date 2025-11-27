@@ -15,12 +15,21 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import * as ImagePicker from 'expo-image-picker';
 import { useUser } from '../../context/UserContext';
 import { authService, requestReauth, verifyReauth, updateEmailWithReauth } from '../../services/authService';
+import { changePassword } from '../../services/passwordResetService';
 import Header from '../../components/Header';
 import { API_CONFIG } from '../../config/api';
 import { patientService } from '../../services/PatientService';
 import { nutricionistService } from '../../services/NutricionistService';
 import { physicalEducatorService } from '../../services/PhysicalEducatorService';
 import PatientProfessionalAssociationService, { PatientProfessionalAssociation } from '../../services/PatientProfessionalAssociationService';
+
+// Componente auxiliar para exibir requisitos de senha
+const PasswordRequirement: React.FC<{ met: boolean; text: string }> = ({ met, text }) => (
+    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+        <Icon name={met ? 'check-circle' : 'circle-outline'} size={16} color={met ? '#4CAF50' : '#CCC'} />
+        <Text style={{ marginLeft: 8, fontSize: 13, color: met ? '#4CAF50' : '#666' }}>{text}</Text>
+    </View>
+);
 
 const ContaUsuario: React.FC<{ navigation: any }> = ({ navigation }) => {
     const { user, loading, refreshUser } = useUser();
@@ -34,12 +43,24 @@ const ContaUsuario: React.FC<{ navigation: any }> = ({ navigation }) => {
     const [selectedImage, setSelectedImage] = useState<any>(null);
     const [professionals, setProfessionals] = useState<PatientProfessionalAssociation | null>(null);
 
-    // estados para reauth flow
+    // estados para reauth flow (email)
     const [reauthAuthId, setReauthAuthId] = useState<string | null>(null);
     const [reauthStep, setReauthStep] = useState<"idle" | "sent" | "verify">("idle");
     const [currentPassword, setCurrentPassword] = useState(''); // para solicitar senha atual
     const [reauthCode, setReauthCode] = useState('');
     const [reauthLoading, setReauthLoading] = useState(false);
+
+    // estados para alteração de senha
+    const [showPasswordModal, setShowPasswordModal] = useState(false);
+    const [oldPassword, setOldPassword] = useState('');
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmNewPassword, setConfirmNewPassword] = useState('');
+    const [passwordError, setPasswordError] = useState<string | null>(null);
+    const [passwordLoading, setPasswordLoading] = useState(false);
+    const [hideOldPassword, setHideOldPassword] = useState(true);
+    const [hideNewPassword, setHideNewPassword] = useState(true);
+    const [hideConfirmPassword, setHideConfirmPassword] = useState(true);
+    const [successMessage, setSuccessMessage] = useState<string>('');
 
     // Buscar profissionais associados ao paciente
     useEffect(() => {
@@ -138,6 +159,9 @@ const ContaUsuario: React.FC<{ navigation: any }> = ({ navigation }) => {
             await updateEmailWithReauth(reauthAuthId, newEmail, reauthToken, accessToken || undefined);
             if (refreshUser) await refreshUser();
             setShowEmailModal(false);
+            
+            // Mostra mensagem de sucesso
+            setSuccessMessage('Email alterado com sucesso!');
             setShowSuccessModal(true);
             // log already handled server-side
         } catch (err: any) {
@@ -187,6 +211,84 @@ const ContaUsuario: React.FC<{ navigation: any }> = ({ navigation }) => {
             // ignore
         } finally {
             navigation.replace('Login');
+        }
+    };
+
+    // Funções para alteração de senha
+    const validatePassword = (password: string) => {
+        const minLength = password.length >= 8;
+        const hasUpperCase = /[A-Z]/.test(password);
+        const hasLowerCase = /[a-z]/.test(password);
+        const hasNumber = /\d/.test(password);
+        const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+        return {
+            isValid: minLength && hasUpperCase && hasLowerCase && hasNumber && hasSpecialChar,
+            minLength,
+            hasUpperCase,
+            hasLowerCase,
+            hasNumber,
+            hasSpecialChar,
+        };
+    };
+
+    const handleOpenPasswordModal = () => {
+        setOldPassword('');
+        setNewPassword('');
+        setConfirmNewPassword('');
+        setPasswordError(null);
+        setShowPasswordModal(true);
+    };
+
+    const handleChangePassword = async () => {
+        // Validações
+        if (!oldPassword) {
+            setPasswordError('Digite sua senha atual');
+            return;
+        }
+
+        const validation = validatePassword(newPassword);
+        if (!validation.isValid) {
+            setPasswordError('A nova senha não atende aos requisitos de segurança');
+            return;
+        }
+
+        if (newPassword !== confirmNewPassword) {
+            setPasswordError('As senhas não coincidem');
+            return;
+        }
+
+        if (oldPassword === newPassword) {
+            setPasswordError('A nova senha deve ser diferente da senha atual');
+            return;
+        }
+
+        setPasswordLoading(true);
+        setPasswordError(null);
+
+        try {
+            const accessToken = await authService.getAccessToken?.();
+            if (!accessToken) {
+                throw new Error('Token de acesso não encontrado');
+            }
+
+            await changePassword(oldPassword, newPassword, accessToken);
+            
+            setShowPasswordModal(false);
+            
+            // Limpa os campos
+            setOldPassword('');
+            setNewPassword('');
+            setConfirmNewPassword('');
+            
+            // Mostra mensagem de sucesso
+            setSuccessMessage('Senha alterada com sucesso!');
+            setShowSuccessModal(true);
+        } catch (err: any) {
+            const message = err?.response?.data?.message || err.message || 'Erro ao alterar senha';
+            setPasswordError(message);
+        } finally {
+            setPasswordLoading(false);
         }
     };
 
@@ -280,6 +382,22 @@ const ContaUsuario: React.FC<{ navigation: any }> = ({ navigation }) => {
                                 <Text style={styles.rowValue}>{user.birthdate ? new Date(user.birthdate).toLocaleDateString('pt-BR') : '—'}</Text>
                             </View>
                         </View>
+                    </View>
+
+                    {/* Seção de Segurança */}
+                    <View style={styles.infoSection}>
+                        <Text style={styles.sectionTitle}>Segurança</Text>
+                        
+                        <TouchableOpacity style={styles.passwordButton} onPress={handleOpenPasswordModal}>
+                            <View style={styles.row}>
+                                <Icon name="lock-outline" size={18} color="#1976D2" style={styles.rowIcon} />
+                                <View style={styles.rowContent}>
+                                    <Text style={styles.rowLabel}>Senha</Text>
+                                    <Text style={styles.rowValue}>••••••••</Text>
+                                </View>
+                                <Icon name="chevron-right" size={20} color="#1976D2" />
+                            </View>
+                        </TouchableOpacity>
                     </View>
 
                     {/* Seção de Profissionais - Apenas para Pacientes */}
@@ -462,18 +580,151 @@ const ContaUsuario: React.FC<{ navigation: any }> = ({ navigation }) => {
                     </View>
                 )}
 
-                {/* Modal de sucesso ao salvar email */}
+                {/* Modal de sucesso */}
                 {showSuccessModal && (
                     <View style={styles.modalOverlay}>
                         <View style={styles.modalContent}>
-                            <Text style={styles.modalTitle}>Email salvo com sucesso!</Text>
+                            <Icon name="check-circle" size={64} color="#4CAF50" style={{ marginBottom: 16 }} />
+                            <Text style={styles.modalTitle}>
+                                {successMessage}
+                            </Text>
                             <TouchableOpacity
                                 style={[styles.modalButton, { marginTop: 15 }]}
-                                onPress={() => setShowSuccessModal(false)}
+                                onPress={() => {
+                                    setShowSuccessModal(false);
+                                    setSuccessMessage('');
+                                }}
                             >
                                 <Text style={styles.modalButtonText}>OK</Text>
                             </TouchableOpacity>
                         </View>
+                    </View>
+                )}
+
+                {/* Modal para alteração de senha */}
+                {showPasswordModal && (
+                    <View style={styles.modalOverlay}>
+                        <KeyboardAvoidingView
+                            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                            style={{ flex: 1, width: '100%', justifyContent: 'center', alignItems: 'center' }}
+                        >
+                            <ScrollView 
+                                contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 20 }}
+                                keyboardShouldPersistTaps="handled"
+                                showsVerticalScrollIndicator={false}
+                                style={{ width: '100%' }}
+                            >
+                                <View style={styles.modalContent}>
+                                <Text style={styles.modalTitle}>Alterar Senha</Text>
+
+                                {/* Senha Atual */}
+                                <View style={styles.passwordInputContainer}>
+                                    <TextInput
+                                        style={styles.passwordInput}
+                                        value={oldPassword}
+                                        onChangeText={setOldPassword}
+                                        editable={!passwordLoading}
+                                        secureTextEntry={hideOldPassword}
+                                        placeholder="Senha atual"
+                                        placeholderTextColor="#999"
+                                    />
+                                    <TouchableOpacity onPress={() => setHideOldPassword(!hideOldPassword)}>
+                                        <Icon name={hideOldPassword ? 'eye-off' : 'eye'} size={20} color="#666" />
+                                    </TouchableOpacity>
+                                </View>
+
+                                {/* Nova Senha */}
+                                <View style={styles.passwordInputContainer}>
+                                    <TextInput
+                                        style={styles.passwordInput}
+                                        value={newPassword}
+                                        onChangeText={setNewPassword}
+                                        editable={!passwordLoading}
+                                        secureTextEntry={hideNewPassword}
+                                        placeholder="Nova senha"
+                                        placeholderTextColor="#999"
+                                    />
+                                    <TouchableOpacity onPress={() => setHideNewPassword(!hideNewPassword)}>
+                                        <Icon name={hideNewPassword ? 'eye-off' : 'eye'} size={20} color="#666" />
+                                    </TouchableOpacity>
+                                </View>
+
+                                {/* Requisitos da senha */}
+                                {newPassword.length > 0 && (
+                                    <View style={styles.requirementsBox}>
+                                        <Text style={styles.requirementsTitle}>Requisitos da senha:</Text>
+                                        <PasswordRequirement 
+                                            met={validatePassword(newPassword).minLength} 
+                                            text="Mínimo de 8 caracteres" 
+                                        />
+                                        <PasswordRequirement 
+                                            met={validatePassword(newPassword).hasUpperCase} 
+                                            text="Pelo menos 1 letra maiúscula" 
+                                        />
+                                        <PasswordRequirement 
+                                            met={validatePassword(newPassword).hasLowerCase} 
+                                            text="Pelo menos 1 letra minúscula" 
+                                        />
+                                        <PasswordRequirement 
+                                            met={validatePassword(newPassword).hasNumber} 
+                                            text="Pelo menos 1 número" 
+                                        />
+                                        <PasswordRequirement 
+                                            met={validatePassword(newPassword).hasSpecialChar} 
+                                            text="Pelo menos 1 caractere especial" 
+                                        />
+                                    </View>
+                                )}
+
+                                {/* Confirmar Nova Senha */}
+                                <View style={styles.passwordInputContainer}>
+                                    <TextInput
+                                        style={styles.passwordInput}
+                                        value={confirmNewPassword}
+                                        onChangeText={setConfirmNewPassword}
+                                        editable={!passwordLoading}
+                                        secureTextEntry={hideConfirmPassword}
+                                        placeholder="Confirmar nova senha"
+                                        placeholderTextColor="#999"
+                                    />
+                                    <TouchableOpacity onPress={() => setHideConfirmPassword(!hideConfirmPassword)}>
+                                        <Icon name={hideConfirmPassword ? 'eye-off' : 'eye'} size={20} color="#666" />
+                                    </TouchableOpacity>
+                                </View>
+
+                                {passwordError && (
+                                    <Text style={{ color: '#D32F2F', marginBottom: 8, fontSize: 13 }}>
+                                        {passwordError}
+                                    </Text>
+                                )}
+
+                                <View style={styles.modalActions}>
+                                    <TouchableOpacity
+                                        style={[styles.modalButton, passwordLoading && styles.buttonDisabled]}
+                                        onPress={handleChangePassword}
+                                        disabled={passwordLoading}
+                                    >
+                                        <Text style={styles.modalButtonText}>
+                                            {passwordLoading ? 'Alterando...' : 'Alterar Senha'}
+                                        </Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        style={[styles.modalButton, { backgroundColor: '#D32F2F' }]}
+                                        onPress={() => {
+                                            setShowPasswordModal(false);
+                                            setOldPassword('');
+                                            setNewPassword('');
+                                            setConfirmNewPassword('');
+                                            setPasswordError(null);
+                                        }}
+                                        disabled={passwordLoading}
+                                    >
+                                        <Text style={styles.modalButtonText}>Cancelar</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        </ScrollView>
+                        </KeyboardAvoidingView>
                     </View>
                 )}
             </KeyboardAvoidingView>
@@ -641,7 +892,7 @@ const styles = StyleSheet.create({
         padding: 20,
         elevation: 10,
         alignItems: 'center',
-        width: '80%',
+        width: '90%',
     },
     modalTitle: { fontSize: 18, fontWeight: '700', marginBottom: 10, color: '#1976D2' },
     input: {
@@ -751,6 +1002,41 @@ const styles = StyleSheet.create({
         marginTop: 12,
         color: '#999',
         fontSize: 15,
+    },
+    passwordButton: {
+        borderRadius: 8,
+    },
+    passwordInputContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#E6EEF7',
+        borderRadius: 8,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        backgroundColor: '#FBFDFF',
+        marginBottom: 12,
+        width: '100%',
+    },
+    passwordInput: {
+        flex: 1,
+        fontSize: 15,
+        color: '#333',
+    },
+    requirementsBox: {
+        backgroundColor: '#F9FAFB',
+        borderRadius: 8,
+        padding: 12,
+        marginBottom: 12,
+        borderWidth: 1,
+        borderColor: '#E0E0E0',
+        width: '100%',
+    },
+    requirementsTitle: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#666',
+        marginBottom: 8,
     },
 });
 

@@ -36,10 +36,26 @@ const MeasuresProgressWidget: React.FC<MeasuresProgressWidgetProps> = ({ userId:
             console.log('[MeasuresProgressWidget] Carregando medidas para patient_id:', user.id);
             const data = await MeasurementsService.list(user.id);
             console.log('[MeasuresProgressWidget] Dados recebidos:', data);
-            console.log('[MeasuresProgressWidget] Total de registros:', data.length);
+            console.log('[MeasuresProgressWidget] Tipo de dados:', typeof data, Array.isArray(data));
+            
+            // Garantir que data é um array
+            let measuresArray: MeasureRecord[] = [];
+            
+            if (Array.isArray(data)) {
+                measuresArray = data;
+            } else if (data && typeof data === 'object') {
+                // Se vier como objeto, tentar extrair o array de uma propriedade comum
+                measuresArray = (data as any).data || (data as any).measures || (data as any).records || [];
+                console.log('[MeasuresProgressWidget] Dados extraídos de objeto:', measuresArray);
+            } else {
+                console.warn('[MeasuresProgressWidget] Formato de dados inesperado, usando array vazio');
+                measuresArray = [];
+            }
+            
+            console.log('[MeasuresProgressWidget] Total de registros:', measuresArray.length);
             
             // Ordena por data (mais antigo primeiro) e pega os últimos 7 registros
-            const sorted = data.sort((a, b) => {
+            const sorted = measuresArray.sort((a, b) => {
                 const dateA = a.data ? new Date(a.data).getTime() : 0;
                 const dateB = b.data ? new Date(b.data).getTime() : 0;
                 return dateA - dateB;
@@ -49,6 +65,7 @@ const MeasuresProgressWidget: React.FC<MeasuresProgressWidgetProps> = ({ userId:
             setRecords(sorted);
         } catch (err) {
             console.error('[MeasuresProgressWidget] Erro ao carregar medidas:', err);
+            setRecords([]); // Garantir que records seja sempre um array
         } finally {
             setLoading(false);
         }
@@ -95,8 +112,15 @@ const MeasuresProgressWidget: React.FC<MeasuresProgressWidgetProps> = ({ userId:
     
     const labels = records.map(r => {
         if (!r.data) return '';
-        const d = new Date(r.data);
-        return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}`;
+        try {
+            // Garantir que a data seja interpretada corretamente
+            const dateStr = r.data.includes('T') ? r.data.split('T')[0] : r.data;
+            const [year, month, day] = dateStr.split('-');
+            return `${day}/${month}`;
+        } catch (err) {
+            console.error('[MeasuresProgressWidget] Erro ao formatar data:', r.data, err);
+            return '';
+        }
     });
     console.log('[MeasuresProgressWidget] labels:', labels);
 

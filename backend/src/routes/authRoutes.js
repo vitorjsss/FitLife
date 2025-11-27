@@ -17,4 +17,12 @@ router.post("/reauth/verify", AuthController.verifyReauth);
 router.post("/update-email", authenticateToken, AuthController.updateEmail);
 router.post("/update-password", authenticateToken, AuthController.updatePassword);
 
+// Password reset routes (public - sem autenticação)
+router.post("/request-password-reset", AuthController.requestPasswordReset);
+router.post("/verify-password-reset-code", AuthController.verifyPasswordResetCode);
+router.post("/reset-password", AuthController.resetPassword);
+
+// Change password route (authenticated)
+router.post("/change-password", authenticateToken, AuthController.changePassword);
+
 export default router;

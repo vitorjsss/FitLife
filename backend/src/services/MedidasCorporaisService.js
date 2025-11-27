@@ -15,23 +15,32 @@ class MedidasCorporaisService {
             const medida = await MedidasCorporaisRepository.create(medidasData);
 
             // Log da ação
-            await LogService.log({
-                action: 'CREATE_MEDIDA_CORPORAL',
-                log_type: 'MEDIDA',
-                description: `Medida corporal criada para paciente ${medidasData.patient_id}`,
-                user_id: userId,
-                new_value: JSON.stringify(medida)
-            });
+            try {
+                await LogService.createLog({
+                    action: 'CREATE_MEDIDA_CORPORAL',
+                    log_type: 'MEDIDA',
+                    description: `Medida corporal criada para paciente ${medidasData.patient_id}`,
+                    user_id: userId,
+                    newValue: JSON.stringify(medida)
+                });
+            } catch (logError) {
+                console.error('Erro ao criar log:', logError);
+                // Não propagar o erro de log
+            }
 
             return medida;
         } catch (error) {
-            await LogService.log({
-                action: 'CREATE_MEDIDA_CORPORAL_ERROR',
-                log_type: 'ERROR',
-                description: `Erro ao criar medida corporal: ${error.message}`,
-                user_id: userId,
-                status: 'ERROR'
-            });
+            try {
+                await LogService.createLog({
+                    action: 'CREATE_MEDIDA_CORPORAL_ERROR',
+                    log_type: 'ERROR',
+                    description: `Erro ao criar medida corporal: ${error.message}`,
+                    user_id: userId,
+                    status: 'ERROR'
+                });
+            } catch (logError) {
+                console.error('Erro ao criar log de erro:', logError);
+            }
             throw error;
         }
     }
@@ -110,24 +119,32 @@ class MedidasCorporaisService {
             const medidaAtualizada = await MedidasCorporaisRepository.update(id, medidasData);
 
             // Log da ação
-            await LogService.log({
-                action: 'UPDATE_MEDIDA_CORPORAL',
-                log_type: 'MEDIDA',
-                description: `Medida corporal ${id} atualizada`,
-                user_id: userId,
-                old_value: JSON.stringify(medidaAntiga),
-                new_value: JSON.stringify(medidaAtualizada)
-            });
+            try {
+                await LogService.createLog({
+                    action: 'UPDATE_MEDIDA_CORPORAL',
+                    log_type: 'MEDIDA',
+                    description: `Medida corporal ${id} atualizada`,
+                    user_id: userId,
+                    oldValue: JSON.stringify(medidaAntiga),
+                    newValue: JSON.stringify(medidaAtualizada)
+                });
+            } catch (logError) {
+                console.error('Erro ao criar log:', logError);
+            }
 
             return medidaAtualizada;
         } catch (error) {
-            await LogService.log({
-                action: 'UPDATE_MEDIDA_CORPORAL_ERROR',
-                log_type: 'ERROR',
-                description: `Erro ao atualizar medida corporal: ${error.message}`,
-                user_id: userId,
-                status: 'ERROR'
-            });
+            try {
+                await LogService.createLog({
+                    action: 'UPDATE_MEDIDA_CORPORAL_ERROR',
+                    log_type: 'ERROR',
+                    description: `Erro ao atualizar medida corporal: ${error.message}`,
+                    user_id: userId,
+                    status: 'ERROR'
+                });
+            } catch (logError) {
+                console.error('Erro ao criar log de erro:', logError);
+            }
             throw error;
         }
     }
@@ -146,23 +163,31 @@ class MedidasCorporaisService {
             const medidaDeletada = await MedidasCorporaisRepository.delete(id);
 
             // Log da ação
-            await LogService.log({
-                action: 'DELETE_MEDIDA_CORPORAL',
-                log_type: 'MEDIDA',
-                description: `Medida corporal ${id} deletada`,
-                user_id: userId,
-                old_value: JSON.stringify(medida)
-            });
+            try {
+                await LogService.createLog({
+                    action: 'DELETE_MEDIDA_CORPORAL',
+                    log_type: 'MEDIDA',
+                    description: `Medida corporal ${id} deletada`,
+                    user_id: userId,
+                    oldValue: JSON.stringify(medida)
+                });
+            } catch (logError) {
+                console.error('Erro ao criar log:', logError);
+            }
 
             return medidaDeletada;
         } catch (error) {
-            await LogService.log({
-                action: 'DELETE_MEDIDA_CORPORAL_ERROR',
-                log_type: 'ERROR',
-                description: `Erro ao deletar medida corporal: ${error.message}`,
-                user_id: userId,
-                status: 'ERROR'
-            });
+            try {
+                await LogService.createLog({
+                    action: 'DELETE_MEDIDA_CORPORAL_ERROR',
+                    log_type: 'ERROR',
+                    description: `Erro ao deletar medida corporal: ${error.message}`,
+                    user_id: userId,
+                    status: 'ERROR'
+                });
+            } catch (logError) {
+                console.error('Erro ao criar log de erro:', logError);
+            }
             throw error;
         }
     }

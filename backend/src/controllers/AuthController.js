@@ -1,4 +1,5 @@
 import { AuthService } from "../services/AuthService.js";
+import { AuthRepository } from "../repositories/AuthRepository.js";
 import { LogService } from "../services/LogService.js";
 
 export const AuthController = {
@@ -378,6 +379,259 @@ export const AuthController = {
         userId: authId
       });
       res.status(400).json({ message: err.message });
+    }
+  },
+
+  // Recuperação de senha - Solicitar código
+  requestPasswordReset: async (req, res) => {
+    const { email } = req.body;
+    const ip = req.ip;
+
+    if (!email) {
+      return res.status(400).json({ message: "Email é obrigatório" });
+    }
+
+    try {
+      const user = await AuthRepository.findByEmail(email.toLowerCase());
+      
+      if (!user) {
+        // Por segurança, não revelamos se o email existe ou não
+        return res.json({ 
+          message: "Se o email existir, um código será enviado",
+          authId: 0 
+        });
+      }
+
+      // Gera código 2FA
+      const authId = user.id;
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutos
+
+      await AuthService.save2FACode(authId, code, expiresAt);
+
+      // Envia email com código
+      await AuthService.sendEmail(
+        email,
+        "Recuperação de Senha - FitLife",
+        `Seu código de recuperação de senha é: ${code}\n\nEste código expira em 15 minutos.\n\nSe você não solicitou esta recuperação, ignore este email.`
+      );
+
+      await LogService.createLog({
+        action: "PASSWORD_RESET_REQUEST",
+        logType: "ACCESS",
+        description: `Solicitação de recuperação de senha para: ${email}`,
+        ip,
+        oldValue: null,
+        newValue: null,
+        status: "SUCCESS",
+        userId: authId
+      });
+
+      res.json({ 
+        message: "Código de recuperação enviado",
+        authId 
+      });
+    } catch (err) {
+      console.error("[PASSWORD_RESET_REQUEST] Erro:", err);
+      await LogService.createLog({
+        action: "PASSWORD_RESET_REQUEST",
+        logType: "ERROR",
+        description: `Erro ao solicitar recuperação de senha: ${err.message}`,
+        ip,
+        oldValue: null,
+        newValue: email,
+        status: "FAILURE",
+        userId: null
+      });
+      res.status(500).json({ message: "Erro ao processar solicitação" });
+    }
+  },
+
+  // Recuperação de senha - Verificar código
+  verifyPasswordResetCode: async (req, res) => {
+    const { authId, code } = req.body;
+    const ip = req.ip;
+
+    if (!authId || !code) {
+      return res.status(400).json({ message: "authId e código são obrigatórios" });
+    }
+
+    try {
+      const isValid = await AuthService.verify2FACode(authId, code);
+      
+      if (!isValid) {
+        await LogService.createLog({
+          action: "PASSWORD_RESET_VERIFY",
+          logType: "ERROR",
+          description: `Código inválido ou expirado para authId: ${authId}`,
+          ip,
+          oldValue: null,
+          newValue: null,
+          status: "FAILURE",
+          userId: authId
+        });
+        return res.status(400).json({ message: "Código inválido ou expirado" });
+      }
+
+      await LogService.createLog({
+        action: "PASSWORD_RESET_VERIFY",
+        logType: "ACCESS",
+        description: `Código verificado com sucesso para authId: ${authId}`,
+        ip,
+        oldValue: null,
+        newValue: null,
+        status: "SUCCESS",
+        userId: authId
+      });
+
+      res.json({ message: "Código verificado com sucesso" });
+    } catch (err) {
+      console.error("[PASSWORD_RESET_VERIFY] Erro:", err);
+      res.status(500).json({ message: "Erro ao verificar código" });
+    }
+  },
+
+  // Recuperação de senha - Redefinir senha
+  resetPassword: async (req, res) => {
+    const { authId, code, newPassword } = req.body;
+    const ip = req.ip;
+
+    if (!authId || !code || !newPassword) {
+      return res.status(400).json({ message: "Todos os campos são obrigatórios" });
+    }
+
+    // Valida força da senha
+    const strong = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/.test(newPassword);
+    if (!strong) {
+      return res.status(400).json({ 
+        message: "Senha não atende aos requisitos de segurança" 
+      });
+    }
+
+    try {
+      // Verifica código novamente antes de redefinir
+      const isValid = await AuthService.verify2FACode(authId, code);
+      
+      if (!isValid) {
+        return res.status(400).json({ message: "Código inválido ou expirado" });
+      }
+
+      // Atualiza senha
+      await AuthService.updatePassword(authId, newPassword);
+      
+      // Remove código 2FA usado
+      await AuthService.clear2FACode(authId);
+
+      await LogService.createLog({
+        action: "PASSWORD_RESET",
+        logType: "ACCESS",
+        description: `Senha redefinida com sucesso para authId: ${authId}`,
+        ip,
+        oldValue: null,
+        newValue: null,
+        status: "SUCCESS",
+        userId: authId
+      });
+
+      res.json({ message: "Senha redefinida com sucesso" });
+    } catch (err) {
+      console.error("[PASSWORD_RESET] Erro:", err);
+      await LogService.createLog({
+        action: "PASSWORD_RESET",
+        logType: "ERROR",
+        description: `Erro ao redefinir senha para authId ${authId}: ${err.message}`,
+        ip,
+        oldValue: null,
+        newValue: null,
+        status: "FAILURE",
+        userId: authId
+      });
+      res.status(500).json({ message: "Erro ao redefinir senha" });
+    }
+  },
+
+  // Alteração de senha (usuário autenticado)
+  changePassword: async (req, res) => {
+    const { currentPassword, newPassword } = req.body;
+    const userId = req.user?.id; // Vem do middleware de autenticação
+    const ip = req.ip;
+
+    if (!userId) {
+      return res.status(401).json({ message: "Usuário não autenticado" });
+    }
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: "Todos os campos são obrigatórios" });
+    }
+
+    // Valida força da nova senha
+    const strong = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/.test(newPassword);
+    if (!strong) {
+      return res.status(400).json({ 
+        message: "Senha não atende aos requisitos de segurança" 
+      });
+    }
+
+    if (currentPassword === newPassword) {
+      return res.status(400).json({ 
+        message: "A nova senha deve ser diferente da senha atual" 
+      });
+    }
+
+    try {
+      // Busca usuário
+      const user = await AuthService.findById(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "Usuário não encontrado" });
+      }
+
+      // Verifica senha atual
+      const bcrypt = await import('bcrypt');
+      const isValidPassword = await bcrypt.compare(currentPassword, user.password);
+      
+      if (!isValidPassword) {
+        await LogService.createLog({
+          action: "CHANGE_PASSWORD",
+          logType: "ERROR",
+          description: `Tentativa de alteração de senha falhou: senha atual incorreta`,
+          ip,
+          oldValue: null,
+          newValue: null,
+          status: "FAILURE",
+          userId
+        });
+        return res.status(400).json({ message: "Senha atual incorreta" });
+      }
+
+      // Atualiza senha
+      await AuthService.updatePassword(userId, newPassword);
+
+      await LogService.createLog({
+        action: "CHANGE_PASSWORD",
+        logType: "ACCESS",
+        description: `Senha alterada com sucesso`,
+        ip,
+        oldValue: null,
+        newValue: null,
+        status: "SUCCESS",
+        userId
+      });
+
+      res.json({ message: "Senha alterada com sucesso" });
+    } catch (err) {
+      console.error("[CHANGE_PASSWORD] Erro:", err);
+      await LogService.createLog({
+        action: "CHANGE_PASSWORD",
+        logType: "ERROR",
+        description: `Erro ao alterar senha: ${err.message}`,
+        ip,
+        oldValue: null,
+        newValue: null,
+        status: "FAILURE",
+        userId
+      });
+      res.status(500).json({ message: "Erro ao alterar senha" });
     }
   }
 };

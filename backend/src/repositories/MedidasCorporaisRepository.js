@@ -5,16 +5,29 @@ class MedidasCorporaisRepository {
      * Criar nova medida corporal
      */
     async create(medidasData) {
-        const { patient_id, data, peso, altura, imc, circunferencia } = medidasData;
+        const { 
+            patient_id, data, peso, altura, imc, circunferencia,
+            waist_circumference, hip_circumference, arm_circumference,
+            thigh_circumference, calf_circumference,
+            body_fat_percentage, muscle_mass, bone_mass
+        } = medidasData;
         
         const query = `
             INSERT INTO medidas_corporais 
-            (patient_id, data, peso, altura, imc, circunferencia)
-            VALUES ($1, $2, $3, $4, $5, $6)
+            (patient_id, data, peso, altura, imc, circunferencia,
+             waist_circumference, hip_circumference, arm_circumference,
+             thigh_circumference, calf_circumference,
+             body_fat_percentage, muscle_mass, bone_mass)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
             RETURNING *
         `;
         
-        const values = [patient_id, data, peso, altura, imc, circunferencia];
+        const values = [
+            patient_id, data, peso, altura, imc, circunferencia,
+            waist_circumference, hip_circumference, arm_circumference,
+            thigh_circumference, calf_circumference,
+            body_fat_percentage, muscle_mass, bone_mass
+        ];
         const result = await pool.query(query, values);
         return result.rows[0];
     }
@@ -76,17 +89,33 @@ class MedidasCorporaisRepository {
      * Atualizar medida corporal
      */
     async update(id, medidasData) {
-        const { data, peso, altura, imc, circunferencia } = medidasData;
+        const { 
+            data, peso, altura, imc, circunferencia,
+            waist_circumference, hip_circumference, arm_circumference,
+            thigh_circumference, calf_circumference,
+            body_fat_percentage, muscle_mass, bone_mass
+        } = medidasData;
         
         const query = `
             UPDATE medidas_corporais
             SET data = $1, peso = $2, altura = $3, imc = $4, 
-                circunferencia = $5, updated_at = NOW()
-            WHERE id = $6
+                circunferencia = $5,
+                waist_circumference = $6, hip_circumference = $7,
+                arm_circumference = $8, thigh_circumference = $9,
+                calf_circumference = $10, body_fat_percentage = $11,
+                muscle_mass = $12, bone_mass = $13,
+                updated_at = NOW()
+            WHERE id = $14
             RETURNING *
         `;
         
-        const values = [data, peso, altura, imc, circunferencia, id];
+        const values = [
+            data, peso, altura, imc, circunferencia,
+            waist_circumference, hip_circumference, arm_circumference,
+            thigh_circumference, calf_circumference,
+            body_fat_percentage, muscle_mass, bone_mass,
+            id
+        ];
         const result = await pool.query(query, values);
         return result.rows[0];
     }

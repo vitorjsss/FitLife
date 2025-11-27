@@ -13,7 +13,17 @@ class MedidasCorporaisController {
                 peso: req.body.peso,
                 altura: req.body.altura,
                 imc: req.body.imc,
-                circunferencia: req.body.circunferencia
+                circunferencia: req.body.circunferencia,
+                // Circunferências específicas
+                waist_circumference: req.body.waist_circumference,
+                hip_circumference: req.body.hip_circumference,
+                arm_circumference: req.body.arm_circumference,
+                thigh_circumference: req.body.thigh_circumference,
+                calf_circumference: req.body.calf_circumference,
+                // Composição corporal
+                body_fat_percentage: req.body.body_fat_percentage,
+                muscle_mass: req.body.muscle_mass,
+                bone_mass: req.body.bone_mass
             };
 
             const medida = await MedidasCorporaisService.createMedida(medidasData, req.user.id);
@@ -159,7 +169,17 @@ class MedidasCorporaisController {
                 peso: req.body.peso,
                 altura: req.body.altura,
                 imc: req.body.imc,
-                circunferencia: req.body.circunferencia
+                circunferencia: req.body.circunferencia,
+                // Circunferências específicas
+                waist_circumference: req.body.waist_circumference,
+                hip_circumference: req.body.hip_circumference,
+                arm_circumference: req.body.arm_circumference,
+                thigh_circumference: req.body.thigh_circumference,
+                calf_circumference: req.body.calf_circumference,
+                // Composição corporal
+                body_fat_percentage: req.body.body_fat_percentage,
+                muscle_mass: req.body.muscle_mass,
+                bone_mass: req.body.bone_mass
             };
 
             const medidaAtualizada = await MedidasCorporaisService.updateMedida(

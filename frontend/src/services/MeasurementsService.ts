@@ -4,13 +4,23 @@ import { apiClient } from './apiClient';
  * Tipos de dados para Medidas Corporais
  */
 export type MeasureRecord = {
+  date: any;
   id: string;
   patient_id: string;
   data: string; // ISO (YYYY-MM-DD)
   peso?: number | null;
   altura?: number | null;
   imc?: number | null;
-  circunferencia?: number | null;
+  // Circunferências
+  waist_circumference?: number | null;
+  hip_circumference?: number | null;
+  arm_circumference?: number | null;
+  thigh_circumference?: number | null;
+  calf_circumference?: number | null;
+  // Composição corporal
+  body_fat_percentage?: number | null;
+  muscle_mass?: number | null;
+  bone_mass?: number | null;
   created_at?: string;
   updated_at?: string;
 };
@@ -23,7 +33,16 @@ export type CreateMeasureDTO = {
   data: string; // ISO (YYYY-MM-DD)
   peso?: number | null;
   altura?: number | null;
-  circunferencia?: number | null;
+  // Circunferências
+  waist_circumference?: number | null;
+  hip_circumference?: number | null;
+  arm_circumference?: number | null;
+  thigh_circumference?: number | null;
+  calf_circumference?: number | null;
+  // Composição corporal
+  body_fat_percentage?: number | null;
+  muscle_mass?: number | null;
+  bone_mass?: number | null;
 };
 
 /**
@@ -33,7 +52,16 @@ export type UpdateMeasureDTO = {
   data?: string;
   peso?: number | null;
   altura?: number | null;
-  circunferencia?: number | null;
+  // Circunferências
+  waist_circumference?: number | null;
+  hip_circumference?: number | null;
+  arm_circumference?: number | null;
+  thigh_circumference?: number | null;
+  calf_circumference?: number | null;
+  // Composição corporal
+  body_fat_percentage?: number | null;
+  muscle_mass?: number | null;
+  bone_mass?: number | null;
 };
 
 /**

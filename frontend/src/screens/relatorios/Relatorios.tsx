@@ -42,13 +42,30 @@ export default function Relatorios() {
 
   const loadData = async () => {
     try {
-      const uid = await AsyncStorage.getItem(USER_KEY);
-      setUserId(uid);
-      if (uid) {
-        const list = await MeasurementsService.list(uid);
-        const sorted = list.sort((a, b) => {
-          const dateA = a.date ? new Date(a.date).getTime() : 0;
-          const dateB = b.date ? new Date(b.date).getTime() : 0;
+      // Usar user.id do contexto que é o patient_id
+      if (user?.id) {
+        setUserId(user.id);
+        const list = await MeasurementsService.list(user.id);
+        console.log('[Relatorios] Dados recebidos:', list);
+        console.log('[Relatorios] Tipo de dados:', typeof list, Array.isArray(list));
+        
+        // Garantir que list é um array
+        let measuresArray: MeasureRecord[] = [];
+        
+        if (Array.isArray(list)) {
+          measuresArray = list;
+        } else if (list && typeof list === 'object') {
+          // Se vier como objeto, tentar extrair o array de uma propriedade comum
+          measuresArray = (list as any).data || (list as any).measures || (list as any).records || [];
+          console.log('[Relatorios] Dados extraídos de objeto:', measuresArray);
+        } else {
+          console.warn('[Relatorios] Formato de dados inesperado, usando array vazio');
+          measuresArray = [];
+        }
+        
+        const sorted = measuresArray.sort((a, b) => {
+          const dateA = a.data ? new Date(a.data).getTime() : 0;
+          const dateB = b.data ? new Date(b.data).getTime() : 0;
           return dateB - dateA; // Mais recente primeiro
         });
         setRecords(sorted);
@@ -56,6 +73,7 @@ export default function Relatorios() {
     } catch (err) {
       console.error('Erro ao carregar medidas:', err);
       Alert.alert('Erro', 'Não foi possível carregar as medidas.');
+      setRecords([]); // Garantir que records seja sempre um array
     } finally {
       setLoading(false);
     }
@@ -72,8 +90,8 @@ export default function Relatorios() {
     const cutoffDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
 
     const filtered = records.filter((record) => {
-      if (!record.date) return false;
-      const recordDate = new Date(record.date);
+      if (!record.data) return false;
+      const recordDate = new Date(record.data);
       return recordDate >= cutoffDate;
     });
 
@@ -88,7 +106,10 @@ export default function Relatorios() {
 
   const calculateStats = (field: keyof MeasureRecord) => {
     const values = filteredRecords
-      .map((r) => Number(r[field]))
+      .map((r) => {
+        const value = (r as any)[field];
+        return Number(value);
+      })
       .filter((v) => !isNaN(v) && v > 0);
 
     if (values.length === 0) return null;
@@ -115,19 +136,24 @@ export default function Relatorios() {
     };
 
     const measureLabels: Record<string, string> = {
-      weight: 'Peso (kg)',
-      height: 'Altura (cm)',
-      waist: 'Cintura (cm)',
-      hip: 'Quadril (cm)',
-      arm: 'Braço (cm)',
-      leg: 'Perna (cm)',
+      peso: 'Peso (kg)',
+      altura: 'Altura (m)',
+      waist_circumference: 'Cintura (cm)',
+      hip_circumference: 'Quadril (cm)',
+      arm_circumference: 'Braço (cm)',
+      thigh_circumference: 'Coxa (cm)',
+      calf_circumference: 'Panturrilha (cm)',
+      body_fat_percentage: '% Gordura',
+      muscle_mass: 'Massa Muscular (kg)',
+      bone_mass: 'Massa Óssea (kg)',
     };
 
     let statsHTML = '';
-    (['weight', 'height', 'waist', 'hip', 'arm', 'leg'] as Array<keyof MeasureRecord>).forEach((field) => {
-      const stats = calculateStats(field);
+    (['peso', 'altura', 'waist_circumference', 'hip_circumference', 'arm_circumference', 
+      'thigh_circumference', 'calf_circumference', 'body_fat_percentage', 'muscle_mass', 'bone_mass'] as const).forEach((field) => {
+      const stats = calculateStats(field as any);
       if (stats) {
-        const label = measureLabels[field as string] || field;
+        const label = measureLabels[field] || field;
         statsHTML += `
           <tr>
             <td>${label}</td>
@@ -146,15 +172,21 @@ export default function Relatorios() {
 
     let recordsHTML = '';
     filteredRecords.forEach((record) => {
+      const rec = record as any;
       recordsHTML += `
         <tr>
-          <td>${formatDateBR(record.date)}</td>
-          <td>${record.weight || '-'}</td>
-          <td>${record.height || '-'}</td>
-          <td>${record.waist || '-'}</td>
-          <td>${record.hip || '-'}</td>
-          <td>${record.arm || '-'}</td>
-          <td>${record.leg || '-'}</td>
+          <td>${formatDateBR(record.data)}</td>
+          <td>${record.peso || '-'}</td>
+          <td>${record.altura || '-'}</td>
+          <td>${record.imc?.toFixed(1) || '-'}</td>
+          <td>${rec.waist_circumference || '-'}</td>
+          <td>${rec.hip_circumference || '-'}</td>
+          <td>${rec.arm_circumference || '-'}</td>
+          <td>${rec.thigh_circumference || '-'}</td>
+          <td>${rec.calf_circumference || '-'}</td>
+          <td>${rec.body_fat_percentage || '-'}</td>
+          <td>${rec.muscle_mass || '-'}</td>
+          <td>${rec.bone_mass || '-'}</td>
         </tr>
       `;
     });
@@ -256,12 +288,17 @@ export default function Relatorios() {
             <thead>
               <tr>
                 <th>Data</th>
-                <th>Peso (kg)</th>
-                <th>Altura (cm)</th>
-                <th>Cintura (cm)</th>
-                <th>Quadril (cm)</th>
-                <th>Braço (cm)</th>
-                <th>Perna (cm)</th>
+                <th>Peso<br/>(kg)</th>
+                <th>Altura<br/>(m)</th>
+                <th>IMC</th>
+                <th>Cintura<br/>(cm)</th>
+                <th>Quadril<br/>(cm)</th>
+                <th>Braço<br/>(cm)</th>
+                <th>Coxa<br/>(cm)</th>
+                <th>Pant.<br/>(cm)</th>
+                <th>% Gord.</th>
+                <th>M.Musc.<br/>(kg)</th>
+                <th>M.Óssea<br/>(kg)</th>
               </tr>
             </thead>
             <tbody>
@@ -383,14 +420,22 @@ export default function Relatorios() {
         {filteredRecords.length > 0 && (
           <>
             <Text style={styles.sectionTitle}>Estatísticas do Período</Text>
-            {(['weight', 'waist', 'hip'] as const).map((field) => {
-              const stats = calculateStats(field);
+            {(['peso', 'altura', 'waist_circumference', 'hip_circumference', 'arm_circumference',
+               'thigh_circumference', 'calf_circumference', 'body_fat_percentage', 'muscle_mass', 'bone_mass'] as const).map((field) => {
+              const stats = calculateStats(field as any);
               if (!stats) return null;
 
-              const labels: Record<'weight' | 'waist' | 'hip', { title: string; unit: string; icon: string }> = {
-                weight: { title: 'Peso', unit: 'kg', icon: 'balance-scale' },
-                waist: { title: 'Cintura', unit: 'cm', icon: 'circle-o' },
-                hip: { title: 'Quadril', unit: 'cm', icon: 'circle' },
+              const labels: Record<string, { title: string; unit: string; icon: string }> = {
+                peso: { title: 'Peso', unit: 'kg', icon: 'balance-scale' },
+                altura: { title: 'Altura', unit: 'm', icon: 'arrows-v' },
+                waist_circumference: { title: 'Cintura', unit: 'cm', icon: 'circle' },
+                hip_circumference: { title: 'Quadril', unit: 'cm', icon: 'circle-o' },
+                arm_circumference: { title: 'Braço', unit: 'cm', icon: 'hand-paper-o' },
+                thigh_circumference: { title: 'Coxa', unit: 'cm', icon: 'male' },
+                calf_circumference: { title: 'Panturrilha', unit: 'cm', icon: 'shoe-prints' },
+                body_fat_percentage: { title: '% Gordura', unit: '%', icon: 'percent' },
+                muscle_mass: { title: 'Massa Muscular', unit: 'kg', icon: 'heartbeat' },
+                bone_mass: { title: 'Massa Óssea', unit: 'kg', icon: 'chain' },
               };
 
               const label = labels[field];

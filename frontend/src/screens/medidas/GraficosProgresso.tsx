@@ -11,14 +11,23 @@ import {
 import { LineChart } from 'react-native-chart-kit';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { useNavigation } from '@react-navigation/native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import MeasurementsService, { MeasureRecord } from '../../services/MeasurementsService';
 import Header from '../../components/Header';
+import { useUser } from '../../context/UserContext';
 
 const { width } = Dimensions.get('window');
-const USER_KEY = '@fitlife:user_id';
 
-type MeasureType = 'weight' | 'height' | 'waist' | 'hip' | 'arm' | 'leg';
+type MeasureType = 
+  | 'peso' 
+  | 'altura' 
+  | 'waist_circumference' 
+  | 'hip_circumference'
+  | 'arm_circumference'
+  | 'thigh_circumference'
+  | 'calf_circumference'
+  | 'body_fat_percentage'
+  | 'muscle_mass'
+  | 'bone_mass';
 
 interface ChartData {
   labels: string[];
@@ -28,41 +37,63 @@ interface ChartData {
 }
 
 const measureConfig = {
-  weight: { label: 'Peso (kg)', color: '#FF6384', icon: 'balance-scale' },
-  height: { label: 'Altura (cm)', color: '#36A2EB', icon: 'arrows-v' },
-  waist: { label: 'Cintura (cm)', color: '#FFCE56', icon: 'circle-o' },
-  hip: { label: 'Quadril (cm)', color: '#4BC0C0', icon: 'circle' },
-  arm: { label: 'Braço (cm)', color: '#9966FF', icon: 'hand-paper-o' },
-  leg: { label: 'Perna (cm)', color: '#FF9F40', icon: 'street-view' },
+  peso: { label: 'Peso (kg)', color: '#FF6384', icon: 'balance-scale' },
+  altura: { label: 'Altura (cm)', color: '#36A2EB', icon: 'arrows-v' },
+  waist_circumference: { label: 'Cintura (cm)', color: '#FFCE56', icon: 'circle' },
+  hip_circumference: { label: 'Quadril (cm)', color: '#4BC0C0', icon: 'circle-o' },
+  arm_circumference: { label: 'Braço (cm)', color: '#9966FF', icon: 'hand-paper-o' },
+  thigh_circumference: { label: 'Coxa (cm)', color: '#FF9F40', icon: 'male' },
+  calf_circumference: { label: 'Panturrilha (cm)', color: '#FF6384', icon: 'shoe-prints' },
+  body_fat_percentage: { label: '% Gordura', color: '#f44336', icon: 'percent' },
+  muscle_mass: { label: 'Massa Muscular (kg)', color: '#4caf50', icon: 'heartbeat' },
+  bone_mass: { label: 'Massa Óssea (kg)', color: '#607D8B', icon: 'chain' },
 };
 
 export default function GraficosProgresso() {
   const navigation = useNavigation();
-  const [userId, setUserId] = useState<string | null>(null);
+  const { user } = useUser();
   const [records, setRecords] = useState<MeasureRecord[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedMeasure, setSelectedMeasure] = useState<MeasureType>('weight');
+  const [selectedMeasure, setSelectedMeasure] = useState<MeasureType>('peso');
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (user?.id) {
+      loadData();
+    }
+  }, [user]);
 
   const loadData = async () => {
     try {
-      const uid = await AsyncStorage.getItem(USER_KEY);
-      setUserId(uid);
-      if (uid) {
-        const list = await MeasurementsService.list(uid);
+      if (user?.id) {
+        const list = await MeasurementsService.list(user.id);
+        console.log('[GraficosProgresso] Dados recebidos:', list);
+        console.log('[GraficosProgresso] Tipo de dados:', typeof list, Array.isArray(list));
+        
+        // Garantir que list é um array
+        let measuresArray: MeasureRecord[] = [];
+        
+        if (Array.isArray(list)) {
+          measuresArray = list;
+        } else if (list && typeof list === 'object') {
+          // Se vier como objeto, tentar extrair o array de uma propriedade comum
+          measuresArray = (list as any).data || (list as any).measures || (list as any).records || [];
+          console.log('[GraficosProgresso] Dados extraídos de objeto:', measuresArray);
+        } else {
+          console.warn('[GraficosProgresso] Formato de dados inesperado, usando array vazio');
+          measuresArray = [];
+        }
+        
         // Ordenar por data (mais antigo primeiro para o gráfico)
-        const sorted = list.sort((a, b) => {
-          const dateA = a.date ? new Date(a.date).getTime() : 0;
-          const dateB = b.date ? new Date(b.date).getTime() : 0;
+        const sorted = measuresArray.sort((a, b) => {
+          const dateA = a.data ? new Date(a.data).getTime() : 0;
+          const dateB = b.data ? new Date(b.data).getTime() : 0;
           return dateA - dateB;
         });
         setRecords(sorted);
       }
     } catch (err) {
       console.error('Erro ao carregar medidas:', err);
+      setRecords([]); // Garantir que records seja sempre um array
     } finally {
       setLoading(false);
     }
@@ -70,8 +101,15 @@ export default function GraficosProgresso() {
 
   const formatDateBR = (isoDate?: string) => {
     if (!isoDate) return '';
-    const [y, m, d] = isoDate.split('-');
-    return `${d}/${m}`;
+    try {
+      const date = new Date(isoDate);
+      const day = date.getDate().toString().padStart(2, '0');
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}/${month}/${year}`;
+    } catch {
+      return '';
+    }
   };
 
   const getChartData = (measureType: MeasureType): ChartData => {
@@ -89,7 +127,16 @@ export default function GraficosProgresso() {
     const recentRecords = validRecords.slice(-10);
 
     return {
-      labels: recentRecords.map(r => formatDateBR(r.date)),
+      labels: recentRecords.map(r => {
+        if (!r.data) return '';
+        try {
+          const dateStr = r.data.includes('T') ? r.data.split('T')[0] : r.data;
+          const [year, month, day] = dateStr.split('-');
+          return `${day}/${month}`;
+        } catch {
+          return '';
+        }
+      }),
       datasets: [{
         data: recentRecords.map(r => Number(r[measureType]) || 0),
       }],
@@ -276,22 +323,69 @@ export default function GraficosProgresso() {
         {/* Lista de Registros Recentes */}
         <View style={styles.recentContainer}>
           <Text style={styles.recentTitle}>Registros Recentes</Text>
-          {records.slice(-5).reverse().map((record) => (
-            <View key={record.id} style={styles.recordCard}>
-              <Text style={styles.recordDate}>{formatDateBR(record.date)}</Text>
-              <View style={styles.recordValues}>
-                {record.weight && (
-                  <Text style={styles.recordValue}>Peso: {record.weight}kg</Text>
+          {records.slice(-5).reverse().map((record) => {
+            const recordData = record as any;
+            return (
+              <View key={record.id} style={styles.recordCard}>
+                <Text style={styles.recordDate}>{formatDateBR(record.data)}</Text>
+                <View style={styles.recordValues}>
+                  {record.peso && (
+                    <Text style={styles.recordValue}>Peso: {record.peso}kg</Text>
+                  )}
+                  {record.altura && (
+                    <Text style={styles.recordValue}>Altura: {record.altura}m</Text>
+                  )}
+                  {record.imc && (
+                    <Text style={styles.recordValue}>IMC: {record.imc.toFixed(1)}</Text>
+                  )}
+                </View>
+                
+                {/* Circunferências */}
+                {(recordData.waist_circumference || recordData.hip_circumference || 
+                  recordData.arm_circumference || recordData.thigh_circumference || 
+                  recordData.calf_circumference) && (
+                  <View style={styles.recordSection}>
+                    <Text style={styles.recordSectionTitle}>📐 Circunferências:</Text>
+                    <View style={styles.recordValues}>
+                      {recordData.waist_circumference && (
+                        <Text style={styles.recordValue}>Cintura: {recordData.waist_circumference}cm</Text>
+                      )}
+                      {recordData.hip_circumference && (
+                        <Text style={styles.recordValue}>Quadril: {recordData.hip_circumference}cm</Text>
+                      )}
+                      {recordData.arm_circumference && (
+                        <Text style={styles.recordValue}>Braço: {recordData.arm_circumference}cm</Text>
+                      )}
+                      {recordData.thigh_circumference && (
+                        <Text style={styles.recordValue}>Coxa: {recordData.thigh_circumference}cm</Text>
+                      )}
+                      {recordData.calf_circumference && (
+                        <Text style={styles.recordValue}>Panturrilha: {recordData.calf_circumference}cm</Text>
+                      )}
+                    </View>
+                  </View>
                 )}
-                {record.height && (
-                  <Text style={styles.recordValue}>Altura: {record.height}cm</Text>
-                )}
-                {record.waist && (
-                  <Text style={styles.recordValue}>Cintura: {record.waist}cm</Text>
+                
+                {/* Composição Corporal */}
+                {(recordData.body_fat_percentage || recordData.muscle_mass || recordData.bone_mass) && (
+                  <View style={styles.recordSection}>
+                    <Text style={styles.recordSectionTitle}>💪 Composição:</Text>
+                    <View style={styles.recordValues}>
+                      {recordData.body_fat_percentage && (
+                        <Text style={styles.recordValue}>Gordura: {recordData.body_fat_percentage}%</Text>
+                      )}
+                      {recordData.muscle_mass && (
+                        <Text style={styles.recordValue}>Músculo: {recordData.muscle_mass}kg</Text>
+                      )}
+                      {recordData.bone_mass && (
+                        <Text style={styles.recordValue}>Osso: {recordData.bone_mass}kg</Text>
+                      )}
+                    </View>
+                  </View>
                 )}
               </View>
-            </View>
-          ))}
+            );
+          })}
         </View>
       </ScrollView>
     </View>
@@ -402,4 +496,6 @@ const styles = StyleSheet.create({
   recordDate: { fontSize: 14, fontWeight: '600', color: '#1976D2', marginBottom: 4 },
   recordValues: { flexDirection: 'row', flexWrap: 'wrap' },
   recordValue: { fontSize: 12, color: '#666', marginRight: 12 },
+  recordSection: { marginTop: 8 },
+  recordSectionTitle: { fontSize: 11, fontWeight: '600', color: '#1976D2', marginBottom: 4 },
 });
