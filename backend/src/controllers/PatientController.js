@@ -151,42 +151,57 @@ export const PatientController = {
             const patient = await PatientService.getByAuthId(auth_id);
 
             if (!patient) {
-                await LogService.createLog({
-                    action: "GET_PATIENT_BY_AUTH_ID",
-                    logType: "READ",
-                    description: `Paciente com auth_id ${auth_id} não encontrado`,
-                    ip,
-                    oldValue: null,
-                    newValue: null,
-                    status: "NOT_FOUND",
-                    userId: userId
-                });
+                // Tenta criar log, mas não quebra se falhar
+                try {
+                    await LogService.createLog({
+                        action: "GET_PATIENT_BY_AUTH_ID",
+                        logType: "READ",
+                        description: `Paciente com auth_id ${auth_id} não encontrado`,
+                        ip,
+                        oldValue: null,
+                        newValue: null,
+                        status: "NOT_FOUND",
+                        userId: userId
+                    });
+                } catch (logError) {
+                    console.warn("Falha ao criar log (ignorado):", logError.message);
+                }
                 return res.status(404).json({ message: "Paciente não encontrado" });
             }
 
-            await LogService.createLog({
-                action: "GET_PATIENT_BY_AUTH_ID",
-                logType: "READ",
-                description: `Paciente ${patient.name} recuperado com sucesso`,
-                ip,
-                oldValue: null,
-                newValue: { id: patient.id, name: patient.name },
-                status: "SUCCESS",
-                userId: userId
-            });
+            // Tenta criar log, mas não quebra se falhar
+            try {
+                await LogService.createLog({
+                    action: "GET_PATIENT_BY_AUTH_ID",
+                    logType: "READ",
+                    description: `Paciente ${patient.name} recuperado com sucesso`,
+                    ip,
+                    oldValue: null,
+                    newValue: { id: patient.id, name: patient.name },
+                    status: "SUCCESS",
+                    userId: userId
+                });
+            } catch (logError) {
+                console.warn("Falha ao criar log (ignorado):", logError.message);
+            }
 
             res.json(patient);
         } catch (err) {
-            await LogService.createLog({
-                action: "GET_PATIENT_BY_AUTH_ID",
-                logType: "ERROR",
-                description: err.message,
-                ip,
-                oldValue: null,
-                newValue: { requestedAuthId: auth_id },
-                status: "FAILURE",
-                userId: userId
-            });
+            // Tenta criar log, mas não quebra se falhar
+            try {
+                await LogService.createLog({
+                    action: "GET_PATIENT_BY_AUTH_ID",
+                    logType: "ERROR",
+                    description: err.message,
+                    ip,
+                    oldValue: null,
+                    newValue: { requestedAuthId: auth_id },
+                    status: "FAILURE",
+                    userId: userId
+                });
+            } catch (logError) {
+                console.warn("Falha ao criar log (ignorado):", logError.message);
+            }
 
             res.status(500).json({ message: "Erro ao buscar paciente", error: err });
         }

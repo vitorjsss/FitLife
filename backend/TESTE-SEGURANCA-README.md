@@ -1,17 +1,17 @@
-# 🔐 Como Testar a Segurança - Início Rápido
+# Como Testar a Segurança - Início Rápido
 
-## 📋 O que foi implementado?
+## O que foi implementado?
 
 Conforme requisitos FMEA:
 
 | Requisito | Implementação | Arquivo |
 |-----------|---------------|---------|
-| **Middleware de Autorização** | ✅ Implementado | `src/middlewares/patientAccessMiddleware.js` |
-| **Auditoria de Endpoints** | ✅ 7 rotas protegidas | Arquivos em `src/routes/` |
-| **Testes Automatizados** | ✅ 21 testes (100% passando) | `tests/unit/PatientConnectionCodeRepository.test.js` |
-| **Logs de Segurança** | ✅ Sistema completo | Tabela `log` no PostgreSQL |
+| **Middleware de Autorização** | Implementado | `src/middlewares/patientAccessMiddleware.js` |
+| **Auditoria de Endpoints** | 7 rotas protegidas | Arquivos em `src/routes/` |
+| **Testes Automatizados** | 21 testes (100% passando) | `tests/unit/PatientConnectionCodeRepository.test.js` |
+| **Logs de Segurança** | Sistema completo | Tabela `log` no PostgreSQL |
 
-## 🚀 Execução Rápida
+## Execução Rápida
 
 ### 1. Preparar Dados de Teste
 
@@ -64,7 +64,7 @@ INSERT INTO patient_professional_association (id, patient_id, nutricionist_id, s
 INSERT INTO patient_professional_association (id, patient_id, physical_educator_id, status, created_at) VALUES
     (gen_random_uuid(), 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'dddddddd-dddd-dddd-dddd-dddddddddddd', 'active', NOW());
 
-\echo '✅ Usuários de teste criados com sucesso!'
+\echo 'Usuários de teste criados com sucesso!'
 \echo ''
 \echo 'Usuários disponíveis:'
 \echo '  • João (Paciente): teste.joao@fitlife.com / senha123'
@@ -80,12 +80,27 @@ INSERT INTO patient_professional_association (id, patient_id, physical_educator_
 ### 2. Rodar Testes Automatizados
 
 ```bash
-# Opção 1: Testes unitários (recomendado para CI/CD)
+# Opção 1: Script completo de testes de segurança (RECOMENDADO)
+./run-security-tests.sh
+
+# Opção 2: Testes unitários (apenas repository)
 npm run test:unit
 
-# Opção 2: Script de testes de segurança (teste manual completo)
+# Opção 3: Script antigo de testes de segurança
 ./test-security.sh
 ```
+
+**O que o script `run-security-tests.sh` faz:**
+- Verifica pré-requisitos (jq, psql, backend rodando)
+- Cria usuários de teste automaticamente
+- Executa 10 cenários de teste:
+  - Acesso legítimo de pacientes aos próprios dados
+  - Bloqueio de acesso entre pacientes
+  - Validação de tipo de dado (nutricionista vs educador)
+  - Verificação de associações profissional-paciente
+  - Acesso legítimo de profissionais aos pacientes associados
+- Verifica logs de auditoria no banco
+- Gera relatório final com taxa de sucesso
 
 ### 3. Ver Logs de Auditoria
 
@@ -103,17 +118,17 @@ WHERE log_type = 'SECURITY'
 ORDER BY created_at DESC;"
 ```
 
-## 📊 Matriz de Permissões
+## Matriz de Permissões
 
 | Usuário | Próprios Dados Meal | Próprios Dados Workout | Meal Paciente Associado | Workout Paciente Associado | Dados de Outro Paciente |
 |---------|---------------------|------------------------|-------------------------|---------------------------|------------------------|
-| **Paciente** | ✅ Permitido | ✅ Permitido | ❌ Bloqueado | ❌ Bloqueado | ❌ Bloqueado |
-| **Nutricionista** | ➖ N/A | ➖ N/A | ✅ Permitido | ❌ Bloqueado | ❌ Bloqueado |
-| **Educador Físico** | ➖ N/A | ➖ N/A | ❌ Bloqueado | ✅ Permitido | ❌ Bloqueado |
+| **Paciente** | Permitido | Permitido | Bloqueado | Bloqueado | Bloqueado |
+| **Nutricionista** | N/A | N/A | Permitido | Bloqueado | Bloqueado |
+| **Educador Físico** | N/A | N/A | Bloqueado | Permitido | Bloqueado |
 
-## 📝 Cenários de Teste
+## Cenários de Teste
 
-### ✅ Cenário 1: Acesso Legítimo
+### Cenário 1: Acesso Legítimo
 ```bash
 # João acessa seus próprios dados
 curl -X GET "http://localhost:5001/meal-calendar/monthly/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/2025/11" \
@@ -122,7 +137,7 @@ curl -X GET "http://localhost:5001/meal-calendar/monthly/aaaaaaaa-aaaa-aaaa-aaaa
 # Resposta esperada: 200 OK
 ```
 
-### ❌ Cenário 2: Acesso Bloqueado (Paciente ↔ Paciente)
+### Cenário 2: Acesso Bloqueado (Paciente ↔ Paciente)
 ```bash
 # João tenta acessar dados da Maria
 curl -X GET "http://localhost:5001/meal-calendar/monthly/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb/2025/11" \
@@ -130,10 +145,10 @@ curl -X GET "http://localhost:5001/meal-calendar/monthly/bbbbbbbb-bbbb-bbbb-bbbb
 
 # Resposta esperada: 403 Forbidden
 # Mensagem: "Você só pode acessar seus próprios dados"
-# Log criado: ✓
+# Log criado: Sim
 ```
 
-### ❌ Cenário 3: Tipo de Dado Incompatível
+### Cenário 3: Tipo de Dado Incompatível
 ```bash
 # Ana (Nutricionista) tenta acessar treinos
 curl -X GET "http://localhost:5001/workout-calendar/monthly/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/2025/11" \
@@ -141,10 +156,10 @@ curl -X GET "http://localhost:5001/workout-calendar/monthly/aaaaaaaa-aaaa-aaaa-a
 
 # Resposta esperada: 403 Forbidden
 # Mensagem: "Apenas educadores físicos podem acessar dados de treino"
-# Log criado: ✓
+# Log criado: Sim
 ```
 
-### ❌ Cenário 4: Sem Associação
+### Cenário 4: Sem Associação
 ```bash
 # Ana tenta acessar dados da Maria (sem associação)
 curl -X GET "http://localhost:5001/meal-calendar/monthly/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb/2025/11" \
@@ -152,10 +167,10 @@ curl -X GET "http://localhost:5001/meal-calendar/monthly/bbbbbbbb-bbbb-bbbb-bbbb
 
 # Resposta esperada: 403 Forbidden
 # Mensagem: "Você não está associado a este paciente"
-# Log criado: ✓
+# Log criado: Sim
 ```
 
-## 🎯 Checklist de Validação
+## Checklist de Validação
 
 Use este checklist para validar a implementação:
 
@@ -187,7 +202,7 @@ Use este checklist para validar a implementação:
   - [ ] Todos os 9 testes passam
   - [ ] Logs são criados no banco para tentativas bloqueadas
 
-## 📚 Documentação Completa
+## Documentação Completa
 
 Para documentação detalhada, veja:
 
@@ -195,7 +210,7 @@ Para documentação detalhada, veja:
 - **Exemplos Práticos:** `/docs/EXEMPLOS-MIDDLEWARE-SEGURANCA.md`
 - **Resumo da Implementação:** `/IMPLEMENTATION-SUMMARY.md`
 
-## 🔧 Troubleshooting
+## Troubleshooting
 
 ### Problema: "jq não está instalado"
 ```bash
@@ -236,21 +251,10 @@ sleep 5
 pg_isready -h localhost -p 5433
 ```
 
-## 🎯 Análise FMEA - Redução de Risco
-
-| Métrica | Antes | Depois | Redução |
-|---------|-------|--------|---------|
-| **Probabilidade (P)** | 3 | 1 | -67% |
-| **Severidade (S)** | 5 | 2 | -60% |
-| **Risco (P×S)** | 15 (ALTO) | 2 (BAIXO) | **86.7%** |
-
 **Providências Implementadas:**
-- ✅ Middleware de autorização
-- ✅ Revisão de endpoints críticos
-- ✅ Testes automatizados de acesso
-- ✅ Sistema de logs de auditoria
+- Middleware de autorização
+- Revisão de endpoints críticos
+- Testes automatizados de acesso
+- Sistema de logs de auditoria
 
 ---
-
-**Última Atualização:** 10 de Novembro de 2025  
-**Status:** ✅ Produção-Ready

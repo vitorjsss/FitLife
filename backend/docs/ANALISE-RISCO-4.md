@@ -1,4 +1,4 @@
-# ANÁLISE DE RISCO 8 - ATUALIZAÇÃO DAS REFEIÇÕES
+# ANÁLISE DE RISCO 3 e 4 - ATUALIZAÇÃO DAS REFEIÇÕES
 
 ## Descrição da Implementação
 
@@ -24,16 +24,14 @@ Todos os **11 testes foram concluídos com 100% de sucesso**, confirmando a efic
 
 ## Comandos para Execução
 
-A execução pode ser feita diretamente a partir do diretório raiz do backend, utilizando os comandos abaixo:
+A infraestrutura de auditoria é criada automaticamente na inicialização do banco de dados através do arquivo `db-init/init.sql`. Não é necessário aplicar migrations manualmente.
 
-### Aplicar Migrations do Banco de Dados
+### Reiniciar Banco de Dados (se necessário)
 
 ```bash
-# Aplicar constraints e triggers de auditoria
-Get-Content db-migrations/add-meal-update-constraints.sql | docker exec -i fitlife-db-1 psql -U fitlife -d fitlife
-
-# Aplicar correção da função verify_transaction_integrity
-Get-Content db-migrations/fix-verify-transaction-function.sql | docker exec -i fitlife-db-1 psql -U fitlife -d fitlife
+# Reiniciar com reset completo (remove volumes)
+docker-compose down -v
+docker-compose up -d
 ```
 
 ### Executar Testes de Validação
@@ -144,11 +142,12 @@ Sistema de auditoria funcionando corretamente
 
 ## Arquivos de Evidência
 
-1. **`backend/db-migrations/add-meal-update-constraints.sql`** - Migrations principais (280 linhas)
-2. **`backend/db-migrations/fix-verify-transaction-function.sql`** - Correção de função (22 linhas)
-3. **`backend/tests/validation/risco-8-validation.js`** - Suite de testes automatizados (424 linhas)
-4. **`backend/docs/RISCO-8-MITIGACAO-CONCLUIDA.md`** - Documentação completa da mitigação
-5. **`backend/docs/ANALISE-RISCO-8.md`** - Este documento
+1. **`backend/db-init/init.sql`** - Script de inicialização do banco com sistema de auditoria integrado
+2. **`backend/tests/validation/risco-8-validation.js`** - Suite de testes automatizados (424 linhas)
+3. **`backend/docs/RISCO-8-MITIGACAO-CONCLUIDA.md`** - Documentação completa da mitigação
+4. **`backend/docs/ANALISE-RISCO-4.md`** - Este documento
+
+**Nota:** Os arquivos `add-meal-update-constraints.sql` e `fix-verify-transaction-function.sql` foram integrados ao `init.sql` e podem ser removidos se não forem mais necessários para fins de documentação histórica.
 
 ---
 

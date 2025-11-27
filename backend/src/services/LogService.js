@@ -16,6 +16,14 @@ export const LogService = {
                 user_id: user_id || userId || null
             });
         } catch (error) {
+            // Se o erro for de foreign key (user_id inválido), apenas loga mas não quebra
+            if (error.code === '23503' && error.constraint === 'logs_user_id_fkey') {
+                console.warn("⚠️  Log não criado: user_id inválido ou não existe mais no banco", {
+                    action: logData.action,
+                    user_id: logData.userId || logData.user_id
+                });
+                return null; // Retorna null ao invés de quebrar
+            }
             console.error("Erro no LogService.createLog:", error);
             throw error;
         }

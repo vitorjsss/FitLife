@@ -329,7 +329,7 @@ async function testTransactionIntegrity() {
     )).rows[0].transaction_id;
 
     const integrity = await pool.query(
-      'SELECT is_complete, operations_count FROM verify_transaction_integrity($1)',
+      'SELECT * FROM verify_transaction_integrity($1)',
       [txId]
     );
 

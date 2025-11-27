@@ -166,7 +166,8 @@ CREATE TABLE MealRecord (
     checked BOOLEAN NOT NULL DEFAULT FALSE,
     patient_id UUID NOT NULL REFERENCES patient(id) ON DELETE CASCADE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    version INTEGER DEFAULT 1
 );
 
 -- ----------------------------
@@ -184,6 +185,7 @@ CREATE TABLE MealItem (
     meal_record_id UUID NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    version INTEGER DEFAULT 1,
     CONSTRAINT fk_mealitem_meal FOREIGN KEY (meal_record_id)
         REFERENCES MealRecord(id) ON DELETE CASCADE
 );
@@ -228,3 +230,253 @@ CREATE TABLE patient_connection_code (
 -- Índices para melhor performance
 CREATE INDEX idx_connection_code ON patient_connection_code(code);
 CREATE INDEX idx_connection_patient ON patient_connection_code(patient_id);
+
+-- ================================================
+-- SISTEMA DE AUDITORIA PARA REFEIÇÕES
+-- Mitigação Risco 8: Atualização das Refeições
+-- ================================================
+
+-- 1. TABELA DE AUDITORIA
+-- ================================================
+
+CREATE TABLE meal_audit_log (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    table_name VARCHAR(50) NOT NULL,
+    record_id UUID NOT NULL,
+    operation VARCHAR(10) NOT NULL CHECK (operation IN ('INSERT', 'UPDATE', 'DELETE')),
+    old_data JSONB,
+    new_data JSONB,
+    changed_by UUID,
+    changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    transaction_id BIGINT DEFAULT txid_current()
+);
+
+-- Índices para performance de consultas de auditoria
+CREATE INDEX idx_meal_audit_table_record ON meal_audit_log(table_name, record_id);
+CREATE INDEX idx_meal_audit_changed_at ON meal_audit_log(changed_at DESC);
+CREATE INDEX idx_meal_audit_transaction ON meal_audit_log(transaction_id);
+
+-- 2. TRIGGERS PARA ATUALIZAÇÃO AUTOMÁTICA DE TIMESTAMPS
+-- ================================================
+
+-- Trigger para atualizar updated_at em MealRecord
+CREATE OR REPLACE FUNCTION update_mealrecord_timestamp()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    NEW.version = OLD.version + 1;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_update_mealrecord_timestamp
+    BEFORE UPDATE ON MealRecord
+    FOR EACH ROW
+    EXECUTE FUNCTION update_mealrecord_timestamp();
+
+-- Trigger para atualizar updated_at em MealItem
+CREATE OR REPLACE FUNCTION update_mealitem_timestamp()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    NEW.version = OLD.version + 1;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_update_mealitem_timestamp
+    BEFORE UPDATE ON MealItem
+    FOR EACH ROW
+    EXECUTE FUNCTION update_mealitem_timestamp();
+
+-- 3. TRIGGERS DE AUDITORIA PARA MEALRECORD
+-- ================================================
+
+CREATE OR REPLACE FUNCTION audit_mealrecord_changes()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF (TG_OP = 'UPDATE') THEN
+        INSERT INTO meal_audit_log (table_name, record_id, operation, old_data, new_data, changed_by)
+        VALUES (
+            'mealrecord',
+            NEW.id,
+            'UPDATE',
+            row_to_json(OLD)::JSONB,
+            row_to_json(NEW)::JSONB,
+            NEW.patient_id
+        );
+        RETURN NEW;
+    ELSIF (TG_OP = 'INSERT') THEN
+        INSERT INTO meal_audit_log (table_name, record_id, operation, new_data, changed_by)
+        VALUES (
+            'mealrecord',
+            NEW.id,
+            'INSERT',
+            row_to_json(NEW)::JSONB,
+            NEW.patient_id
+        );
+        RETURN NEW;
+    ELSIF (TG_OP = 'DELETE') THEN
+        INSERT INTO meal_audit_log (table_name, record_id, operation, old_data, changed_by)
+        VALUES (
+            'mealrecord',
+            OLD.id,
+            'DELETE',
+            row_to_json(OLD)::JSONB,
+            OLD.patient_id
+        );
+        RETURN OLD;
+    END IF;
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_audit_mealrecord
+    AFTER INSERT OR UPDATE OR DELETE ON MealRecord
+    FOR EACH ROW
+    EXECUTE FUNCTION audit_mealrecord_changes();
+
+-- 4. TRIGGERS DE AUDITORIA PARA MEALITEM
+-- ================================================
+
+CREATE OR REPLACE FUNCTION audit_mealitem_changes()
+RETURNS TRIGGER AS $$
+DECLARE
+    patient_id_val UUID;
+BEGIN
+    -- Buscar o patient_id da refeição relacionada
+    IF (TG_OP = 'DELETE') THEN
+        SELECT patient_id INTO patient_id_val FROM MealRecord WHERE id = OLD.meal_record_id;
+    ELSE
+        SELECT patient_id INTO patient_id_val FROM MealRecord WHERE id = NEW.meal_record_id;
+    END IF;
+
+    IF (TG_OP = 'UPDATE') THEN
+        INSERT INTO meal_audit_log (table_name, record_id, operation, old_data, new_data, changed_by)
+        VALUES (
+            'mealitem',
+            NEW.id,
+            'UPDATE',
+            row_to_json(OLD)::JSONB,
+            row_to_json(NEW)::JSONB,
+            patient_id_val
+        );
+        RETURN NEW;
+    ELSIF (TG_OP = 'INSERT') THEN
+        INSERT INTO meal_audit_log (table_name, record_id, operation, new_data, changed_by)
+        VALUES (
+            'mealitem',
+            NEW.id,
+            'INSERT',
+            row_to_json(NEW)::JSONB,
+            patient_id_val
+        );
+        RETURN NEW;
+    ELSIF (TG_OP = 'DELETE') THEN
+        INSERT INTO meal_audit_log (table_name, record_id, operation, old_data, changed_by)
+        VALUES (
+            'mealitem',
+            OLD.id,
+            'DELETE',
+            row_to_json(OLD)::JSONB,
+            patient_id_val
+        );
+        RETURN OLD;
+    END IF;
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_audit_mealitem
+    AFTER INSERT OR UPDATE OR DELETE ON MealItem
+    FOR EACH ROW
+    EXECUTE FUNCTION audit_mealitem_changes();
+
+-- 5. FUNÇÃO PARA VERIFICAR INTEGRIDADE DE TRANSAÇÕES
+-- ================================================
+
+CREATE OR REPLACE FUNCTION verify_transaction_integrity(p_transaction_id BIGINT)
+RETURNS TABLE(
+    is_complete BOOLEAN,
+    operations_count INTEGER,
+    affected_tables TEXT[],
+    timestamp_range TSRANGE
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        COUNT(*) > 0 as is_complete,
+        COUNT(*)::INTEGER as operations_count,
+        ARRAY_AGG(DISTINCT table_name::TEXT) as affected_tables,
+        TSRANGE(MIN(changed_at), MAX(changed_at)) as timestamp_range
+    FROM meal_audit_log
+    WHERE transaction_id = p_transaction_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 6. VIEW PARA HISTÓRICO DE ALTERAÇÕES
+-- ================================================
+
+CREATE OR REPLACE VIEW meal_change_history AS
+SELECT 
+    mal.id,
+    mal.table_name,
+    mal.record_id,
+    mal.operation,
+    mal.old_data,
+    mal.new_data,
+    mal.changed_at,
+    mal.transaction_id,
+    p.name as patient_name,
+    a.email as patient_email
+FROM meal_audit_log mal
+LEFT JOIN patient p ON mal.changed_by = p.id
+LEFT JOIN auth a ON p.auth_id = a.id
+ORDER BY mal.changed_at DESC;
+
+-- 7. FUNÇÃO PARA ROLLBACK DE ALTERAÇÕES (RECOVERY)
+-- ================================================
+
+CREATE OR REPLACE FUNCTION rollback_meal_changes(p_transaction_id BIGINT)
+RETURNS TABLE(
+    rolled_back_count INTEGER,
+    status TEXT
+) AS $$
+DECLARE
+    audit_record RECORD;
+    rollback_count INTEGER := 0;
+BEGIN
+    -- Reverter alterações em ordem inversa
+    FOR audit_record IN 
+        SELECT * FROM meal_audit_log 
+        WHERE transaction_id = p_transaction_id 
+        ORDER BY changed_at DESC
+    LOOP
+        IF audit_record.table_name = 'mealrecord' AND audit_record.operation = 'UPDATE' THEN
+            -- Restaurar valores antigos do MealRecord
+            UPDATE MealRecord SET 
+                name = audit_record.old_data->>'name',
+                date = (audit_record.old_data->>'date')::DATE,
+                checked = (audit_record.old_data->>'checked')::BOOLEAN,
+                updated_at = (audit_record.old_data->>'updated_at')::TIMESTAMP
+            WHERE id = (audit_record.old_data->>'id')::UUID;
+            rollback_count := rollback_count + 1;
+            
+        ELSIF audit_record.table_name = 'mealitem' AND audit_record.operation = 'UPDATE' THEN
+            -- Restaurar valores antigos do MealItem
+            UPDATE MealItem SET 
+                food_name = audit_record.old_data->>'food_name',
+                quantity = audit_record.old_data->>'quantity',
+                calories = (audit_record.old_data->>'calories')::FLOAT,
+                proteins = (audit_record.old_data->>'proteins')::FLOAT,
+                carbs = (audit_record.old_data->>'carbs')::FLOAT,
+                fats = (audit_record.old_data->>'fats')::FLOAT,
+                updated_at = (audit_record.old_data->>'updated_at')::TIMESTAMP
+            WHERE id = (audit_record.old_data->>'id')::UUID;
+            rollback_count := rollback_count + 1;
+        END IF;
+    END LOOP;
+    
+    RETURN QUERY SELECT rollback_count, 'SUCCESS'::TEXT;
+END;
+$$ LANGUAGE plpgsql;
