@@ -11,14 +11,13 @@ import {
 } from "react-native";
 import Icon from "react-native-vector-icons/Feather";
 import { useForm, Controller, set, SubmitHandler } from "react-hook-form";
-import * as yup from "yup";
-import { yupResolver } from "@hookform/resolvers/yup";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useNavigation } from "@react-navigation/native";
 import { RootStackParamList } from "../../../App";
 import { authService } from '../../services/authService';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useUser } from '../../context/UserContext';
+import { validateLoginCredentials, normalizeEmail } from '../../utils/validationRules';
 
 type LoginFormData = {
     email: string;
@@ -28,19 +27,14 @@ type LoginFormData = {
 
 type LoginScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, "Login">;
 
-const schema = yup.object({
-    email: yup.string().email("E-mail inválido").required("E-mail obrigatório"),
-    password: yup.string().required("Senha obrigatória"),
-});
-
 export default function LoginScreen() {
     const { refreshUser } = useUser();
     const [hidePassword, setHidePassword] = useState(true);
     const [loading, setLoading] = useState(false);
+    const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
     const navigation = useNavigation<LoginScreenNavigationProp>();
 
     const { control, handleSubmit, formState: { errors } } = useForm<LoginFormData>({
-        resolver: yupResolver(schema),
         defaultValues: {
             email: "",
             password: "",
@@ -48,10 +42,22 @@ export default function LoginScreen() {
     });
 
     const onSubmit: SubmitHandler<LoginFormData> = async (data) => {
+        // Validar credenciais com validationRules
+        const validation = validateLoginCredentials({
+            email: data.email,
+            password: data.password
+        });
+
+        if (!validation.valid) {
+            setValidationErrors(validation.errors);
+            return;
+        }
+
+        setValidationErrors({});
         setLoading(true);
         try {
             const loginData = {
-                email: data.email,
+                email: normalizeEmail(data.email),
                 password: data.password,
             };
 
@@ -115,7 +121,7 @@ export default function LoginScreen() {
                         />
                     )}
                 />
-                {errors.email && <Text style={styles.error}>{errors.email.message}</Text>}
+                {validationErrors.email && <Text style={styles.error}>{validationErrors.email}</Text>}
 
                 <Controller
                     control={control}
@@ -135,7 +141,7 @@ export default function LoginScreen() {
                         </View>
                     )}
                 />
-                {errors.password && <Text style={styles.error}>{errors.password.message}</Text>}
+                {validationErrors.password && <Text style={styles.error}>{validationErrors.password}</Text>}
 
                 <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
                     <Text style={styles.forgot}>Esqueceu sua senha?</Text>

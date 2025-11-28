@@ -19,6 +19,7 @@ import { changePassword } from '../../services/passwordResetService';
 import Header from '../../components/Header';
 import { API_CONFIG } from '../../config/api';
 import { patientService } from '../../services/PatientService';
+import { validatePassword } from '../../utils/validationRules';
 import { nutricionistService } from '../../services/NutricionistService';
 import { physicalEducatorService } from '../../services/PhysicalEducatorService';
 import PatientProfessionalAssociationService, { PatientProfessionalAssociation } from '../../services/PatientProfessionalAssociationService';
@@ -159,7 +160,7 @@ const ContaUsuario: React.FC<{ navigation: any }> = ({ navigation }) => {
             await updateEmailWithReauth(reauthAuthId, newEmail, reauthToken, accessToken || undefined);
             if (refreshUser) await refreshUser();
             setShowEmailModal(false);
-            
+
             // Mostra mensagem de sucesso
             setSuccessMessage('Email alterado com sucesso!');
             setShowSuccessModal(true);
@@ -215,23 +216,6 @@ const ContaUsuario: React.FC<{ navigation: any }> = ({ navigation }) => {
     };
 
     // Funções para alteração de senha
-    const validatePassword = (password: string) => {
-        const minLength = password.length >= 8;
-        const hasUpperCase = /[A-Z]/.test(password);
-        const hasLowerCase = /[a-z]/.test(password);
-        const hasNumber = /\d/.test(password);
-        const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
-
-        return {
-            isValid: minLength && hasUpperCase && hasLowerCase && hasNumber && hasSpecialChar,
-            minLength,
-            hasUpperCase,
-            hasLowerCase,
-            hasNumber,
-            hasSpecialChar,
-        };
-    };
-
     const handleOpenPasswordModal = () => {
         setOldPassword('');
         setNewPassword('');
@@ -248,8 +232,8 @@ const ContaUsuario: React.FC<{ navigation: any }> = ({ navigation }) => {
         }
 
         const validation = validatePassword(newPassword);
-        if (!validation.isValid) {
-            setPasswordError('A nova senha não atende aos requisitos de segurança');
+        if (!validation.valid) {
+            setPasswordError(validation.error || 'A nova senha não atende aos requisitos de segurança');
             return;
         }
 
@@ -273,14 +257,14 @@ const ContaUsuario: React.FC<{ navigation: any }> = ({ navigation }) => {
             }
 
             await changePassword(oldPassword, newPassword, accessToken);
-            
+
             setShowPasswordModal(false);
-            
+
             // Limpa os campos
             setOldPassword('');
             setNewPassword('');
             setConfirmNewPassword('');
-            
+
             // Mostra mensagem de sucesso
             setSuccessMessage('Senha alterada com sucesso!');
             setShowSuccessModal(true);
@@ -387,7 +371,7 @@ const ContaUsuario: React.FC<{ navigation: any }> = ({ navigation }) => {
                     {/* Seção de Segurança */}
                     <View style={styles.infoSection}>
                         <Text style={styles.sectionTitle}>Segurança</Text>
-                        
+
                         <TouchableOpacity style={styles.passwordButton} onPress={handleOpenPasswordModal}>
                             <View style={styles.row}>
                                 <Icon name="lock-outline" size={18} color="#1976D2" style={styles.rowIcon} />
@@ -608,122 +592,122 @@ const ContaUsuario: React.FC<{ navigation: any }> = ({ navigation }) => {
                             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                             style={{ flex: 1, width: '100%', justifyContent: 'center', alignItems: 'center' }}
                         >
-                            <ScrollView 
+                            <ScrollView
                                 contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 20 }}
                                 keyboardShouldPersistTaps="handled"
                                 showsVerticalScrollIndicator={false}
                                 style={{ width: '100%' }}
                             >
                                 <View style={styles.modalContent}>
-                                <Text style={styles.modalTitle}>Alterar Senha</Text>
+                                    <Text style={styles.modalTitle}>Alterar Senha</Text>
 
-                                {/* Senha Atual */}
-                                <View style={styles.passwordInputContainer}>
-                                    <TextInput
-                                        style={styles.passwordInput}
-                                        value={oldPassword}
-                                        onChangeText={setOldPassword}
-                                        editable={!passwordLoading}
-                                        secureTextEntry={hideOldPassword}
-                                        placeholder="Senha atual"
-                                        placeholderTextColor="#999"
-                                    />
-                                    <TouchableOpacity onPress={() => setHideOldPassword(!hideOldPassword)}>
-                                        <Icon name={hideOldPassword ? 'eye-off' : 'eye'} size={20} color="#666" />
-                                    </TouchableOpacity>
-                                </View>
-
-                                {/* Nova Senha */}
-                                <View style={styles.passwordInputContainer}>
-                                    <TextInput
-                                        style={styles.passwordInput}
-                                        value={newPassword}
-                                        onChangeText={setNewPassword}
-                                        editable={!passwordLoading}
-                                        secureTextEntry={hideNewPassword}
-                                        placeholder="Nova senha"
-                                        placeholderTextColor="#999"
-                                    />
-                                    <TouchableOpacity onPress={() => setHideNewPassword(!hideNewPassword)}>
-                                        <Icon name={hideNewPassword ? 'eye-off' : 'eye'} size={20} color="#666" />
-                                    </TouchableOpacity>
-                                </View>
-
-                                {/* Requisitos da senha */}
-                                {newPassword.length > 0 && (
-                                    <View style={styles.requirementsBox}>
-                                        <Text style={styles.requirementsTitle}>Requisitos da senha:</Text>
-                                        <PasswordRequirement 
-                                            met={validatePassword(newPassword).minLength} 
-                                            text="Mínimo de 8 caracteres" 
+                                    {/* Senha Atual */}
+                                    <View style={styles.passwordInputContainer}>
+                                        <TextInput
+                                            style={styles.passwordInput}
+                                            value={oldPassword}
+                                            onChangeText={setOldPassword}
+                                            editable={!passwordLoading}
+                                            secureTextEntry={hideOldPassword}
+                                            placeholder="Senha atual"
+                                            placeholderTextColor="#999"
                                         />
-                                        <PasswordRequirement 
-                                            met={validatePassword(newPassword).hasUpperCase} 
-                                            text="Pelo menos 1 letra maiúscula" 
-                                        />
-                                        <PasswordRequirement 
-                                            met={validatePassword(newPassword).hasLowerCase} 
-                                            text="Pelo menos 1 letra minúscula" 
-                                        />
-                                        <PasswordRequirement 
-                                            met={validatePassword(newPassword).hasNumber} 
-                                            text="Pelo menos 1 número" 
-                                        />
-                                        <PasswordRequirement 
-                                            met={validatePassword(newPassword).hasSpecialChar} 
-                                            text="Pelo menos 1 caractere especial" 
-                                        />
+                                        <TouchableOpacity onPress={() => setHideOldPassword(!hideOldPassword)}>
+                                            <Icon name={hideOldPassword ? 'eye-off' : 'eye'} size={20} color="#666" />
+                                        </TouchableOpacity>
                                     </View>
-                                )}
 
-                                {/* Confirmar Nova Senha */}
-                                <View style={styles.passwordInputContainer}>
-                                    <TextInput
-                                        style={styles.passwordInput}
-                                        value={confirmNewPassword}
-                                        onChangeText={setConfirmNewPassword}
-                                        editable={!passwordLoading}
-                                        secureTextEntry={hideConfirmPassword}
-                                        placeholder="Confirmar nova senha"
-                                        placeholderTextColor="#999"
-                                    />
-                                    <TouchableOpacity onPress={() => setHideConfirmPassword(!hideConfirmPassword)}>
-                                        <Icon name={hideConfirmPassword ? 'eye-off' : 'eye'} size={20} color="#666" />
-                                    </TouchableOpacity>
-                                </View>
+                                    {/* Nova Senha */}
+                                    <View style={styles.passwordInputContainer}>
+                                        <TextInput
+                                            style={styles.passwordInput}
+                                            value={newPassword}
+                                            onChangeText={setNewPassword}
+                                            editable={!passwordLoading}
+                                            secureTextEntry={hideNewPassword}
+                                            placeholder="Nova senha"
+                                            placeholderTextColor="#999"
+                                        />
+                                        <TouchableOpacity onPress={() => setHideNewPassword(!hideNewPassword)}>
+                                            <Icon name={hideNewPassword ? 'eye-off' : 'eye'} size={20} color="#666" />
+                                        </TouchableOpacity>
+                                    </View>
 
-                                {passwordError && (
-                                    <Text style={{ color: '#D32F2F', marginBottom: 8, fontSize: 13 }}>
-                                        {passwordError}
-                                    </Text>
-                                )}
+                                    {/* Requisitos da senha */}
+                                    {newPassword.length > 0 && (
+                                        <View style={styles.requirementsBox}>
+                                            <Text style={styles.requirementsTitle}>Requisitos da senha:</Text>
+                                            <PasswordRequirement
+                                                met={newPassword.length >= 8}
+                                                text="Mínimo de 8 caracteres"
+                                            />
+                                            <PasswordRequirement
+                                                met={/[A-Z]/.test(newPassword)}
+                                                text="Pelo menos 1 letra maiúscula"
+                                            />
+                                            <PasswordRequirement
+                                                met={/[a-z]/.test(newPassword)}
+                                                text="Pelo menos 1 letra minúscula"
+                                            />
+                                            <PasswordRequirement
+                                                met={/\d/.test(newPassword)}
+                                                text="Pelo menos 1 número"
+                                            />
+                                            <PasswordRequirement
+                                                met={/[!@#$%^&*()_\-+=\[\]{};':"\\|,.<>/?]/.test(newPassword)}
+                                                text="Pelo menos 1 caractere especial"
+                                            />
+                                        </View>
+                                    )}
 
-                                <View style={styles.modalActions}>
-                                    <TouchableOpacity
-                                        style={[styles.modalButton, passwordLoading && styles.buttonDisabled]}
-                                        onPress={handleChangePassword}
-                                        disabled={passwordLoading}
-                                    >
-                                        <Text style={styles.modalButtonText}>
-                                            {passwordLoading ? 'Alterando...' : 'Alterar Senha'}
+                                    {/* Confirmar Nova Senha */}
+                                    <View style={styles.passwordInputContainer}>
+                                        <TextInput
+                                            style={styles.passwordInput}
+                                            value={confirmNewPassword}
+                                            onChangeText={setConfirmNewPassword}
+                                            editable={!passwordLoading}
+                                            secureTextEntry={hideConfirmPassword}
+                                            placeholder="Confirmar nova senha"
+                                            placeholderTextColor="#999"
+                                        />
+                                        <TouchableOpacity onPress={() => setHideConfirmPassword(!hideConfirmPassword)}>
+                                            <Icon name={hideConfirmPassword ? 'eye-off' : 'eye'} size={20} color="#666" />
+                                        </TouchableOpacity>
+                                    </View>
+
+                                    {passwordError && (
+                                        <Text style={{ color: '#D32F2F', marginBottom: 8, fontSize: 13 }}>
+                                            {passwordError}
                                         </Text>
-                                    </TouchableOpacity>
-                                    <TouchableOpacity
-                                        style={[styles.modalButton, { backgroundColor: '#D32F2F' }]}
-                                        onPress={() => {
-                                            setShowPasswordModal(false);
-                                            setOldPassword('');
-                                            setNewPassword('');
-                                            setConfirmNewPassword('');
-                                            setPasswordError(null);
-                                        }}
-                                        disabled={passwordLoading}
-                                    >
-                                        <Text style={styles.modalButtonText}>Cancelar</Text>
-                                    </TouchableOpacity>
+                                    )}
+
+                                    <View style={styles.modalActions}>
+                                        <TouchableOpacity
+                                            style={[styles.modalButton, passwordLoading && styles.buttonDisabled]}
+                                            onPress={handleChangePassword}
+                                            disabled={passwordLoading}
+                                        >
+                                            <Text style={styles.modalButtonText}>
+                                                {passwordLoading ? 'Alterando...' : 'Alterar Senha'}
+                                            </Text>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
+                                            style={[styles.modalButton, { backgroundColor: '#D32F2F' }]}
+                                            onPress={() => {
+                                                setShowPasswordModal(false);
+                                                setOldPassword('');
+                                                setNewPassword('');
+                                                setConfirmNewPassword('');
+                                                setPasswordError(null);
+                                            }}
+                                            disabled={passwordLoading}
+                                        >
+                                            <Text style={styles.modalButtonText}>Cancelar</Text>
+                                        </TouchableOpacity>
+                                    </View>
                                 </View>
-                            </View>
-                        </ScrollView>
+                            </ScrollView>
                         </KeyboardAvoidingView>
                     </View>
                 )}

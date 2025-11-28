@@ -1,14 +1,46 @@
 import { AuthService } from "../services/AuthService.js";
 import { AuthRepository } from "../repositories/AuthRepository.js";
 import { LogService } from "../services/LogService.js";
+import { validateRegisterCredentials, validateLoginCredentials, normalizeEmail, normalizeUsername } from "../utils/validationRules.js";
 
 export const AuthController = {
   register: async (req, res) => {
     const user = req.body;
-    user.email = user.email.toLowerCase();
-
     const ip = req.ip;
+
     console.log("[REGISTER] Iniciando registro para:", user.email, user.username);
+
+    // ====================================
+    // VALIDAÇÃO DE CREDENCIAIS
+    // ====================================
+    const validation = validateRegisterCredentials({
+      username: user.username,
+      email: user.email,
+      password: user.password
+    });
+
+    if (!validation.valid) {
+      console.log("[REGISTER] Validação falhou:", validation.errors);
+      await LogService.createLog({
+        action: "REGISTER",
+        logType: "VALIDATION_ERROR",
+        description: `Validação falhou: ${JSON.stringify(validation.errors)}`,
+        ip,
+        oldValue: null,
+        newValue: JSON.stringify({ email: user.email, username: user.username }),
+        status: "FAILURE",
+        userId: null
+      });
+      return res.status(400).json({
+        message: "Dados inválidos",
+        errors: validation.errors
+      });
+    }
+
+    // Normalizar dados
+    user.email = normalizeEmail(user.email);
+    user.username = normalizeUsername(user.username);
+
     try {
       // Verifica se já existe usuário com mesmo username
       const existingUsername = await AuthService.findByUsername?.(user.username);
@@ -104,10 +136,35 @@ export const AuthController = {
 
   login: async (req, res) => {
     const { email, password } = req.body;
-    const normalizedEmail = email.toLowerCase();
     const ip = req.ip;
 
-    console.log("[LOGIN] Iniciando login para:", normalizedEmail);
+    console.log("[LOGIN] Iniciando login para:", email);
+
+    // ====================================
+    // VALIDAÇÃO DE CREDENCIAIS
+    // ====================================
+    const validation = validateLoginCredentials({ email, password });
+
+    if (!validation.valid) {
+      console.log("[LOGIN] Validação falhou:", validation.errors);
+      await LogService.createLog({
+        action: "LOGIN",
+        logType: "VALIDATION_ERROR",
+        description: `Validação falhou: ${JSON.stringify(validation.errors)}`,
+        ip,
+        oldValue: null,
+        newValue: JSON.stringify({ email }),
+        status: "FAILURE",
+        userId: null
+      });
+      return res.status(400).json({
+        message: "Credenciais inválidas",
+        errors: validation.errors
+      });
+    }
+
+    // Normalizar email
+    const normalizedEmail = normalizeEmail(email);
 
     try {
       const result = await AuthService.login(normalizedEmail, password);
@@ -393,12 +450,12 @@ export const AuthController = {
 
     try {
       const user = await AuthRepository.findByEmail(email.toLowerCase());
-      
+
       if (!user) {
         // Por segurança, não revelamos se o email existe ou não
-        return res.json({ 
+        return res.json({
           message: "Se o email existir, um código será enviado",
-          authId: 0 
+          authId: 0
         });
       }
 
@@ -427,9 +484,9 @@ export const AuthController = {
         userId: authId
       });
 
-      res.json({ 
+      res.json({
         message: "Código de recuperação enviado",
-        authId 
+        authId
       });
     } catch (err) {
       console.error("[PASSWORD_RESET_REQUEST] Erro:", err);
@@ -458,7 +515,7 @@ export const AuthController = {
 
     try {
       const isValid = await AuthService.verify2FACode(authId, code);
-      
+
       if (!isValid) {
         await LogService.createLog({
           action: "PASSWORD_RESET_VERIFY",
@@ -503,22 +560,22 @@ export const AuthController = {
     // Valida força da senha
     const strong = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/.test(newPassword);
     if (!strong) {
-      return res.status(400).json({ 
-        message: "Senha não atende aos requisitos de segurança" 
+      return res.status(400).json({
+        message: "Senha não atende aos requisitos de segurança"
       });
     }
 
     try {
       // Verifica código novamente antes de redefinir
       const isValid = await AuthService.verify2FACode(authId, code);
-      
+
       if (!isValid) {
         return res.status(400).json({ message: "Código inválido ou expirado" });
       }
 
       // Atualiza senha
       await AuthService.updatePassword(authId, newPassword);
-      
+
       // Remove código 2FA usado
       await AuthService.clear2FACode(authId);
 
@@ -567,21 +624,21 @@ export const AuthController = {
     // Valida força da nova senha
     const strong = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/.test(newPassword);
     if (!strong) {
-      return res.status(400).json({ 
-        message: "Senha não atende aos requisitos de segurança" 
+      return res.status(400).json({
+        message: "Senha não atende aos requisitos de segurança"
       });
     }
 
     if (currentPassword === newPassword) {
-      return res.status(400).json({ 
-        message: "A nova senha deve ser diferente da senha atual" 
+      return res.status(400).json({
+        message: "A nova senha deve ser diferente da senha atual"
       });
     }
 
     try {
       // Busca usuário
       const user = await AuthService.findById(userId);
-      
+
       if (!user) {
         return res.status(404).json({ message: "Usuário não encontrado" });
       }
@@ -589,7 +646,7 @@ export const AuthController = {
       // Verifica senha atual
       const bcrypt = await import('bcrypt');
       const isValidPassword = await bcrypt.compare(currentPassword, user.password);
-      
+
       if (!isValidPassword) {
         await LogService.createLog({
           action: "CHANGE_PASSWORD",

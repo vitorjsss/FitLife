@@ -12,8 +12,6 @@ import {
 } from "react-native";
 import Icon from "react-native-vector-icons/Feather";
 import { useForm, Controller, SubmitHandler } from "react-hook-form";
-import * as yup from "yup";
-import { yupResolver } from "@hookform/resolvers/yup";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
@@ -22,6 +20,7 @@ import { authService } from "../../services/authService";
 import { patientService } from "../../services/PatientService";
 import { nutricionistService } from "../../services/NutricionistService";
 import { physicalEducatorService } from "../../services/PhysicalEducatorService";
+import { validateRegisterCredentials, validateEmail, validatePassword, validateUsername, normalizeEmail, normalizeUsername } from '../../utils/validationRules';
 
 type RegisterScreenNavigationProp = NativeStackNavigationProp<
     RootStackParamList,
@@ -43,57 +42,14 @@ type RegisterFormData = {
     userType: UserType;
 };
 
-const passwordPolicy = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&*()_\-+=\[\]{};':"\\|,.<>/?]).{8,}$/;
 const dateRegex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
-
-const schema = yup.object({
-    name: yup.string().required("Nome obrigatório"),
-    email: yup.string()
-        .matches(/^[\w-.]+@[\w-]+\.[a-zA-Z]{2,}$/, "E-mail inválido")
-        .required("E-mail obrigatório"),
-    password: yup.string()
-        .matches(passwordPolicy, "Senha deve ter ≥8 caracteres, letras, números e caractere especial")
-        .required("Senha obrigatória"),
-    confirmPassword: yup.string().oneOf([yup.ref("password")], "As senhas não coincidem"),
-    birthdate: yup.string()
-        .matches(dateRegex, "Formato inválido. Use DD/MM/AAAA")
-        .test("valid-date", "Data inválida", (value) => {
-            if (!value) return true;
-            const match = value.match(dateRegex);
-            if (!match) return false;
-            const day = parseInt(match[1], 10);
-            const month = parseInt(match[2], 10);
-            const year = parseInt(match[3], 10);
-            if (month < 1 || month > 12) return false;
-            if (day < 1 || day > 31) return false;
-            if (year < 1900 || year > new Date().getFullYear()) return false;
-            return true;
-        })
-        .when("userType", {
-            is: (val: any) => !!val,
-            then: (schema) => schema.required("Data de nascimento obrigatória"),
-        }),
-    sex: yup.string().required("Sexo obrigatório"),
-    contact: yup.string().when("userType", {
-        is: (val: any) => !!val,
-        then: (schema) => schema.required("Contato obrigatório"),
-    }),
-    crn: yup.string().when("userType", {
-        is: (val: UserType) => val === "Nutricionist",
-        then: (schema) => schema.required("CRN obrigatório"),
-    }),
-    cref: yup.string().when("userType", {
-        is: (val: UserType) => val === "Physical_educator",
-        then: (schema) => schema.required("CREF obrigatório"),
-    }),
-    userType: yup.string().required("Selecione o tipo de usuário"),
-});
 
 export default function RegisterScreen() {
     const [loading, setLoading] = useState(false);
     const [hidePassword, setHidePassword] = useState(true);
     const [hideConfirmPassword, setHideConfirmPassword] = useState(true);
     const [selectedType, setSelectedType] = useState<UserType | null>(null);
+    const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
     const navigation = useNavigation<RegisterScreenNavigationProp>();
 
@@ -104,7 +60,6 @@ export default function RegisterScreen() {
         watch,
         formState: { errors },
     } = useForm<RegisterFormData>({
-        resolver: yupResolver(schema) as any,
         defaultValues: {
             name: "",
             email: "",
@@ -130,12 +85,65 @@ export default function RegisterScreen() {
     };
 
     const onSubmit: SubmitHandler<RegisterFormData> = async (data) => {
+        // Validações customizadas
+        const errors: Record<string, string> = {};
+
+        // Validar nome
+        if (!data.name || data.name.trim().length < 3) {
+            errors.name = 'Nome deve ter no mínimo 3 caracteres';
+        }
+
+        // Validar credenciais com validationRules
+        const credValidation = validateRegisterCredentials({
+            username: data.name,
+            email: data.email,
+            password: data.password
+        });
+
+        if (!credValidation.valid) {
+            Object.assign(errors, credValidation.errors);
+        }
+
+        // Validar confirmação de senha
+        if (data.password !== data.confirmPassword) {
+            errors.confirmPassword = 'As senhas não coincidem';
+        }
+
+        // Validar data de nascimento
+        if (data.birthdate) {
+            const match = data.birthdate.match(dateRegex);
+            if (!match) {
+                errors.birthdate = 'Formato inválido. Use DD/MM/AAAA';
+            } else {
+                const day = parseInt(match[1], 10);
+                const month = parseInt(match[2], 10);
+                const year = parseInt(match[3], 10);
+                if (month < 1 || month > 12 || day < 1 || day > 31 || year < 1900 || year > new Date().getFullYear()) {
+                    errors.birthdate = 'Data inválida';
+                }
+            }
+        } else {
+            errors.birthdate = 'Data de nascimento obrigatória';
+        }
+
+        // Validar campos obrigatórios
+        if (!data.sex) errors.sex = 'Sexo obrigatório';
+        if (!data.contact) errors.contact = 'Contato obrigatório';
+        if (data.userType === 'Nutricionist' && !data.crn) errors.crn = 'CRN obrigatório';
+        if (data.userType === 'Physical_educator' && !data.cref) errors.cref = 'CREF obrigatório';
+
+        if (Object.keys(errors).length > 0) {
+            setValidationErrors(errors);
+            return;
+        }
+
+        setValidationErrors({});
         setLoading(true);
         try {
             // 1️⃣ Registrar usuário
             const registerData = {
                 username: data.name,
-                email: data.email,
+                email: normalizeEmail(data.email),
                 password: data.password,
                 user_type: data.userType,
             };
@@ -267,7 +275,7 @@ export default function RegisterScreen() {
                         />
                     )}
                 />
-                {errors.name && <Text style={styles.error}>{errors.name.message}</Text>}
+                {validationErrors.name && <Text style={styles.error}>{validationErrors.name}</Text>}
 
                 {/* Email */}
                 <Controller
@@ -284,7 +292,7 @@ export default function RegisterScreen() {
                         />
                     )}
                 />
-                {errors.email && <Text style={styles.error}>{errors.email.message}</Text>}
+                {validationErrors.email && <Text style={styles.error}>{validationErrors.email}</Text>}
 
                 {/* Senha */}
                 <Controller
@@ -309,8 +317,8 @@ export default function RegisterScreen() {
                         </View>
                     )}
                 />
-                {errors.password && (
-                    <Text style={styles.error}>{errors.password.message}</Text>
+                {validationErrors.password && (
+                    <Text style={styles.error}>{validationErrors.password}</Text>
                 )}
 
                 {/* Confirmar Senha */}
@@ -338,8 +346,8 @@ export default function RegisterScreen() {
                         </View>
                     )}
                 />
-                {errors.confirmPassword && (
-                    <Text style={styles.error}>{errors.confirmPassword.message}</Text>
+                {validationErrors.confirmPassword && (
+                    <Text style={styles.error}>{validationErrors.confirmPassword}</Text>
                 )}
 
                 {/* Campos dinâmicos */}
@@ -368,7 +376,7 @@ export default function RegisterScreen() {
                         />
                     )}
                 />
-                {errors.birthdate && <Text style={styles.error}>{errors.birthdate.message}</Text>}
+                {validationErrors.birthdate && <Text style={styles.error}>{validationErrors.birthdate}</Text>}
 
                 {/* Contato */}
                 <Controller
@@ -383,7 +391,7 @@ export default function RegisterScreen() {
                         />
                     )}
                 />
-                {errors.contact && <Text style={styles.error}>{errors.contact.message}</Text>}
+                {validationErrors.contact && <Text style={styles.error}>{validationErrors.contact}</Text>}
 
                 {/* CRN (Nutricionista) */}
                 {userType === "Nutricionist" && (
@@ -440,7 +448,7 @@ export default function RegisterScreen() {
                         </View>
                     )}
                 />
-                {errors.sex && <Text style={styles.error}>{errors.sex.message}</Text>}
+                {validationErrors.sex && <Text style={styles.error}>{validationErrors.sex}</Text>}
 
                 {/* Botão Cadastrar */}
                 <TouchableOpacity

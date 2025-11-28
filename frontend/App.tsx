@@ -10,7 +10,7 @@ import RegisterScreen from './src/screens/cadastro/register';
 import HomeScreen from './src/screens/home/home';
 import NutricionistHomeScreen from './src/screens/home/NutricionistHome';
 import PhysicalEducatorHomeScreen from './src/screens/home/PhysicalEducatorHome';
-import Refeicoes from './src/screens/refeicoes/refeicoes';
+import Refeicoes from './src/screens/refeicoes/Refeicoes';
 import GerenciarRefeicoes from './src/screens/refeicoes/GerenciarRefeicoes';
 import AdicionarAlimentos from './src/screens/refeicoes/AdicionarAlimentos';
 import CalendarioRefeicoes from './src/screens/refeicoes/CalendarioRefeicoes';

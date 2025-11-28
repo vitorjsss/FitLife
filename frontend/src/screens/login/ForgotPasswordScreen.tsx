@@ -16,6 +16,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../App';
 import { requestPasswordReset, verifyPasswordResetCode, resetPassword } from '../../services/passwordResetService';
+import { validateEmail, validatePassword } from '../../utils/validationRules';
 
 type ForgotPasswordScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'ForgotPassword'>;
 
@@ -32,31 +33,9 @@ export default function ForgotPasswordScreen() {
   const [authId, setAuthId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const validateEmail = (email: string) => {
-    const emailRegex = /^[\w-.]+@[\w-]+\.[a-zA-Z]{2,}$/;
-    return emailRegex.test(email);
-  };
-
-  const validatePassword = (password: string) => {
-    // Mínimo 8 caracteres, 1 maiúscula, 1 minúscula, 1 número, 1 caractere especial
-    const minLength = password.length >= 8;
-    const hasUpperCase = /[A-Z]/.test(password);
-    const hasLowerCase = /[a-z]/.test(password);
-    const hasNumber = /\d/.test(password);
-    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
-
-    return {
-      isValid: minLength && hasUpperCase && hasLowerCase && hasNumber && hasSpecialChar,
-      minLength,
-      hasUpperCase,
-      hasLowerCase,
-      hasNumber,
-      hasSpecialChar,
-    };
-  };
-
   const handleRequestCode = async () => {
-    if (!validateEmail(email)) {
+    const emailValidation = validateEmail(email);
+    if (!emailValidation.valid) {
       setError('Email inválido');
       return;
     }
@@ -106,7 +85,7 @@ export default function ForgotPasswordScreen() {
   const handleResetPassword = async () => {
     const validation = validatePassword(newPassword);
 
-    if (!validation.isValid) {
+    if (!validation.valid) {
       setError('A senha não atende aos requisitos de segurança');
       return;
     }
@@ -146,16 +125,20 @@ export default function ForgotPasswordScreen() {
   };
 
   const renderPasswordRequirements = () => {
-    const validation = validatePassword(newPassword);
-    
+    const minLength = newPassword.length >= 8;
+    const hasUpperCase = /[A-Z]/.test(newPassword);
+    const hasLowerCase = /[a-z]/.test(newPassword);
+    const hasNumber = /\d/.test(newPassword);
+    const hasSpecialChar = /[!@#$%^&*()_\-+=\[\]{};':"\\|,.<>/?]/.test(newPassword);
+
     return (
       <View style={styles.requirementsBox}>
         <Text style={styles.requirementsTitle}>Requisitos da senha:</Text>
-        <RequirementItem met={validation.minLength} text="Mínimo de 8 caracteres" />
-        <RequirementItem met={validation.hasUpperCase} text="Pelo menos 1 letra maiúscula" />
-        <RequirementItem met={validation.hasLowerCase} text="Pelo menos 1 letra minúscula" />
-        <RequirementItem met={validation.hasNumber} text="Pelo menos 1 número" />
-        <RequirementItem met={validation.hasSpecialChar} text="Pelo menos 1 caractere especial (!@#$...)" />
+        <RequirementItem met={minLength} text="Mínimo de 8 caracteres" />
+        <RequirementItem met={hasUpperCase} text="Pelo menos 1 letra maiúscula" />
+        <RequirementItem met={hasLowerCase} text="Pelo menos 1 letra minúscula" />
+        <RequirementItem met={hasNumber} text="Pelo menos 1 número" />
+        <RequirementItem met={hasSpecialChar} text="Pelo menos 1 caractere especial (!@#$...)" />
       </View>
     );
   };
@@ -324,7 +307,7 @@ export default function ForgotPasswordScreen() {
 
         <TouchableOpacity
           style={styles.backToLoginButton}
-          onPress={() => navigation.navigate('Login')}
+          onPress={() => navigation.goBack()}
         >
           <Text style={styles.backToLoginText}>Voltar para o login</Text>
         </TouchableOpacity>
