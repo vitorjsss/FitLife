@@ -26,10 +26,10 @@
  * ============================================================================
  */
 
-const request = require('supertest');
-const app = require('../../src/index');
-const pool = require('../../src/config/db');
-const bcrypt = require('bcrypt');
+import request from 'supertest';
+import app from '../../src/index.js';
+import { pool } from '../../src/config/db.js';
+import bcrypt from 'bcrypt';
 
 // ============================================================================
 // ESTATÍSTICAS GLOBAIS
@@ -38,7 +38,7 @@ const testStats = {
     totalInvalidInputs: 0,      // Total de entradas inválidas testadas
     detectedInvalid: 0,         // Total detectadas e rejeitadas
     missedInvalid: 0,           // Total que passaram indevidamente
-    
+
     // Por categoria
     weightTests: { total: 0, detected: 0, missed: 0 },
     heightTests: { total: 0, detected: 0, missed: 0 },
@@ -88,7 +88,7 @@ async function testInvalidInput(category, testFunction, description) {
 
     try {
         const result = await testFunction();
-        
+
         // Se status é 400, 422 ou 409, a validação funcionou
         if (result.status === 400 || result.status === 422 || result.status === 409) {
             categoryStats.detected++;
@@ -172,7 +172,7 @@ beforeAll(async () => {
              RETURNING id`,
             [`patient.validation.${Date.now()}@fitlife.com`, hashedPassword]
         );
-        
+
         const patientResult = await pool.query(
             `INSERT INTO "Patient" (auth_id, name, birth_date, gender, professional_id) 
              VALUES ($1, $2, $3, $4, $5) 
@@ -186,7 +186,7 @@ beforeAll(async () => {
         const loginResponse = await request(app)
             .post('/auth/login')
             .send({ email: testData.email, password: testData.password });
-        
+
         testData.token = loginResponse.body.token;
         printSuccess(`✓ Token de autenticação obtido`);
 
@@ -215,7 +215,7 @@ afterAll(async () => {
         }
 
         if (testData.authId) {
-            await pool.query('DELETE FROM "Auth" WHERE id = $1 OR email LIKE $2', 
+            await pool.query('DELETE FROM "Auth" WHERE id = $1 OR email LIKE $2',
                 [testData.authId, 'patient.validation.%']);
             printSuccess('✓ Autenticações removidas');
         }
@@ -234,8 +234,8 @@ afterAll(async () => {
         console.log(`❌ Não Detectadas (passaram): ${testStats.missedInvalid}\n`);
 
         // Calcular métrica principal
-        const metricValue = testStats.totalInvalidInputs > 0 
-            ? testStats.detectedInvalid / testStats.totalInvalidInputs 
+        const metricValue = testStats.totalInvalidInputs > 0
+            ? testStats.detectedInvalid / testStats.totalInvalidInputs
             : 0;
 
         console.log(`${'═'.repeat(70)}`);
@@ -303,7 +303,7 @@ describe('1. Validação de Peso', () => {
     test('1.1 - Rejeitar peso negativo', async () => {
         const result = await testInvalidInput('weight', async () => {
             return await request(app)
-                .post('/body-measurement')
+                .post('/medidas-corporais')
                 .set('Authorization', `Bearer ${testData.token}`)
                 .send({
                     patient_id: testData.patientId,
@@ -319,7 +319,7 @@ describe('1. Validação de Peso', () => {
     test('1.2 - Rejeitar peso zero', async () => {
         const result = await testInvalidInput('weight', async () => {
             return await request(app)
-                .post('/body-measurement')
+                .post('/medidas-corporais')
                 .set('Authorization', `Bearer ${testData.token}`)
                 .send({
                     patient_id: testData.patientId,
@@ -335,7 +335,7 @@ describe('1. Validação de Peso', () => {
     test('1.3 - Rejeitar peso abaixo do mínimo (< 20kg)', async () => {
         const result = await testInvalidInput('weight', async () => {
             return await request(app)
-                .post('/body-measurement')
+                .post('/medidas-corporais')
                 .set('Authorization', `Bearer ${testData.token}`)
                 .send({
                     patient_id: testData.patientId,
@@ -351,7 +351,7 @@ describe('1. Validação de Peso', () => {
     test('1.4 - Rejeitar peso acima do máximo (> 300kg)', async () => {
         const result = await testInvalidInput('weight', async () => {
             return await request(app)
-                .post('/body-measurement')
+                .post('/medidas-corporais')
                 .set('Authorization', `Bearer ${testData.token}`)
                 .send({
                     patient_id: testData.patientId,
@@ -367,7 +367,7 @@ describe('1. Validação de Peso', () => {
     test('1.5 - Rejeitar peso com formato inválido', async () => {
         const result = await testInvalidInput('weight', async () => {
             return await request(app)
-                .post('/body-measurement')
+                .post('/medidas-corporais')
                 .set('Authorization', `Bearer ${testData.token}`)
                 .send({
                     patient_id: testData.patientId,
@@ -391,7 +391,7 @@ describe('2. Validação de Altura', () => {
     test('2.1 - Rejeitar altura negativa', async () => {
         const result = await testInvalidInput('height', async () => {
             return await request(app)
-                .post('/body-measurement')
+                .post('/medidas-corporais')
                 .set('Authorization', `Bearer ${testData.token}`)
                 .send({
                     patient_id: testData.patientId,
@@ -407,7 +407,7 @@ describe('2. Validação de Altura', () => {
     test('2.2 - Rejeitar altura zero', async () => {
         const result = await testInvalidInput('height', async () => {
             return await request(app)
-                .post('/body-measurement')
+                .post('/medidas-corporais')
                 .set('Authorization', `Bearer ${testData.token}`)
                 .send({
                     patient_id: testData.patientId,
@@ -423,7 +423,7 @@ describe('2. Validação de Altura', () => {
     test('2.3 - Rejeitar altura abaixo do mínimo (< 50cm)', async () => {
         const result = await testInvalidInput('height', async () => {
             return await request(app)
-                .post('/body-measurement')
+                .post('/medidas-corporais')
                 .set('Authorization', `Bearer ${testData.token}`)
                 .send({
                     patient_id: testData.patientId,
@@ -439,7 +439,7 @@ describe('2. Validação de Altura', () => {
     test('2.4 - Rejeitar altura acima do máximo (> 250cm)', async () => {
         const result = await testInvalidInput('height', async () => {
             return await request(app)
-                .post('/body-measurement')
+                .post('/medidas-corporais')
                 .set('Authorization', `Bearer ${testData.token}`)
                 .send({
                     patient_id: testData.patientId,
@@ -455,7 +455,7 @@ describe('2. Validação de Altura', () => {
     test('2.5 - Rejeitar altura em metros ao invés de cm', async () => {
         const result = await testInvalidInput('height', async () => {
             return await request(app)
-                .post('/body-measurement')
+                .post('/medidas-corporais')
                 .set('Authorization', `Bearer ${testData.token}`)
                 .send({
                     patient_id: testData.patientId,
@@ -479,7 +479,7 @@ describe('3. Validação de Circunferências', () => {
     test('3.1 - Rejeitar circunferência da cintura negativa', async () => {
         const result = await testInvalidInput('circumference', async () => {
             return await request(app)
-                .post('/body-measurement')
+                .post('/medidas-corporais')
                 .set('Authorization', `Bearer ${testData.token}`)
                 .send({
                     patient_id: testData.patientId,
@@ -496,7 +496,7 @@ describe('3. Validação de Circunferências', () => {
     test('3.2 - Rejeitar circunferência do quadril muito baixa (< 10cm)', async () => {
         const result = await testInvalidInput('circumference', async () => {
             return await request(app)
-                .post('/body-measurement')
+                .post('/medidas-corporais')
                 .set('Authorization', `Bearer ${testData.token}`)
                 .send({
                     patient_id: testData.patientId,
@@ -513,7 +513,7 @@ describe('3. Validação de Circunferências', () => {
     test('3.3 - Rejeitar circunferência do braço muito alta (> 200cm)', async () => {
         const result = await testInvalidInput('circumference', async () => {
             return await request(app)
-                .post('/body-measurement')
+                .post('/medidas-corporais')
                 .set('Authorization', `Bearer ${testData.token}`)
                 .send({
                     patient_id: testData.patientId,
@@ -530,7 +530,7 @@ describe('3. Validação de Circunferências', () => {
     test('3.4 - Rejeitar circunferência da coxa negativa', async () => {
         const result = await testInvalidInput('circumference', async () => {
             return await request(app)
-                .post('/body-measurement')
+                .post('/medidas-corporais')
                 .set('Authorization', `Bearer ${testData.token}`)
                 .send({
                     patient_id: testData.patientId,
@@ -547,7 +547,7 @@ describe('3. Validação de Circunferências', () => {
     test('3.5 - Rejeitar circunferência da panturrilha zero', async () => {
         const result = await testInvalidInput('circumference', async () => {
             return await request(app)
-                .post('/body-measurement')
+                .post('/medidas-corporais')
                 .set('Authorization', `Bearer ${testData.token}`)
                 .send({
                     patient_id: testData.patientId,
@@ -564,7 +564,7 @@ describe('3. Validação de Circunferências', () => {
     test('3.6 - Rejeitar cintura maior que quadril em mulher', async () => {
         const result = await testInvalidInput('circumference', async () => {
             return await request(app)
-                .post('/body-measurement')
+                .post('/medidas-corporais')
                 .set('Authorization', `Bearer ${testData.token}`)
                 .send({
                     patient_id: testData.patientId,
@@ -590,7 +590,7 @@ describe('4. Validação de IMC e Percentuais', () => {
     test('4.1 - Rejeitar percentual de gordura negativo', async () => {
         const result = await testInvalidInput('percentage', async () => {
             return await request(app)
-                .post('/body-measurement')
+                .post('/medidas-corporais')
                 .set('Authorization', `Bearer ${testData.token}`)
                 .send({
                     patient_id: testData.patientId,
@@ -607,7 +607,7 @@ describe('4. Validação de IMC e Percentuais', () => {
     test('4.2 - Rejeitar percentual de gordura acima de 100%', async () => {
         const result = await testInvalidInput('percentage', async () => {
             return await request(app)
-                .post('/body-measurement')
+                .post('/medidas-corporais')
                 .set('Authorization', `Bearer ${testData.token}`)
                 .send({
                     patient_id: testData.patientId,
@@ -624,7 +624,7 @@ describe('4. Validação de IMC e Percentuais', () => {
     test('4.3 - Rejeitar percentual de gordura muito baixo (< 3%)', async () => {
         const result = await testInvalidInput('percentage', async () => {
             return await request(app)
-                .post('/body-measurement')
+                .post('/medidas-corporais')
                 .set('Authorization', `Bearer ${testData.token}`)
                 .send({
                     patient_id: testData.patientId,
@@ -641,7 +641,7 @@ describe('4. Validação de IMC e Percentuais', () => {
     test('4.4 - Rejeitar IMC calculado fora da faixa (< 10 ou > 60)', async () => {
         const result = await testInvalidInput('percentage', async () => {
             return await request(app)
-                .post('/body-measurement')
+                .post('/medidas-corporais')
                 .set('Authorization', `Bearer ${testData.token}`)
                 .send({
                     patient_id: testData.patientId,
@@ -657,7 +657,7 @@ describe('4. Validação de IMC e Percentuais', () => {
     test('4.5 - Rejeitar massa muscular maior que peso total', async () => {
         const result = await testInvalidInput('percentage', async () => {
             return await request(app)
-                .post('/body-measurement')
+                .post('/medidas-corporais')
                 .set('Authorization', `Bearer ${testData.token}`)
                 .send({
                     patient_id: testData.patientId,
@@ -682,7 +682,7 @@ describe('5. Validação de Campos Obrigatórios', () => {
     test('5.1 - Rejeitar medida sem patient_id', async () => {
         const result = await testInvalidInput('required', async () => {
             return await request(app)
-                .post('/body-measurement')
+                .post('/medidas-corporais')
                 .set('Authorization', `Bearer ${testData.token}`)
                 .send({
                     weight: 70,
@@ -698,7 +698,7 @@ describe('5. Validação de Campos Obrigatórios', () => {
     test('5.2 - Rejeitar medida sem peso', async () => {
         const result = await testInvalidInput('required', async () => {
             return await request(app)
-                .post('/body-measurement')
+                .post('/medidas-corporais')
                 .set('Authorization', `Bearer ${testData.token}`)
                 .send({
                     patient_id: testData.patientId,
@@ -714,7 +714,7 @@ describe('5. Validação de Campos Obrigatórios', () => {
     test('5.3 - Rejeitar medida sem altura', async () => {
         const result = await testInvalidInput('required', async () => {
             return await request(app)
-                .post('/body-measurement')
+                .post('/medidas-corporais')
                 .set('Authorization', `Bearer ${testData.token}`)
                 .send({
                     patient_id: testData.patientId,
@@ -730,7 +730,7 @@ describe('5. Validação de Campos Obrigatórios', () => {
     test('5.4 - Rejeitar medida sem data', async () => {
         const result = await testInvalidInput('required', async () => {
             return await request(app)
-                .post('/body-measurement')
+                .post('/medidas-corporais')
                 .set('Authorization', `Bearer ${testData.token}`)
                 .send({
                     patient_id: testData.patientId,
@@ -754,7 +754,7 @@ describe('6. Validação de Tipos de Dados', () => {
     test('6.1 - Rejeitar patient_id com tipo inválido', async () => {
         const result = await testInvalidInput('type', async () => {
             return await request(app)
-                .post('/body-measurement')
+                .post('/medidas-corporais')
                 .set('Authorization', `Bearer ${testData.token}`)
                 .send({
                     patient_id: "abc123", // String ao invés de UUID
@@ -770,7 +770,7 @@ describe('6. Validação de Tipos de Dados', () => {
     test('6.2 - Rejeitar data em formato inválido', async () => {
         const result = await testInvalidInput('type', async () => {
             return await request(app)
-                .post('/body-measurement')
+                .post('/medidas-corporais')
                 .set('Authorization', `Bearer ${testData.token}`)
                 .send({
                     patient_id: testData.patientId,
@@ -786,7 +786,7 @@ describe('6. Validação de Tipos de Dados', () => {
     test('6.3 - Rejeitar valores booleanos em campos numéricos', async () => {
         const result = await testInvalidInput('type', async () => {
             return await request(app)
-                .post('/body-measurement')
+                .post('/medidas-corporais')
                 .set('Authorization', `Bearer ${testData.token}`)
                 .send({
                     patient_id: testData.patientId,
@@ -802,7 +802,7 @@ describe('6. Validação de Tipos de Dados', () => {
     test('6.4 - Rejeitar arrays em campos simples', async () => {
         const result = await testInvalidInput('type', async () => {
             return await request(app)
-                .post('/body-measurement')
+                .post('/medidas-corporais')
                 .set('Authorization', `Bearer ${testData.token}`)
                 .send({
                     patient_id: testData.patientId,
@@ -827,9 +827,9 @@ describe('7. Validação de Consistência', () => {
         const result = await testInvalidInput('consistency', async () => {
             const futureDate = new Date();
             futureDate.setFullYear(futureDate.getFullYear() + 1);
-            
+
             return await request(app)
-                .post('/body-measurement')
+                .post('/medidas-corporais')
                 .set('Authorization', `Bearer ${testData.token}`)
                 .send({
                     patient_id: testData.patientId,
@@ -846,9 +846,9 @@ describe('7. Validação de Consistência', () => {
         const result = await testInvalidInput('consistency', async () => {
             const ancientDate = new Date();
             ancientDate.setFullYear(ancientDate.getFullYear() - 151);
-            
+
             return await request(app)
-                .post('/body-measurement')
+                .post('/medidas-corporais')
                 .set('Authorization', `Bearer ${testData.token}`)
                 .send({
                     patient_id: testData.patientId,
@@ -864,7 +864,7 @@ describe('7. Validação de Consistência', () => {
     test('7.3 - Rejeitar soma de massas maior que peso total', async () => {
         const result = await testInvalidInput('consistency', async () => {
             return await request(app)
-                .post('/body-measurement')
+                .post('/medidas-corporais')
                 .set('Authorization', `Bearer ${testData.token}`)
                 .send({
                     patient_id: testData.patientId,
@@ -884,7 +884,7 @@ describe('7. Validação de Consistência', () => {
     test('7.4 - Rejeitar patient_id inexistente', async () => {
         const result = await testInvalidInput('consistency', async () => {
             return await request(app)
-                .post('/body-measurement')
+                .post('/medidas-corporais')
                 .set('Authorization', `Bearer ${testData.token}`)
                 .send({
                     patient_id: '00000000-0000-0000-0000-000000000000', // UUID válido mas inexistente

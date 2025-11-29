@@ -94,8 +94,8 @@ function printMetric(label, value, unit = '') {
 }
 
 function printResult(passed, metric, requirement) {
-    const status = passed ? 
-        colors.green + '✓ APROVADO' : 
+    const status = passed ?
+        colors.green + '✓ APROVADO' :
         colors.red + '✗ REPROVADO';
     console.log(`\n  ${status}${colors.reset} - ${metric}: ${colors.bright}${requirement}${colors.reset}`);
 }
@@ -110,11 +110,18 @@ async function sleep(ms) {
 
 beforeAll(async () => {
     printHeader('INICIALIZANDO TESTES DE CONFIABILIDADE DO CHECKLIST (RNF2.1)');
-    
+
     try {
+        printSection('Limpando Dados Anteriores');
+
+        // Limpar dados de testes anteriores
+        await pool.query(`DELETE FROM patient WHERE name LIKE '%Checklist%' OR name LIKE '%Test%'`);
+        await pool.query(`DELETE FROM auth WHERE username LIKE '%checklist%' OR username LIKE '%test%'`);
+        printSuccess('Dados anteriores removidos');
+
         // Criar usuário de teste
         printSection('Criando Dados de Teste');
-        
+
         const authResult = await pool.query(`
             INSERT INTO auth (username, email, password, user_type)
             VALUES ($1, $2, $3, $4)
@@ -125,7 +132,7 @@ beforeAll(async () => {
             'hashed_password',
             'Patient'
         ]);
-        
+
         testData.authId = authResult.rows[0].id;
         printSuccess(`Auth criado: ${testData.authId}`);
 
@@ -140,7 +147,7 @@ beforeAll(async () => {
             '11999999999',
             testData.authId
         ]);
-        
+
         testData.patientId = patientResult.rows[0].id;
         printSuccess(`Patient criado: ${testData.patientId}`);
 
@@ -157,14 +164,14 @@ beforeAll(async () => {
 
 afterAll(async () => {
     printSection('Limpando Dados de Teste');
-    
+
     try {
         // Deletar dados de teste
         if (testData.patientId) {
             await pool.query('DELETE FROM patient WHERE id = $1', [testData.patientId]);
             printSuccess('Patient deletado');
         }
-        
+
         if (testData.authId) {
             await pool.query('DELETE FROM auth WHERE id = $1', [testData.authId]);
             printSuccess('Auth deletado');
@@ -197,7 +204,7 @@ describe('🔄 Teste 1: Atualização em Tempo Real dos Cards', () => {
         const initialChecked = response.rows[0].checked;
 
         expect(initialChecked).toBe(false);
-        
+
         if (initialChecked === false) {
             testStats.correctUpdates++;
             testStats.realtimeSuccess++;
@@ -222,7 +229,7 @@ describe('🔄 Teste 1: Atualização em Tempo Real dos Cards', () => {
         const updatedChecked = response.rows[0].checked;
 
         expect(updatedChecked).toBe(true);
-        
+
         if (updatedChecked === true) {
             testStats.correctUpdates++;
             testStats.realtimeSuccess++;
@@ -247,7 +254,7 @@ describe('🔄 Teste 1: Atualização em Tempo Real dos Cards', () => {
         const updatedChecked = response.rows[0].checked;
 
         expect(updatedChecked).toBe(false);
-        
+
         if (updatedChecked === false) {
             testStats.correctUpdates++;
             testStats.realtimeSuccess++;
@@ -272,7 +279,7 @@ describe('🔄 Teste 1: Atualização em Tempo Real dos Cards', () => {
         const initialChecked = response.rows[0].checked;
 
         expect(initialChecked).toBe(false);
-        
+
         if (initialChecked === false) {
             testStats.correctUpdates++;
             testStats.realtimeSuccess++;
@@ -287,6 +294,13 @@ describe('🔄 Teste 1: Atualização em Tempo Real dos Cards', () => {
         testStats.realtimeTests++;
         testStats.totalUpdates++;
 
+        // Primeiro adicionar um item à refeição (regra de negócio)
+        // Cálculo: (10*4) + (10*4) + (5*9) = 40 + 40 + 45 = 125 calorias
+        await pool.query(`
+            INSERT INTO MealItem (meal_record_id, food_name, quantity, calories, proteins, carbs, fats)
+            VALUES ($1, 'Test Food', '100g', 125, 10, 10, 5)
+        `, [testData.mealRecordId]);
+
         const response = await pool.query(`
             UPDATE MealRecord 
             SET checked = $1, updated_at = NOW()
@@ -297,7 +311,7 @@ describe('🔄 Teste 1: Atualização em Tempo Real dos Cards', () => {
         const updatedChecked = response.rows[0].checked;
 
         expect(updatedChecked).toBe(true);
-        
+
         if (updatedChecked === true) {
             testStats.correctUpdates++;
             testStats.realtimeSuccess++;
@@ -317,7 +331,7 @@ describe('🔄 Teste 1: Atualização em Tempo Real dos Cards', () => {
         for (let i = 0; i < totalOperations; i++) {
             testStats.totalUpdates++;
             const newState = i % 2 === 0;
-            
+
             try {
                 const response = await pool.query(`
                     UPDATE WorkoutRecord 
@@ -339,7 +353,7 @@ describe('🔄 Teste 1: Atualização em Tempo Real dos Cards', () => {
 
         const successRate = successCount / totalOperations;
         expect(successRate).toBeGreaterThanOrEqual(0.98);
-        
+
         if (successRate >= 0.98) {
             testStats.realtimeSuccess++;
             printSuccess(`Teste de concorrência: ${successCount}/${totalOperations} atualizações corretas (${(successRate * 100).toFixed(2)}%)`);
@@ -372,7 +386,7 @@ describe('🎨 Teste 2: Reflexão Visual do Estado (Cinza/Verde)', () => {
         const visualState = checked ? 'verde (concluído)' : 'cinza (pendente)';
 
         expect(checked).toBe(false);
-        
+
         if (checked === false) {
             testStats.correctUpdates++;
             testStats.visualStateSuccess++;
@@ -399,7 +413,7 @@ describe('🎨 Teste 2: Reflexão Visual do Estado (Cinza/Verde)', () => {
         const visualState = checked ? 'verde (concluído)' : 'cinza (pendente)';
 
         expect(checked).toBe(true);
-        
+
         if (checked === true) {
             testStats.correctUpdates++;
             testStats.visualStateSuccess++;
@@ -414,18 +428,18 @@ describe('🎨 Teste 2: Reflexão Visual do Estado (Cinza/Verde)', () => {
         testStats.visualStateTests++;
 
         const testRecords = [];
-        
+
         // Criar 5 registros de teste
         for (let i = 0; i < 5; i++) {
             testStats.totalUpdates++;
             const checked = i % 2 === 0;
-            
+
             const response = await pool.query(`
                 INSERT INTO WorkoutRecord (name, date, checked, patient_id)
                 VALUES ($1, $2, $3, $4)
                 RETURNING id, checked
             `, [`Treino Teste ${i}`, '2025-11-27', checked, testData.patientId]);
-            
+
             testRecords.push(response.rows[0]);
         }
 
@@ -443,7 +457,7 @@ describe('🎨 Teste 2: Reflexão Visual do Estado (Cinza/Verde)', () => {
 
         const consistencyRate = correctCount / testRecords.length;
         expect(consistencyRate).toBe(1.0);
-        
+
         if (consistencyRate === 1.0) {
             testStats.visualStateSuccess++;
             printSuccess(`Consistência visual: ${correctCount}/${testRecords.length} registros corretos (100%)`);
@@ -485,7 +499,7 @@ describe('💾 Teste 3: Persistência dos Dados', () => {
 
         const finalState = response.rows[0].checked;
         expect(finalState).toBeDefined();
-        
+
         if (finalState !== null && finalState !== undefined) {
             testStats.correctUpdates++;
             testStats.persistenceSuccess++;
@@ -509,7 +523,7 @@ describe('💾 Teste 3: Persistência dos Dados', () => {
 
         const hasValidReference = response.rows[0].patient_exists !== null;
         expect(hasValidReference).toBe(true);
-        
+
         if (hasValidReference) {
             testStats.persistenceSuccess++;
             printSuccess('Integridade referencial mantida (Foreign Key válida)');
@@ -523,7 +537,7 @@ describe('💾 Teste 3: Persistência dos Dados', () => {
         testStats.totalUpdates++;
 
         const beforeUpdate = new Date();
-        
+
         await pool.query(`
             UPDATE WorkoutRecord 
             SET checked = true, updated_at = NOW()
@@ -540,7 +554,7 @@ describe('💾 Teste 3: Persistência dos Dados', () => {
         expect(created_at).toBeDefined();
         expect(updated_at).toBeDefined();
         expect(updatedAt.getTime()).toBeGreaterThanOrEqual(beforeUpdate.getTime());
-        
+
         if (created_at && updated_at && updatedAt >= beforeUpdate) {
             testStats.correctUpdates++;
             testStats.persistenceSuccess++;
@@ -570,7 +584,7 @@ describe('📜 Teste 4: Histórico de Marcações', () => {
 
         const recordsFound = response.rows.length;
         expect(recordsFound).toBeGreaterThan(0);
-        
+
         if (recordsFound > 0) {
             testStats.historySuccess++;
             printSuccess(`Histórico recuperado: ${recordsFound} registros encontrados para 27/11/2025`);
@@ -592,7 +606,7 @@ describe('📜 Teste 4: Histórico de Marcações', () => {
         const isSorted = timestamps.every((val, i, arr) => i === 0 || arr[i - 1] <= val);
 
         expect(isSorted).toBe(true);
-        
+
         if (isSorted) {
             testStats.historySuccess++;
             printSuccess(`Histórico ordenado cronologicamente (${timestamps.length} registros)`);
@@ -624,7 +638,7 @@ describe('📜 Teste 4: Histórico de Marcações', () => {
         const countAfter = parseInt(afterCount.rows[0].count);
 
         expect(countAfter).toBe(countBefore);
-        
+
         if (countAfter === countBefore) {
             testStats.historySuccess++;
             printSuccess(`Histórico preservado: ${countAfter} registros mantidos após atualização`);
@@ -679,10 +693,10 @@ describe('⚠️ Teste 5: Tratamento de Erros', () => {
         testStats.errorHandlingTests++;
 
         const client = await pool.connect();
-        
+
         try {
             await client.query('BEGIN');
-            
+
             // Operação válida
             await client.query(`
                 UPDATE WorkoutRecord SET checked = true WHERE id = $1
@@ -697,14 +711,14 @@ describe('⚠️ Teste 5: Tratamento de Erros', () => {
             printError('Transação deveria ter falhado');
         } catch (error) {
             await client.query('ROLLBACK');
-            
+
             // Verificar se o estado foi revertido
             const response = await pool.query(`
                 SELECT patient_id FROM WorkoutRecord WHERE id = $1
             `, [testData.workoutRecordId]);
 
             const patientIdPreserved = response.rows[0].patient_id === testData.patientId;
-            
+
             if (patientIdPreserved) {
                 testStats.errorHandlingSuccess++;
                 printSuccess('Rollback executado corretamente: dados revertidos após erro');
@@ -725,21 +739,21 @@ afterAll(() => {
     printHeader('RELATÓRIO FINAL - MÉTRICAS DE CONFIABILIDADE');
 
     // Calcular métricas
-    const taxaAtualizacaoCorreta = testStats.totalUpdates > 0 ? 
+    const taxaAtualizacaoCorreta = testStats.totalUpdates > 0 ?
         testStats.correctUpdates / testStats.totalUpdates : 0;
-    
+
     const taxaRealtimeSuccess = testStats.realtimeTests > 0 ?
         testStats.realtimeSuccess / testStats.realtimeTests : 0;
-    
+
     const taxaPersistenceSuccess = testStats.persistenceTests > 0 ?
         testStats.persistenceSuccess / testStats.persistenceTests : 0;
-    
+
     const taxaVisualSuccess = testStats.visualStateTests > 0 ?
         testStats.visualStateSuccess / testStats.visualStateTests : 0;
-    
+
     const taxaHistorySuccess = testStats.historyTests > 0 ?
         testStats.historySuccess / testStats.historyTests : 0;
-    
+
     const taxaErrorHandlingSuccess = testStats.errorHandlingTests > 0 ?
         testStats.errorHandlingSuccess / testStats.errorHandlingTests : 0;
 
@@ -754,7 +768,7 @@ afterAll(() => {
     printMetric('Cálculo', `${testStats.correctUpdates} / ${testStats.totalUpdates}`);
     printMetric('Resultado (x)', (taxaAtualizacaoCorreta * 100).toFixed(2), '%');
     printMetric('Requisito', '≥ 98%');
-    
+
     const atendeRequisito = taxaAtualizacaoCorreta >= 0.98;
     printResult(
         atendeRequisito,
@@ -763,34 +777,34 @@ afterAll(() => {
     );
 
     printSection('Métricas Detalhadas por Categoria');
-    
+
     console.log('\n  🔄 Atualização em Tempo Real:');
     printMetric('  Testes realizados', testStats.realtimeTests);
     printMetric('  Testes bem-sucedidos', testStats.realtimeSuccess);
     printMetric('  Taxa de sucesso', (taxaRealtimeSuccess * 100).toFixed(2), '%');
-    
+
     console.log('\n  🎨 Reflexão Visual do Estado:');
     printMetric('  Testes realizados', testStats.visualStateTests);
     printMetric('  Testes bem-sucedidos', testStats.visualStateSuccess);
     printMetric('  Taxa de sucesso', (taxaVisualSuccess * 100).toFixed(2), '%');
-    
+
     console.log('\n  💾 Persistência dos Dados:');
     printMetric('  Testes realizados', testStats.persistenceTests);
     printMetric('  Testes bem-sucedidos', testStats.persistenceSuccess);
     printMetric('  Taxa de sucesso', (taxaPersistenceSuccess * 100).toFixed(2), '%');
-    
+
     console.log('\n  📜 Histórico de Marcações:');
     printMetric('  Testes realizados', testStats.historyTests);
     printMetric('  Testes bem-sucedidos', testStats.historySuccess);
     printMetric('  Taxa de sucesso', (taxaHistorySuccess * 100).toFixed(2), '%');
-    
+
     console.log('\n  ⚠️ Tratamento de Erros:');
     printMetric('  Testes realizados', testStats.errorHandlingTests);
     printMetric('  Testes bem-sucedidos', testStats.errorHandlingSuccess);
     printMetric('  Taxa de sucesso', (taxaErrorHandlingSuccess * 100).toFixed(2), '%');
 
     printSection('Análise de Confiabilidade');
-    
+
     if (taxaAtualizacaoCorreta >= 0.98) {
         printSuccess('✓ Sistema ATENDE ao requisito de confiabilidade (RNF2.1)');
         printInfo('O processamento dos checklists é consistente e confiável.');

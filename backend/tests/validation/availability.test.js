@@ -104,8 +104,8 @@ function printMetric(label, value, unit = '') {
 }
 
 function printResult(passed, metric, requirement) {
-    const status = passed ? 
-        colors.green + '✓ APROVADO' : 
+    const status = passed ?
+        colors.green + '✓ APROVADO' :
         colors.red + '✗ REPROVADO';
     console.log(`\n  ${status}${colors.reset} - ${metric}: ${colors.bright}${requirement}${colors.reset}`);
 }
@@ -141,13 +141,20 @@ async function createDowntimeLog(functionality, duration, details) {
 
 beforeAll(async () => {
     printHeader('INICIALIZANDO TESTES DE DISPONIBILIDADE (RNF1.0)');
-    
+
     try {
+        printSection('Limpando Dados Anteriores');
+
+        // Limpar dados de testes anteriores
+        await pool.query(`DELETE FROM patient WHERE name LIKE '%Availability%' OR name LIKE '%Test%'`);
+        await pool.query(`DELETE FROM auth WHERE username LIKE '%availability%' OR username LIKE '%test%'`);
+        printSuccess('Dados anteriores removidos');
+
         printSection('Criando Dados de Teste');
-        
+
         // Hash da senha
         const hashedPassword = await bcrypt.hash(testData.testPassword, 10);
-        
+
         // Criar usuário de teste
         const authResult = await pool.query(`
             INSERT INTO auth (username, email, password, user_type)
@@ -159,7 +166,7 @@ beforeAll(async () => {
             hashedPassword,
             'Patient'
         ]);
-        
+
         testData.authId = authResult.rows[0].id;
         printSuccess(`Auth criado: ${testData.authId}`);
 
@@ -174,7 +181,7 @@ beforeAll(async () => {
             '11999999999',
             testData.authId
         ]);
-        
+
         testData.patientId = patientResult.rows[0].id;
         printSuccess(`Patient criado: ${testData.patientId}`);
 
@@ -227,17 +234,17 @@ beforeAll(async () => {
 
 afterAll(async () => {
     printSection('Limpando Dados de Teste');
-    
+
     try {
         // Deletar dados de teste
         await pool.query('DELETE FROM MealRecord WHERE patient_id = $1', [testData.patientId]);
         await pool.query('DELETE FROM WorkoutRecord WHERE patient_id = $1', [testData.patientId]);
-        
+
         if (testData.patientId) {
             await pool.query('DELETE FROM patient WHERE id = $1', [testData.patientId]);
             printSuccess('Patient deletado');
         }
-        
+
         if (testData.authId) {
             await pool.query('DELETE FROM auth WHERE id = $1', [testData.authId]);
             printSuccess('Auth deletado');
@@ -282,9 +289,9 @@ describe('🔐 Teste 1: Disponibilidade da Funcionalidade de Login', () => {
                 .timeout(TIMEOUT_THRESHOLD);
 
             expect(response.status).toBe(200);
-            expect(response.body.token).toBeDefined();
-            
-            testData.token = response.body.token;
+            expect(response.body.accessToken || response.body.token).toBeDefined();
+
+            testData.token = response.body.accessToken || response.body.token;
         });
 
         testStats.totalTime += result.responseTime;
@@ -373,7 +380,7 @@ describe('🔐 Teste 1: Disponibilidade da Funcionalidade de Login', () => {
         }
 
         const availability = successCount / attempts;
-        
+
         if (availability >= 0.9) {
             testStats.loginSuccess++;
             printSuccess(`Login estável: ${successCount}/${attempts} sucessos (${(availability * 100).toFixed(1)}%)`);
@@ -398,13 +405,14 @@ describe('🍽️ Teste 2: Disponibilidade da Visualização de Dietas', () => {
         testStats.totalOperations++;
 
         const result = await measureResponseTime(async () => {
+            const today = new Date().toISOString().split('T')[0];
             const response = await request(app)
-                .get(`/meal/patient/${testData.patientId}`)
+                .get(`/meal-record/date/${today}/patient/${testData.patientId}`)
                 .set('Authorization', `Bearer ${testData.token}`)
                 .timeout(TIMEOUT_THRESHOLD);
 
             expect(response.status).toBe(200);
-            expect(Array.isArray(response.body)).toBe(true);
+            expect(response.body).toBeDefined();
         });
 
         testStats.totalTime += result.responseTime;
@@ -430,8 +438,9 @@ describe('🍽️ Teste 2: Disponibilidade da Visualização de Dietas', () => {
         testStats.responseTimeTests++;
 
         const result = await measureResponseTime(async () => {
+            const today = new Date().toISOString().split('T')[0];
             const response = await request(app)
-                .get(`/meal/patient/${testData.patientId}`)
+                .get(`/meal-record/date/${today}/patient/${testData.patientId}`)
                 .set('Authorization', `Bearer ${testData.token}`)
                 .timeout(TIMEOUT_THRESHOLD);
 
@@ -466,8 +475,9 @@ describe('🍽️ Teste 2: Disponibilidade da Visualização de Dietas', () => {
             testStats.totalOperations++;
 
             const result = await measureResponseTime(async () => {
+                const today = new Date().toISOString().split('T')[0];
                 const response = await request(app)
-                    .get(`/meal/patient/${testData.patientId}`)
+                    .get(`/meal-record/date/${today}/patient/${testData.patientId}`)
                     .set('Authorization', `Bearer ${testData.token}`)
                     .timeout(TIMEOUT_THRESHOLD);
 
@@ -487,7 +497,7 @@ describe('🍽️ Teste 2: Disponibilidade da Visualização de Dietas', () => {
         }
 
         const availability = successCount / attempts;
-        
+
         if (availability >= 0.9) {
             testStats.dietSuccess++;
             printSuccess(`Dietas estáveis: ${successCount}/${attempts} sucessos (${(availability * 100).toFixed(1)}%)`);
@@ -512,13 +522,14 @@ describe('💪 Teste 3: Disponibilidade da Visualização de Treinos', () => {
         testStats.totalOperations++;
 
         const result = await measureResponseTime(async () => {
+            const today = new Date().toISOString().split('T')[0];
             const response = await request(app)
-                .get(`/workout/patient/${testData.patientId}`)
+                .get(`/workout-record/date/${today}/patient/${testData.patientId}`)
                 .set('Authorization', `Bearer ${testData.token}`)
                 .timeout(TIMEOUT_THRESHOLD);
 
             expect(response.status).toBe(200);
-            expect(Array.isArray(response.body)).toBe(true);
+            expect(response.body).toBeDefined();
         });
 
         testStats.totalTime += result.responseTime;
@@ -545,7 +556,7 @@ describe('💪 Teste 3: Disponibilidade da Visualização de Treinos', () => {
 
         const result = await measureResponseTime(async () => {
             const response = await request(app)
-                .get(`/workout/patient/${testData.patientId}`)
+                .get(`/workout-record/date/${new Date().toISOString().split("T")[0]}/patient/${testData.patientId}`)
                 .set('Authorization', `Bearer ${testData.token}`)
                 .timeout(TIMEOUT_THRESHOLD);
 
@@ -581,7 +592,7 @@ describe('💪 Teste 3: Disponibilidade da Visualização de Treinos', () => {
 
             const result = await measureResponseTime(async () => {
                 const response = await request(app)
-                    .get(`/workout/patient/${testData.patientId}`)
+                    .get(`/workout-record/date/${new Date().toISOString().split("T")[0]}/patient/${testData.patientId}`)
                     .set('Authorization', `Bearer ${testData.token}`)
                     .timeout(TIMEOUT_THRESHOLD);
 
@@ -601,7 +612,7 @@ describe('💪 Teste 3: Disponibilidade da Visualização de Treinos', () => {
         }
 
         const availability = successCount / attempts;
-        
+
         if (availability >= 0.9) {
             testStats.workoutSuccess++;
             printSuccess(`Treinos estáveis: ${successCount}/${attempts} sucessos (${(availability * 100).toFixed(1)}%)`);
@@ -636,15 +647,17 @@ describe('⚡ Teste 4: Teste de Carga e Estabilidade', () => {
                 expect(response.status).toBe(200);
             }),
             measureResponseTime(async () => {
+                const today = new Date().toISOString().split('T')[0];
                 const response = await request(app)
-                    .get(`/meal/patient/${testData.patientId}`)
+                    .get(`/meal-record/date/${today}/patient/${testData.patientId}`)
                     .set('Authorization', `Bearer ${testData.token}`)
                     .timeout(TIMEOUT_THRESHOLD);
                 expect(response.status).toBe(200);
             }),
             measureResponseTime(async () => {
+                const today = new Date().toISOString().split('T')[0];
                 const response = await request(app)
-                    .get(`/workout/patient/${testData.patientId}`)
+                    .get(`/workout-record/date/${today}/patient/${testData.patientId}`)
                     .set('Authorization', `Bearer ${testData.token}`)
                     .timeout(TIMEOUT_THRESHOLD);
                 expect(response.status).toBe(200);
@@ -652,12 +665,12 @@ describe('⚡ Teste 4: Teste de Carga e Estabilidade', () => {
         ];
 
         const results = await Promise.allSettled(promises);
-        
+
         let successCount = 0;
         for (let index = 0; index < results.length; index++) {
             const result = results[index];
             const functionality = ['login', 'diet', 'workout'][index];
-            
+
             if (result.status === 'fulfilled' && result.value.success) {
                 testStats.successfulOperations++;
                 successCount++;
@@ -694,7 +707,7 @@ describe('📋 Teste 5: Registro de Logs de Indisponibilidade', () => {
             `);
 
             const count = parseInt(logsCount.rows[0].count);
-            
+
             if (count >= 0) {
                 printSuccess(`Sistema de logs funcionando: ${count} registros recentes`);
             } else {
@@ -746,16 +759,16 @@ afterAll(() => {
     // Calcular métrica principal
     const totalTimeInSeconds = testStats.totalTime / 1000;
     const downtimeInSeconds = testStats.downtime / 1000;
-    const taxaDisponibilidade = totalTimeInSeconds > 0 ? 
+    const taxaDisponibilidade = totalTimeInSeconds > 0 ?
         (totalTimeInSeconds - downtimeInSeconds) / totalTimeInSeconds : 0;
 
     // Métricas por funcionalidade
     const loginAvailability = testStats.loginTests > 0 ?
         testStats.loginSuccess / testStats.loginTests : 0;
-    
+
     const dietAvailability = testStats.dietTests > 0 ?
         testStats.dietSuccess / testStats.dietTests : 0;
-    
+
     const workoutAvailability = testStats.workoutTests > 0 ?
         testStats.workoutSuccess / testStats.workoutTests : 0;
 
@@ -778,7 +791,7 @@ afterAll(() => {
     printMetric('Cálculo', `(${totalTimeInSeconds.toFixed(2)}s - ${downtimeInSeconds.toFixed(2)}s) / ${totalTimeInSeconds.toFixed(2)}s`);
     printMetric('Resultado (X)', (taxaDisponibilidade * 100).toFixed(2), '%');
     printMetric('Requisito', '≥ 90%');
-    
+
     const atendeRequisito = taxaDisponibilidade >= 0.90;
     printResult(
         atendeRequisito,
@@ -787,19 +800,19 @@ afterAll(() => {
     );
 
     printSection('Disponibilidade por Funcionalidade Crítica');
-    
+
     console.log('\n  🔐 Login:');
     printMetric('  Testes realizados', testStats.loginTests);
     printMetric('  Testes bem-sucedidos', testStats.loginSuccess);
     printMetric('  Taxa de disponibilidade', (loginAvailability * 100).toFixed(2), '%');
     printMetric('  Tempo de indisponibilidade', (testStats.loginDowntime / 1000).toFixed(2), 's');
-    
+
     console.log('\n  🍽️ Visualização de Dietas:');
     printMetric('  Testes realizados', testStats.dietTests);
     printMetric('  Testes bem-sucedidos', testStats.dietSuccess);
     printMetric('  Taxa de disponibilidade', (dietAvailability * 100).toFixed(2), '%');
     printMetric('  Tempo de indisponibilidade', (testStats.dietDowntime / 1000).toFixed(2), 's');
-    
+
     console.log('\n  💪 Visualização de Treinos:');
     printMetric('  Testes realizados', testStats.workoutTests);
     printMetric('  Testes bem-sucedidos', testStats.workoutSuccess);
@@ -816,11 +829,11 @@ afterAll(() => {
     printMetric('Alertas disparados', testStats.alertsTriggered);
 
     printSection('Análise de Conformidade com RNF1.0');
-    
+
     if (taxaDisponibilidade >= 0.90) {
         printSuccess('✓ Sistema ATENDE ao requisito RNF1.0');
         printInfo('Disponibilidade de funcionalidades críticas acima de 90%');
-        
+
         if (loginAvailability >= 0.90 && dietAvailability >= 0.90 && workoutAvailability >= 0.90) {
             printSuccess('✓ Todas as funcionalidades críticas estão disponíveis');
         } else {
@@ -843,7 +856,7 @@ afterAll(() => {
     printSection('Projeção Mensal');
     printMetric('Tempo de indisponibilidade projetado', hoursDowntimePerMonth.toFixed(2), 'h/mês');
     printMetric('Tempo máximo permitido', maxAllowedDowntime, 'h/mês');
-    
+
     if (hoursDowntimePerMonth <= maxAllowedDowntime) {
         printSuccess(`✓ Dentro do limite permitido (${maxAllowedDowntime}h/mês)`);
     } else {

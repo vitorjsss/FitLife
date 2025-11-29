@@ -2,6 +2,7 @@ import { AuthService } from "../services/AuthService.js";
 import { AuthRepository } from "../repositories/AuthRepository.js";
 import { LogService } from "../services/LogService.js";
 import { validateRegisterCredentials, validateLoginCredentials, normalizeEmail, normalizeUsername } from "../utils/validationRules.js";
+import { pool } from "../config/db.js";
 
 export const AuthController = {
   register: async (req, res) => {
@@ -208,7 +209,7 @@ export const AuthController = {
         oldValue: null,
         newValue: JSON.stringify(result),
         status: "SUCCESS",
-        userId: result.id
+        userId: result.userId
       });
 
       console.log("[LOGIN] Login bem-sucedido para:", normalizedEmail);

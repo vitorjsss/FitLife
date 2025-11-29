@@ -2,7 +2,7 @@
  * ================================================
  * TESTES DE INTEGRAÇÃO - VALIDAÇÃO FRONTEND
  * ================================================
- * Risco 8: Validação de Credenciais
+ * Risco 1: Validação de Credenciais
  * 
  * Verifica se as telas estão usando validationRules
  * corretamente em todas as validações

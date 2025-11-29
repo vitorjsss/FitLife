@@ -30,6 +30,19 @@ export const AuthService = {
         if (user.failed_attempts + 1 >= 3) {
           const lockUntil = new Date(Date.now() + 15 * 60 * 1000); // bloqueio 15 minutos
           await AuthRepository.lockAccount(user.email, lockUntil);
+
+          // Registrar bloqueio no log
+          await LogService.createLog({
+            action: "LOGIN_BLOCKED",
+            logType: "SECURITY",
+            description: `Conta bloqueada por múltiplas tentativas de login falhadas até ${lockUntil}`,
+            ip: null,
+            oldValue: null,
+            newValue: JSON.stringify({ email: user.email, locked_until: lockUntil }),
+            status: "FAILURE",
+            userId: user.id
+          });
+
           return { locked: true, until: lockUntil };
         }
 
@@ -351,7 +364,7 @@ export const AuthService = {
   updatePassword: async (authId, newPassword) => {
     const hashed = await bcrypt.hash(newPassword, 10);
     const result = await pool.query(
-      "UPDATE auth SET password = $1 WHERE id = $2 RETURNING *", 
+      "UPDATE auth SET password = $1 WHERE id = $2 RETURNING *",
       [hashed, authId]
     );
     return result.rows[0] || null;
@@ -388,15 +401,15 @@ export const AuthService = {
       "SELECT twofa_code, twofa_expires_at FROM auth WHERE id = $1",
       [authId]
     );
-    
+
     if (!result.rows[0]) return false;
-    
+
     const { twofa_code, twofa_expires_at } = result.rows[0];
-    
+
     if (!twofa_code || !twofa_expires_at) return false;
     if (Date.now() > new Date(twofa_expires_at).getTime()) return false;
     if (twofa_code !== code) return false;
-    
+
     return true;
   },
 
@@ -405,7 +418,7 @@ export const AuthService = {
     try {
       // Importa SendGrid dinamicamente
       const sgMail = (await import('@sendgrid/mail')).default;
-      
+
       // Verifica se a API key está configurada
       if (!process.env.SENDGRID_API_KEY || process.env.SENDGRID_API_KEY === 'SG.SUBSTITUA_PELA_SUA_API_KEY_AQUI') {
         console.warn('⚠️  SendGrid API Key não configurada. Usando modo de desenvolvimento (código no console).');
@@ -506,13 +519,13 @@ ${text}
 
       // Envia o email
       await sgMail.send(msg);
-      
+
       console.log(`✅ Email enviado com sucesso via SendGrid para: ${to}`);
       return true;
-      
+
     } catch (error) {
       console.error('❌ Erro ao enviar email via SendGrid:', error);
-      
+
       // Se falhar, loga no console como fallback
       console.log(`
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -523,7 +536,7 @@ ${text}
 ${text}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       `);
-      
+
       // Não lança erro para não quebrar o fluxo
       return true;
     }

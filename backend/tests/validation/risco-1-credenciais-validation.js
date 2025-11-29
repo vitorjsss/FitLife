@@ -2,7 +2,7 @@
 
 /**
  * ========================================
- * TESTES DE VALIDAÇÃO - RISCO 8
+ * TESTES DE VALIDAÇÃO - RISCO 1
  * Sistema: FitLife
  * Parâmetro: Validação de Credenciais
  * Risco Original: 8 (Alto)

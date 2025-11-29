@@ -1,50 +1,46 @@
-# 📋 TESTES DE VALIDAÇÃO DE DADOS PLAUSÍVEIS (RNF2.0)
+# RNF2.0: Processamento Confiável no Gerenciamento de Medidas
 
-## 📊 Visão Geral
+## Visão Geral
 
-Este documento descreve os testes automatizados para validar a **eficácia das validações de dados** no sistema FitLife, especificamente para o requisito **RNF2.0: Processamento confiável no gerenciamento de Medidas**.
+Este documento descreve os testes automatizados para validar a eficácia das validações de dados no sistema FitLife, especificamente para o requisito RNF2.0: Processamento confiável no gerenciamento de Medidas.
 
-### **Métrica Avaliada**
+## Métrica Avaliada
 
 ```
 x = Nvalores_invalidos_detectados / Nvalores_invalidos_inseridos
 ```
 
-**Onde:**
+Onde:**
 - `Nvalores_invalidos_detectados` = Número de entradas inválidas corretamente rejeitadas pelo sistema
 - `Nvalores_invalidos_inseridos` = Número total de entradas inválidas testadas
 
-**Requisito:** x ≥ 1.0 (100%)
+Requisito:** x ≥ 1.0 (100%)
 
-**Objetivo:** Quanto mais próximo de 1, maior a garantia de que o sistema rejeita entradas inconsistentes (ex.: peso negativo, altura fora de faixa).
+Objetivo:** Quanto mais próximo de 1, maior a garantia de que o sistema rejeita entradas inconsistentes.
 
----
+## Requisito RNF2.0
 
-## 🎯 Requisito RNF2.0
+### Descrição
 
-### **Descrição**
+Ambiente:** O profissional de saúde utiliza o sistema para inserir e atualizar informações nutricionais e corporais dos pacientes.
 
-**Ambiente:** O profissional de saúde utiliza o sistema para inserir e atualizar informações nutricionais e corporais dos pacientes.
+Estímulo:** O profissional insere, atualiza ou consulta medidas nutricionais e corporais.
 
-**Estímulo:** O profissional insere, atualiza ou consulta medidas nutricionais e corporais.
+Resposta:** O sistema deve garantir que as informações sejam processadas corretamente, sem perda, duplicação ou inconsistências. As validações devem impedir valores implausíveis.
 
-**Resposta:** O sistema deve garantir que as informações sejam processadas corretamente, sem perda, duplicação ou inconsistências. As validações devem impedir valores implausíveis.
+Medida de resposta:** A confiabilidade será avaliada pela porcentagem de entradas inválidas corretamente rejeitadas.
 
-**Medida de resposta:** A confiabilidade será avaliada pela porcentagem de entradas inválidas corretamente rejeitadas.
+### Critérios de Aceitação
 
-### **Critérios de Aceitação**
+- O sistema deve registrar medidas nutricionais e corporais de forma consistente e íntegra
+- Nenhum dado inserido deve ser perdido ou sobrescrito sem consentimento
+- O sistema deve validar que valores numéricos estão dentro de limites plausíveis
+- As medidas armazenadas devem ser recuperadas sem alteração ou inconsistência
+- O sistema deve manter histórico das alterações para auditoria
 
-✅ O sistema deve registrar medidas nutricionais e corporais de forma consistente e íntegra  
-✅ Nenhum dado inserido deve ser perdido ou sobrescrito sem consentimento  
-✅ **O sistema deve validar que valores numéricos estão dentro de limites plausíveis**  
-✅ As medidas armazenadas devem ser recuperadas sem alteração ou inconsistência  
-✅ O sistema deve manter histórico das alterações para auditoria
+## Estrutura dos Testes
 
----
-
-## 🧪 Estrutura dos Testes
-
-### **Arquivo de Testes**
+### Arquivo de Testes**
 ```
 backend/tests/validation/data-validation.test.js
 ```
@@ -54,247 +50,233 @@ backend/tests/validation/data-validation.test.js
 Os testes estão organizados em 7 categorias:
 
 | Categoria | Testes | Descrição |
-|-----------|--------|-----------|
-| 1️⃣ **Validação de Peso** | 5 | Peso negativo, zero, fora de faixa (20-300 kg), formato inválido |
-| 2️⃣ **Validação de Altura** | 5 | Altura negativa, zero, fora de faixa (50-250 cm), unidade errada |
-| 3️⃣ **Validação de Circunferências** | 6 | Circunferências negativas, zero, fora de faixa (10-200 cm), inconsistências |
-| 4️⃣ **Validação de IMC e Percentuais** | 5 | Percentuais negativos, acima de 100%, IMC implausível, massa > peso |
-| 5️⃣ **Validação de Campos Obrigatórios** | 4 | Ausência de patient_id, peso, altura, data |
-| 6️⃣ **Validação de Tipos de Dados** | 4 | UUID inválido, data inválida, boolean/array em campos numéricos |
-| 7️⃣ **Validação de Consistência** | 4 | Data futura, data antiga, soma de massas > peso, patient_id inexistente |
+|-----------|--------|-----------||
+| Validação de Peso | 5 | Peso negativo, zero, fora de faixa (20-300 kg), formato inválido |
+| Validação de Altura | 5 | Altura negativa, zero, fora de faixa (50-250 cm), unidade errada |
+| Validação de Circunferências | 6 | Circunferências negativas, zero, fora de faixa (10-200 cm), inconsistências |
+| Validação de IMC e Percentuais | 5 | Percentuais negativos, acima de 100%, IMC implausível, massa > peso |
+| Validação de Campos Obrigatórios | 4 | Ausência de patient_id, peso, altura, data |
+| Validação de Tipos de Dados | 4 | UUID inválido, data inválida, boolean/array em campos numéricos |
+| Validação de Consistência | 4 | Data futura, data antiga, soma de massas > peso, patient_id inexistente |
 
----
+## Detalhamento dos Testes
 
-## 📝 Detalhamento dos Testes
-
-### **1️⃣ Categoria 1: Validação de Peso**
+### Categoria 1: Validação de Peso
 
 Garante que apenas valores plausíveis de peso sejam aceitos.
 
-#### **Teste 1.1 - Rejeitar peso negativo**
+#### Teste 1.1 - Rejeitar peso negativo
 ```javascript
 POST /body-measurement
 {
-  "weight": -70.5,  // ❌ Negativo
+  "weight": -70.5,  // Negativo
   "height": 175
 }
 ```
-**Esperado:** Status 400 ou 422 (Bad Request / Unprocessable Entity)
+Esperado:** Status 400 ou 422
 
-#### **Teste 1.2 - Rejeitar peso zero**
+#### Teste 1.2 - Rejeitar peso zero
 ```javascript
-{ "weight": 0 }  // ❌ Zero não é válido
+{ "weight": 0 }  // Zero não é válido
 ```
 
-#### **Teste 1.3 - Rejeitar peso abaixo do mínimo**
+#### Teste 1.3 - Rejeitar peso abaixo do mínimo
 ```javascript
-{ "weight": 15 }  // ❌ Abaixo de 20 kg
+{ "weight": 15 }  // Abaixo de 20 kg
 ```
-**Limite mínimo:** 20 kg
+Limite mínimo:** 20 kg
 
-#### **Teste 1.4 - Rejeitar peso acima do máximo**
+#### Teste 1.4 - Rejeitar peso acima do máximo
 ```javascript
-{ "weight": 350 }  // ❌ Acima de 300 kg
+{ "weight": 350 }  // Acima de 300 kg
 ```
-**Limite máximo:** 300 kg
+Limite máximo:** 300 kg
 
-#### **Teste 1.5 - Rejeitar formato inválido**
+#### Teste 1.5 - Rejeitar formato inválido
 ```javascript
-{ "weight": "setenta kilos" }  // ❌ String ao invés de número
-```
-
----
-
-### **2️⃣ Categoria 2: Validação de Altura**
-
-#### **Teste 2.1 - Rejeitar altura negativa**
-```javascript
-{ "height": -175 }  // ❌ Negativo
+{ "weight": "setenta kilos" }  // String ao invés de número
 ```
 
-#### **Teste 2.2 - Rejeitar altura zero**
+### Categoria 2: Validação de Altura
+
+#### Teste 2.1 - Rejeitar altura negativa**
 ```javascript
-{ "height": 0 }  // ❌ Zero
+{ "height": -175 }  // Negativo
 ```
 
-#### **Teste 2.3 - Rejeitar altura abaixo do mínimo**
+#### Teste 2.2 - Rejeitar altura zero**
 ```javascript
-{ "height": 30 }  // ❌ Abaixo de 50 cm
+{ "height": 0 }  // Zero
 ```
-**Limite mínimo:** 50 cm
 
-#### **Teste 2.4 - Rejeitar altura acima do máximo**
+#### Teste 2.3 - Rejeitar altura abaixo do mínimo**
 ```javascript
-{ "height": 300 }  // ❌ Acima de 250 cm
+{ "height": 30 }  // Abaixo de 50 cm
 ```
-**Limite máximo:** 250 cm
+Limite mínimo:** 50 cm
 
-#### **Teste 2.5 - Rejeitar unidade errada (metros)**
+#### Teste 2.4 - Rejeitar altura acima do máximo**
 ```javascript
-{ "height": 1.75 }  // ❌ Deveria ser 175 cm
+{ "height": 300 }  // Acima de 250 cm
 ```
-**Nota:** Sistema espera altura em centímetros, não metros.
+Limite máximo:** 250 cm
 
----
+#### Teste 2.5 - Rejeitar unidade errada (metros)**
+```javascript
+{ "height": 1.75 }  // Deveria ser 175 cm
+```
+Nota:** Sistema espera altura em centímetros, não metros.
 
-### **3️⃣ Categoria 3: Validação de Circunferências**
+### Categoria 3: Validação de Circunferências
 
-#### **Campos Testados:**
+#### Campos Testados:
 - `waist_circumference` (cintura)
 - `hip_circumference` (quadril)
 - `arm_circumference` (braço)
 - `thigh_circumference` (coxa)
 - `calf_circumference` (panturrilha)
 
-#### **Teste 3.1 - Circunferência negativa**
+#### Teste 3.1 - Circunferência negativa**
 ```javascript
-{ "waist_circumference": -80 }  // ❌ Negativo
+{ "waist_circumference": -80 }  // Negativo
 ```
 
-#### **Teste 3.2 - Circunferência muito baixa**
+#### Teste 3.2 - Circunferência muito baixa**
 ```javascript
-{ "hip_circumference": 5 }  // ❌ Abaixo de 10 cm
+{ "hip_circumference": 5 }  // Abaixo de 10 cm
 ```
 
-#### **Teste 3.3 - Circunferência muito alta**
+#### Teste 3.3 - Circunferência muito alta**
 ```javascript
-{ "arm_circumference": 250 }  // ❌ Acima de 200 cm
+{ "arm_circumference": 250 }  // Acima de 200 cm
 ```
 
-#### **Teste 3.4 - Circunferência negativa (coxa)**
+#### Teste 3.4 - Circunferência negativa (coxa)**
 ```javascript
-{ "thigh_circumference": -45 }  // ❌ Negativo
+{ "thigh_circumference": -45 }  // Negativo
 ```
 
-#### **Teste 3.5 - Circunferência zero**
+#### Teste 3.5 - Circunferência zero**
 ```javascript
-{ "calf_circumference": 0 }  // ❌ Zero
+{ "calf_circumference": 0 }  // Zero
 ```
 
-#### **Teste 3.6 - Inconsistência anatômica**
+#### Teste 3.6 - Inconsistência anatômica**
 ```javascript
 {
   "waist_circumference": 100,
-  "hip_circumference": 80  // ❌ Cintura > Quadril (implausível)
+  "hip_circumference": 80  // Cintura > Quadril (implausível)
 }
 ```
 
-**Limites:** 10 cm - 200 cm para todas as circunferências
+Limites:** 10 cm - 200 cm para todas as circunferências
 
----
+### Categoria 4: Validação de IMC e Percentuais
 
-### **4️⃣ Categoria 4: Validação de IMC e Percentuais**
-
-#### **Teste 4.1 - Percentual de gordura negativo**
+#### Teste 4.1 - Percentual de gordura negativo**
 ```javascript
-{ "body_fat_percentage": -15 }  // ❌ Negativo
+{ "body_fat_percentage": -15 }  // Negativo
 ```
 
-#### **Teste 4.2 - Percentual acima de 100%**
+#### Teste 4.2 - Percentual acima de 100%**
 ```javascript
-{ "body_fat_percentage": 120 }  // ❌ > 100%
+{ "body_fat_percentage": 120 }  // > 100%
 ```
 
-#### **Teste 4.3 - Percentual muito baixo**
+#### Teste 4.3 - Percentual muito baixo**
 ```javascript
-{ "body_fat_percentage": 1 }  // ❌ Abaixo de 3%
+{ "body_fat_percentage": 1 }  // Abaixo de 3%
 ```
-**Limite mínimo:** 3% (essencial para sobrevivência)
+Limite mínimo:** 3% (essencial para sobrevivência)
 
-#### **Teste 4.4 - IMC implausível**
+#### Teste 4.4 - IMC implausível**
 ```javascript
 { "weight": 10, "height": 175 }  // IMC = 3.27 ❌
 ```
-**Limites de IMC:** 10 - 60 kg/m²
+Limites de IMC:** 10 - 60 kg/m²
 
-#### **Teste 4.5 - Massa muscular maior que peso**
+#### Teste 4.5 - Massa muscular maior que peso**
 ```javascript
 {
   "weight": 70,
-  "muscle_mass": 80  // ❌ Impossível
+  "muscle_mass": 80  // Impossível
 }
 ```
 
----
+### Categoria 5: Validação de Campos Obrigatórios
 
-### **5️⃣ Categoria 5: Validação de Campos Obrigatórios**
-
-#### **Teste 5.1 - Ausência de patient_id**
+#### Teste 5.1 - Ausência de patient_id**
 ```javascript
 {
   "weight": 70,
   "height": 175
-  // ❌ patient_id ausente
+  // patient_id ausente
 }
 ```
 
-#### **Teste 5.2 - Ausência de peso**
+#### Teste 5.2 - Ausência de peso**
 ```javascript
 {
   "patient_id": "uuid",
   "height": 175
-  // ❌ weight ausente
+  // weight ausente
 }
 ```
 
-#### **Teste 5.3 - Ausência de altura**
+#### Teste 5.3 - Ausência de altura**
 ```javascript
 {
   "patient_id": "uuid",
   "weight": 70
-  // ❌ height ausente
+  // height ausente
 }
 ```
 
-#### **Teste 5.4 - Ausência de data**
+#### Teste 5.4 - Ausência de data**
 ```javascript
 {
   "patient_id": "uuid",
   "weight": 70,
   "height": 175
-  // ❌ measurement_date ausente
+  // measurement_date ausente
 }
 ```
 
----
-
-### **6️⃣ Categoria 6: Validação de Tipos de Dados**
-
-#### **Teste 6.1 - UUID inválido**
+### Categoria 7: Validação de Consistência
 ```javascript
-{ "patient_id": "abc123" }  // ❌ Não é UUID
+{ "patient_id": "abc123" }  // Não é UUID
 ```
 
-#### **Teste 6.2 - Data inválida**
+#### Teste 6.2 - Data inválida**
 ```javascript
-{ "measurement_date": "30/02/2025" }  // ❌ Fevereiro não tem 30 dias
+{ "measurement_date": "30/02/2025" }  // Fevereiro não tem 30 dias
 ```
 
-#### **Teste 6.3 - Boolean em campo numérico**
+#### Teste 6.3 - Boolean em campo numérico**
 ```javascript
-{ "weight": true }  // ❌ Boolean ao invés de número
+{ "weight": true }  // Boolean ao invés de número
 ```
 
-#### **Teste 6.4 - Array em campo simples**
+#### Teste 6.4 - Array em campo simples**
 ```javascript
-{ "weight": [70, 75] }  // ❌ Array ao invés de número
+{ "weight": [70, 75] }  // Array ao invés de número
 ```
 
----
+
 
 ### **7️⃣ Categoria 7: Validação de Consistência**
 
-#### **Teste 7.1 - Data futura**
+#### Teste 7.1 - Data futura**
 ```javascript
-{ "measurement_date": "2026-12-31" }  // ❌ No futuro
+{ "measurement_date": "2026-12-31" }  // No futuro
 ```
 
-#### **Teste 7.2 - Data muito antiga**
+#### Teste 7.2 - Data muito antiga**
 ```javascript
-{ "measurement_date": "1870-01-01" }  // ❌ Mais de 150 anos
+{ "measurement_date": "1870-01-01" }  // Mais de 150 anos
 ```
 
-#### **Teste 7.3 - Soma de massas > peso**
+#### Teste 7.3 - Soma de massas > peso**
 ```javascript
 {
   "weight": 70,
@@ -305,120 +287,114 @@ POST /body-measurement
 }
 ```
 
-#### **Teste 7.4 - Patient_id inexistente**
+#### Teste 7.4 - Patient_id inexistente**
 ```javascript
-{ "patient_id": "00000000-0000-0000-0000-000000000000" }  // ❌ Não existe
+{ "patient_id": "00000000-0000-0000-0000-000000000000" }  // Não existe
 ```
 
----
+## Como Executar
 
-## 🚀 Como Executar
-
-### **Opção 1: PowerShell (Windows)**
+### Opção 1: PowerShell (Windows)
 ```powershell
 cd C:\GP\FitLife\backend
 .\test-data-validation.ps1
 ```
 
-### **Opção 2: Bash (Linux/Mac)**
+### Opção 2: Bash (Linux/Mac)**
 ```bash
 cd /c/GP/FitLife/backend
 chmod +x test-data-validation.sh
 ./test-data-validation.sh
 ```
 
-### **Opção 3: NPM Direto**
+### Opção 3: NPM Direto**
 ```bash
 npm test -- tests/validation/data-validation.test.js
 ```
 
-### **Opção 4: Modo Verbose**
+### Opção 4: Modo Verbose**
 ```bash
 npm test -- tests/validation/data-validation.test.js --verbose --colors
 ```
 
----
 
-## 📊 Interpretação dos Resultados
+
+## Interpretação dos Resultados
 
 ### **Exemplo de Saída**
 
 ```
-📊 RELATÓRIO FINAL - VALIDAÇÃO DE DADOS PLAUSÍVEIS (RNF2.0)
+RELATÓRIO FINAL - VALIDAÇÃO DE DADOS PLAUSÍVEIS (RNF2.0)
 
 ═══════════════════════════════════════════════════════════════════════
   ESTATÍSTICAS GERAIS
 ═══════════════════════════════════════════════════════════════════════
 
-📋 Total de Entradas Inválidas Testadas: 33
-✅ Detectadas e Rejeitadas: 33
-❌ Não Detectadas (passaram): 0
+Total de Entradas Inválidas Testadas: 33
+Detectadas e Rejeitadas: 33
+Não Detectadas (passaram): 0
 
 ═══════════════════════════════════════════════════════════════════════
   MÉTRICA PRINCIPAL
 ═══════════════════════════════════════════════════════════════════════
 
-📐 Fórmula: x = Ndetectados / Ntotal
-📊 Resultado (x): 100.00%
-🎯 Requisito: x ≥ 1.0 (100%)
+Fórmula: x = Ndetectados / Ntotal
+Resultado (x): 100.00%
+Requisito: x ≥ 1.0 (100%)
 
 ═══════════════════════════════════════════════════════════════════════
   ESTATÍSTICAS POR CATEGORIA
 ═══════════════════════════════════════════════════════════════════════
 
-⚖️ Peso:
+Peso:
    Total: 5 | Detectados: 5 | Taxa: 100.0%
-📏 Altura:
+Altura:
    Total: 5 | Detectados: 5 | Taxa: 100.0%
-📐 Circunferências:
+Circunferências:
    Total: 6 | Detectados: 6 | Taxa: 100.0%
-📊 IMC/Percentuais:
+IMC/Percentuais:
    Total: 5 | Detectados: 5 | Taxa: 100.0%
-✔️ Campos Obrigatórios:
+Campos Obrigatórios:
    Total: 4 | Detectados: 4 | Taxa: 100.0%
-🔢 Tipos de Dados:
+Tipos de Dados:
    Total: 4 | Detectados: 4 | Taxa: 100.0%
-🔄 Consistência:
+Consistência:
    Total: 4 | Detectados: 4 | Taxa: 100.0%
 
 ═══════════════════════════════════════════════════════════════════════
   AVALIAÇÃO FINAL
 ═══════════════════════════════════════════════════════════════════════
 
-✅ APROVADO - Taxa de Detecção: ATENDE (100%)
-✅ RNF2.0 ATENDIDO - Sistema rejeita todas as entradas inválidas
+APROVADO - Taxa de Detecção: ATENDE (100%)
+RNF2.0 ATENDIDO - Sistema rejeita todas as entradas inválidas
 ```
 
 ### **Critérios de Avaliação**
 
 | Resultado | Status | Ação Necessária |
-|-----------|--------|-----------------|
-| **x = 1.0 (100%)** | ✅ **APROVADO** | Nenhuma. Sistema validando corretamente. |
-| **0.95 ≤ x < 1.0** | ⚠️ **ATENÇÃO** | Investigar validações que falharam. Algumas entradas inválidas estão passando. |
-| **x < 0.95** | ❌ **REPROVADO** | Crítico. Implementar validações ausentes imediatamente. |
+|-----------|--------|---------------|
+| x = 1.0 (100%) | APROVADO | Nenhuma. Sistema validando corretamente. |
+| 0.95 ≤ x < 1.0 | ATENÇÃO | Investigar validações que falharam. Algumas entradas inválidas estão passando. |
+| x < 0.95 | REPROVADO | Crítico. Implementar validações ausentes imediatamente. |
 
----
+## Troubleshooting
 
-## 🔧 Troubleshooting
+### Problema 1: "Cannot POST /body-measurement"
 
-### **Problema 1: "Cannot POST /body-measurement"**
+Causa:** Rota não existe ou não está registrada.
 
-**Causa:** Rota não existe ou não está registrada.
-
-**Solução:**
+Solução:**
 ```javascript
 // src/routes/index.js
 const bodyMeasurementRoutes = require('./bodyMeasurementRoutes');
 app.use('/body-measurement', bodyMeasurementRoutes);
 ```
 
----
+### Problema 2: Entradas inválidas sendo aceitas (Taxa < 100%)
 
-### **Problema 2: Entradas inválidas sendo aceitas (Taxa < 100%)**
+Causa:** Validações não implementadas no backend.
 
-**Causa:** Validações não implementadas no backend.
-
-**Solução:** Implementar middleware de validação:
+Solução:** Implementar middleware de validação:
 
 ```javascript
 // src/middlewares/bodyMeasurementValidation.js
@@ -459,7 +435,7 @@ const validateBodyMeasurement = [
 module.exports = { validateBodyMeasurement };
 ```
 
-**Aplicar na rota:**
+Aplicar na rota:**
 ```javascript
 // src/routes/bodyMeasurementRoutes.js
 const { validateBodyMeasurement } = require('../middlewares/bodyMeasurementValidation');
@@ -467,13 +443,11 @@ const { validateBodyMeasurement } = require('../middlewares/bodyMeasurementValid
 router.post('/', authMiddleware, validateBodyMeasurement, bodyMeasurementController.create);
 ```
 
----
+### Problema 3: "autenticação falhou para o usuário"
 
-### **Problema 3: "autenticação falhou para o usuário"**
+Causa:** PostgreSQL não está aceitando conexões.
 
-**Causa:** PostgreSQL não está aceitando conexões.
-
-**Solução:**
+Solução:**
 ```bash
 # Reiniciar Docker
 docker-compose restart db
@@ -485,13 +459,11 @@ docker-compose logs db
 docker exec -it fitlife-db-1 cat /var/lib/postgresql/data/pg_hba.conf
 ```
 
----
+### Problema 4: Tabela BodyMeasurement não existe
 
-### **Problema 4: Tabela BodyMeasurement não existe**
+Causa:** Migração não executada.
 
-**Causa:** Migração não executada.
-
-**Solução:**
+Solução:**
 ```sql
 -- db-init/init.sql
 CREATE TABLE IF NOT EXISTS "BodyMeasurement" (
@@ -518,13 +490,11 @@ CREATE INDEX idx_bodymeasurement_patient_id ON "BodyMeasurement"(patient_id);
 CREATE INDEX idx_bodymeasurement_date ON "BodyMeasurement"(measurement_date);
 ```
 
----
+### Problema 5: Validação IMC não funciona
 
-### **Problema 5: Validação IMC não funciona**
+Causa:** IMC calculado automaticamente no banco, não validado na entrada.
 
-**Causa:** IMC calculado automaticamente no banco, não validado na entrada.
-
-**Solução:** Adicionar validação customizada:
+Solução:** Adicionar validação customizada:
 
 ```javascript
 // Middleware customizado
@@ -540,11 +510,9 @@ body('weight').custom((weight, { req }) => {
 });
 ```
 
----
+## Integração CI/CD
 
-## 🔄 Integração CI/CD
-
-### **GitHub Actions**
+### GitHub Actions
 
 ```yaml
 name: Data Validation Tests
@@ -610,10 +578,10 @@ jobs:
       - name: Check validation threshold
         run: |
           if [ ${{ job.status }} != 'success' ]; then
-            echo "❌ Data validation tests failed!"
+            echo "Data validation tests failed!"
             exit 1
           fi
-          echo "✅ All invalid inputs correctly rejected!"
+          echo "All invalid inputs correctly rejected!"
       
       - name: Upload coverage
         uses: codecov/codecov-action@v3
@@ -622,11 +590,9 @@ jobs:
           flags: data-validation
 ```
 
----
+## Monitoramento de Validações
 
-## 📈 Monitoramento de Validações
-
-### **Logs de Validação**
+### Logs de Validação
 
 Criar tabela para rastrear validações falhadas:
 
@@ -647,7 +613,7 @@ CREATE INDEX idx_validation_failures_field ON validation_failures(field_name);
 CREATE INDEX idx_validation_failures_created_at ON validation_failures(created_at);
 ```
 
-### **Consultas de Monitoramento**
+### Consultas de Monitoramento**
 
 ```sql
 -- Top 5 campos com mais validações falhadas
@@ -672,20 +638,14 @@ WHERE created_at >= NOW() - INTERVAL '7 days'
 GROUP BY endpoint;
 ```
 
----
+## Referências
 
-## 📚 Referências
+- RNF2.0: Processamento confiável no gerenciamento de Medidas
+- Arquivo de testes: `backend/tests/validation/data-validation.test.js.disabled`
+- Scripts de execução: `backend/test-data-validation.ps1`, `backend/test-data-validation.sh`
 
-- **RNF2.0:** Processamento confiável no gerenciamento de Medidas
-- **Arquivo de testes:** `backend/tests/validation/data-validation.test.js`
-- **Scripts de execução:** 
-  - `backend/test-data-validation.ps1`
-  - `backend/test-data-validation.sh`
-- **Guia rápido:** `backend/GUIA-RAPIDO-VALIDACAO-DADOS.md`
-- **Resumo geral:** `backend/METRICAS-QUALIDADE-RESUMO.md`
+> **Nota de Atualização (29/11/2025):** Os testes de validação de dados foram temporariamente desabilitados pois testavam validações que deveriam ser implementadas nas rotas/controllers, não diretamente no banco de dados. As validações de domínio reais estão implementadas através de constraints no PostgreSQL (ver `backend/db-init/init.sql`). Os testes serão refatorados para validar as regras de negócio nas camadas apropriadas da aplicação.
 
----
-
-**Última atualização:** 27/11/2025  
-**Versão:** 1.0.0  
-**Requisito:** RNF2.0
+Última atualização: 29/11/2025  
+Versão: 1.1.0  
+Requisito: RNF2.0

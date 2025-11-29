@@ -2,7 +2,7 @@
 
 /**
  * ========================================
- * TESTES DE VALIDAÇÃO - RISCO 9
+ * TESTES DE VALIDAÇÃO - RISCO 3
  * Sistema: FitLife
  * Parâmetro: Planejamento de Refeições
  * Risco Original: 9 (Alto)
@@ -46,7 +46,7 @@ let testMealRecordId;
 async function runTest(testNumber, description, testFunction) {
   totalTests++;
   process.stdout.write(`\nTeste ${testNumber}: ${description}\n`);
-  
+
   try {
     await testFunction();
     passedTests++;
@@ -64,16 +64,16 @@ async function runTest(testNumber, description, testFunction) {
  */
 async function setup() {
   console.log(`${colors.cyan}\n[1/6] Preparando ambiente de teste...${colors.reset}`);
-  
+
   try {
     // Tentar buscar um paciente existente
     let patientResult = await pool.query(
       `SELECT id FROM patient LIMIT 1`
     );
-    
+
     if (patientResult.rows.length === 0) {
       console.log(`${colors.yellow}  Nenhum paciente encontrado, criando paciente de teste...${colors.reset}`);
-      
+
       // Criar auth para o paciente de teste
       const authResult = await pool.query(
         `INSERT INTO auth (username, email, user_type, password) 
@@ -82,16 +82,16 @@ async function setup() {
          RETURNING id`,
         ['paciente_teste_risco9', 'teste_risco9@fitlife.com', 'Patient', 'hash123']
       );
-      
+
       const authId = authResult.rows[0].id;
-      
+
       // Criar paciente de teste
       const newPatientResult = await pool.query(
         `INSERT INTO patient (name, birthdate, sex, auth_id) 
          VALUES ($1, $2, $3, $4) RETURNING id`,
         ['Paciente Teste Risco 9', '1990-01-01', 'M', authId]
       );
-      
+
       testPatientId = newPatientResult.rows[0].id;
       console.log(`${colors.green}✓ Paciente de teste criado: ${testPatientId}${colors.reset}`);
     } else {
@@ -109,7 +109,7 @@ async function setup() {
  */
 async function runValidationTests() {
   console.log(`${colors.cyan}\n[2/6] Executando testes de validação...${colors.reset}`);
-  
+
   // Teste 1: Nome vazio deve ser rejeitado
   await runTest(
     1,
@@ -326,7 +326,7 @@ async function runFunctionTests() {
         `SELECT * FROM get_meal_totals($1)`,
         [testMealRecordId]
       );
-      
+
       const totals = result.rows[0];
       if (totals.total_calories != 165) {
         throw new Error(`Calorias incorretas: ${totals.total_calories}`);
@@ -346,11 +346,11 @@ async function runFunctionTests() {
         `SELECT * FROM meal_summary WHERE meal_id = $1`,
         [testMealRecordId]
       );
-      
+
       if (result.rows.length === 0) {
         throw new Error('Refeição não encontrada na view');
       }
-      
+
       const summary = result.rows[0];
       if (summary.total_calories != 165) {
         throw new Error(`View retornou calorias incorretas: ${summary.total_calories}`);
@@ -403,7 +403,7 @@ async function verifyConstraints() {
  */
 async function cleanup() {
   console.log(`${colors.cyan}\n[6/6] Limpando dados de teste...${colors.reset}`);
-  
+
   try {
     if (testMealRecordId) {
       await pool.query('DELETE FROM MealItem WHERE meal_record_id = $1', [testMealRecordId]);
@@ -422,13 +422,13 @@ function printReport() {
   console.log(`\n${'='.repeat(50)}`);
   console.log(`${colors.blue}RELATÓRIO FINAL${colors.reset}`);
   console.log(`${'='.repeat(50)}\n`);
-  
+
   console.log(`Total de testes: ${totalTests}`);
   console.log(`${colors.green}Testes passaram: ${passedTests}${colors.reset}`);
   console.log(`${colors.red}Testes falharam: ${failedTests}${colors.reset}`);
-  
+
   console.log(`\n${'='.repeat(50)}`);
-  
+
   if (failedTests === 0) {
     console.log(`${colors.green}✅ TODOS OS TESTES PASSARAM!${colors.reset}`);
     console.log(`${colors.green}Sistema de validação funcionando corretamente${colors.reset}`);
@@ -436,7 +436,7 @@ function printReport() {
     console.log(`${colors.red}❌ ALGUNS TESTES FALHARAM${colors.reset}`);
     console.log(`${colors.red}Verifique as implementações acima${colors.reset}`);
   }
-  
+
   console.log(`${'='.repeat(50)}\n`);
 }
 
@@ -460,7 +460,7 @@ ${colors.reset}`);
     await verifyConstraints();
     await cleanup();
     printReport();
-    
+
     process.exit(failedTests > 0 ? 1 : 0);
   } catch (error) {
     console.error(`\n${colors.red}ERRO FATAL: ${error.message}${colors.reset}`);
