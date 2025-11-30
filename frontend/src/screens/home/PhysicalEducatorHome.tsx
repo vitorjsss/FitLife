@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
     View,
     Text,
@@ -10,7 +10,7 @@ import {
     Image,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { RootStackParamList } from "../../../App";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import Header from '../../components/Header';
@@ -32,6 +32,23 @@ export default function PhysicalEducatorHomeScreen() {
     useEffect(() => {
         loadPatients();
     }, [user]);
+
+    // Recarrega pacientes quando a tela é focada (sem mostrar loading)
+    useFocusEffect(
+        useCallback(() => {
+            if (user?.id) {
+                // Recarrega sem alterar o estado de loading para evitar piscar
+                PatientProfessionalAssociationService.getPatientsByPhysicalEducatorId(user.id)
+                    .then(patientsList => {
+                        setPatients(patientsList);
+                        if (patientsList.length > 0 && !selectedPatient) {
+                            setSelectedPatient(patientsList[0]);
+                        }
+                    })
+                    .catch(error => console.error('[PhysicalEducatorHome] Erro ao recarregar:', error));
+            }
+        }, [user?.id])
+    );
 
     const loadPatients = async () => {
         if (!user?.id) {

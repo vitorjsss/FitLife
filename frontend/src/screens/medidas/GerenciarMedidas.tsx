@@ -65,17 +65,31 @@ const schema = yup.object().shape({
     .required("Data obrigatória")
     .matches(/^\d{2}\/\d{2}\/\d{4}$/, "Formato DD/MM/YYYY"),
   peso: yup
-    .number()
+    .string()
     .nullable()
-    .transform(v => (isNaN(v) ? undefined : v))
-    .min(20, "Peso muito baixo (min: 20kg)")
-    .max(300, "Peso muito alto (max: 300kg)"),
+    .test('min', 'Peso muito baixo (min: 20kg)', (v) => {
+      if (!v) return true;
+      const num = Number(v.replace(',', '.'));
+      return !isNaN(num) && num >= 20;
+    })
+    .test('max', 'Peso muito alto (max: 300kg)', (v) => {
+      if (!v) return true;
+      const num = Number(v.replace(',', '.'));
+      return !isNaN(num) && num <= 300;
+    }),
   altura: yup
-    .number()
+    .string()
     .nullable()
-    .transform(v => (isNaN(v) ? undefined : v))
-    .min(1.0, "Altura muito baixa (min: 1.0m)")
-    .max(2.5, "Altura muito alta (max: 2.5m)"),
+    .test('min', 'Altura muito baixa (min: 1.0m)', (v) => {
+      if (!v) return true;
+      const num = Number(v.replace(',', '.'));
+      return !isNaN(num) && num >= 1.0;
+    })
+    .test('max', 'Altura muito alta (max: 2.5m)', (v) => {
+      if (!v) return true;
+      const num = Number(v.replace(',', '.'));
+      return !isNaN(num) && num <= 2.5;
+    }),
   circunferencia_cintura: yup
     .number()
     .nullable()
@@ -161,10 +175,10 @@ export default function GerenciarMedidas() {
       const list = await MeasurementsService.list(user.id);
       console.log('[GerenciarMedidas] Dados recebidos:', list);
       console.log('[GerenciarMedidas] Tipo de dados:', typeof list, Array.isArray(list));
-      
+
       // Garantir que list é um array
       let measuresArray: MeasureRecord[] = [];
-      
+
       if (Array.isArray(list)) {
         measuresArray = list;
       } else if (list && typeof list === 'object') {
@@ -175,7 +189,7 @@ export default function GerenciarMedidas() {
         console.warn('[GerenciarMedidas] Formato de dados inesperado, usando array vazio');
         measuresArray = [];
       }
-      
+
       // Ordenar por data (mais recente primeiro)
       const sorted = measuresArray.sort((a, b) => {
         const dateA = a.data ? new Date(a.data).getTime() : 0;
@@ -199,8 +213,8 @@ export default function GerenciarMedidas() {
       const payload = {
         patient_id: user.id,
         data: data.data ? isoFromBR(data.data) : new Date().toISOString().split('T')[0],
-        peso: data.peso ? Number(data.peso) : null,
-        altura: data.altura ? Number(data.altura) : null,
+        peso: data.peso ? Number(data.peso.replace(',', '.')) : null,
+        altura: data.altura ? Number(data.altura.replace(',', '.')) : null,
         waist_circumference: data.circunferencia_cintura ? Number(data.circunferencia_cintura) : null,
         hip_circumference: data.circunferencia_quadril ? Number(data.circunferencia_quadril) : null,
         arm_circumference: data.circunferencia_braco ? Number(data.circunferencia_braco) : null,
@@ -232,10 +246,10 @@ export default function GerenciarMedidas() {
       }
 
       setEditingId(null);
-      reset({ 
-        data: brToday(), 
-        peso: undefined, 
-        altura: undefined, 
+      reset({
+        data: brToday(),
+        peso: undefined,
+        altura: undefined,
         circunferencia_cintura: undefined,
         circunferencia_quadril: undefined,
         circunferencia_braco: undefined,
@@ -256,8 +270,8 @@ export default function GerenciarMedidas() {
     setEditingId(rec.id);
     reset({
       data: rec.data ? formatBRFromISO(rec.data) : brToday(),
-      peso: rec.peso?.toString(),
-      altura: rec.altura?.toString(),
+      peso: rec.peso?.toString().replace('.', ','),
+      altura: rec.altura?.toString().replace('.', ','),
       circunferencia_cintura: (rec as any).waist_circumference?.toString(),
       circunferencia_quadril: (rec as any).hip_circumference?.toString(),
       circunferencia_braco: (rec as any).arm_circumference?.toString(),
@@ -290,40 +304,40 @@ export default function GerenciarMedidas() {
   };
 
   const renderItem = ({ item }: { item: MeasureRecord }) => {
-    const imc = item.imc ? item.imc.toFixed(1) : 
-                (item.peso && item.altura) ? MeasurementsService.calcularIMC(item.peso, item.altura).toFixed(1) : '-';
-    
+    const imc = item.imc ? item.imc.toFixed(1) :
+      (item.peso && item.altura) ? MeasurementsService.calcularIMC(item.peso, item.altura).toFixed(1) : '-';
+
     const itemData = item as any; // Type assertion para acessar novos campos
-    
+
     return (
       <View style={styles.record}>
         <View style={{ flex: 1 }}>
           <Text style={styles.recordDate}>{item.data ? formatBRFromISO(item.data) : ""}</Text>
-          
+
           {/* Medidas principais */}
           <Text style={styles.recordText}>
             {item.peso ? `Peso: ${item.peso}kg` : ""}
             {item.altura ? ` • Altura: ${item.altura}m` : ""}
             {imc !== '-' ? ` • IMC: ${imc}` : ""}
           </Text>
-          
+
           {/* Circunferências */}
-          {(itemData.waist_circumference || itemData.hip_circumference || itemData.arm_circumference || 
+          {(itemData.waist_circumference || itemData.hip_circumference || itemData.arm_circumference ||
             itemData.thigh_circumference || itemData.calf_circumference) && (
-            <Text style={styles.recordText}>
-              {itemData.waist_circumference ? `Cintura: ${itemData.waist_circumference}cm` : ""}
-              {itemData.hip_circumference ? ` • Quadril: ${itemData.hip_circumference}cm` : ""}
-              {itemData.arm_circumference ? ` • Braço: ${itemData.arm_circumference}cm` : ""}
-            </Text>
-          )}
-          
+              <Text style={styles.recordText}>
+                {itemData.waist_circumference ? `Cintura: ${itemData.waist_circumference}cm` : ""}
+                {itemData.hip_circumference ? ` • Quadril: ${itemData.hip_circumference}cm` : ""}
+                {itemData.arm_circumference ? ` • Braço: ${itemData.arm_circumference}cm` : ""}
+              </Text>
+            )}
+
           {(itemData.thigh_circumference || itemData.calf_circumference) && (
             <Text style={styles.recordText}>
               {itemData.thigh_circumference ? `Coxa: ${itemData.thigh_circumference}cm` : ""}
               {itemData.calf_circumference ? ` • Panturrilha: ${itemData.calf_circumference}cm` : ""}
             </Text>
           )}
-          
+
           {/* Composição corporal */}
           {(itemData.body_fat_percentage || itemData.muscle_mass || itemData.bone_mass) && (
             <Text style={styles.recordText}>
@@ -353,13 +367,13 @@ export default function GerenciarMedidas() {
           <View style={styles.introCard}>
             <Text style={styles.introTitle}>Registrar suas medidas corporais</Text>
             <Text style={styles.introText}>
-              Insira peso, altura, circunferências (cintura, quadril, braço, coxa, panturrilha) e composição corporal (% gordura, massa muscular e óssea). 
+              Insira peso, altura, circunferências (cintura, quadril, braço, coxa, panturrilha) e composição corporal (% gordura, massa muscular e óssea).
             </Text>
           </View>
 
           <View style={styles.formCard}>
             {/* Data */}
-            <Text style={styles.sectionLabel}>📅 Informações Básicas</Text>
+            <Text style={styles.sectionLabel}>Informações Básicas</Text>
             <View style={styles.row}>
               <View style={styles.col}>
                 <Text style={styles.label}>Data *</Text>
@@ -380,7 +394,7 @@ export default function GerenciarMedidas() {
             </View>
 
             {/* Medidas Principais */}
-            <Text style={styles.sectionLabel}>⚖️ Medidas Corporais Principais</Text>
+            <Text style={styles.sectionLabel}>Medidas Corporais Principais</Text>
             <View style={styles.row}>
               <View style={styles.col}>
                 <Text style={styles.label}>Peso (kg)</Text>
@@ -390,10 +404,14 @@ export default function GerenciarMedidas() {
                   render={({ field: { onChange, value } }) => (
                     <TextInput
                       style={styles.input}
-                      placeholder="Ex: 70.5"
+                      placeholder="Ex: 70,5"
                       keyboardType="numeric"
                       value={value}
-                      onChangeText={onChange}
+                      onChangeText={(text) => {
+                        // Substitui ponto por vírgula automaticamente
+                        const formatted = text.replace('.', ',');
+                        onChange(formatted);
+                      }}
                     />
                   )}
                 />
@@ -407,10 +425,26 @@ export default function GerenciarMedidas() {
                   render={({ field: { onChange, value } }) => (
                     <TextInput
                       style={styles.input}
-                      placeholder="Ex: 1.75"
+                      placeholder="Ex: 1,75"
                       keyboardType="numeric"
                       value={value}
-                      onChangeText={onChange}
+                      onChangeText={(text) => {
+                        // Remove tudo que não for número
+                        const numeros = text.replace(/[^0-9]/g, '');
+
+                        if (numeros.length === 0) {
+                          onChange('');
+                        } else if (numeros.length === 1) {
+                          // Primeiro dígito: adiciona vírgula automaticamente
+                          onChange(numeros + ',');
+                        } else if (numeros.length === 2) {
+                          // Dois dígitos: formato X,X
+                          onChange(numeros[0] + ',' + numeros[1]);
+                        } else if (numeros.length >= 3) {
+                          // Três ou mais dígitos: formato X,XX
+                          onChange(numeros[0] + ',' + numeros.substring(1, 3));
+                        }
+                      }}
                     />
                   )}
                 />
@@ -419,7 +453,7 @@ export default function GerenciarMedidas() {
             </View>
 
             {/* Circunferências */}
-            <Text style={styles.sectionLabel}>📐 Circunferências (cm)</Text>
+            <Text style={styles.sectionLabel}>Circunferências (cm)</Text>
             <View style={styles.row}>
               <View style={styles.col}>
                 <Text style={styles.label}>Cintura</Text>
@@ -515,7 +549,7 @@ export default function GerenciarMedidas() {
             </View>
 
             {/* Composição Corporal */}
-            <Text style={styles.sectionLabel}>💪 Composição Corporal</Text>
+            <Text style={styles.sectionLabel}>Composição Corporal</Text>
             <View style={styles.row}>
               <View style={styles.col}>
                 <Text style={styles.label}>% Gordura</Text>
@@ -583,10 +617,10 @@ export default function GerenciarMedidas() {
                 style={[styles.saveBtn, { backgroundColor: "#757575", marginTop: 8 }]}
                 onPress={() => {
                   setEditingId(null);
-                  reset({ 
-                    data: brToday(), 
-                    peso: undefined, 
-                    altura: undefined, 
+                  reset({
+                    data: brToday(),
+                    peso: undefined,
+                    altura: undefined,
                     circunferencia_cintura: undefined,
                     circunferencia_quadril: undefined,
                     circunferencia_braco: undefined,

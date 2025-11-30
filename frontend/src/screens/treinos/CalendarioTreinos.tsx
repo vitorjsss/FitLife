@@ -114,8 +114,8 @@ const CalendarioTreinos: React.FC<CalendarioTreinosProps> = ({ navigation, route
     };
 
     const getColorForPercentage = (percentage: number): string => {
-        if (percentage === 100) return '#1976D2'; // Azul - completo
-        if (percentage >= 75) return '#42A5F5'; // Azul claro
+        if (percentage === 100) return '#4CAF50'; // Verde - completo
+        if (percentage >= 75) return '#8BC34A'; // Verde claro
         if (percentage >= 50) return '#FFC107'; // Amarelo
         if (percentage >= 25) return '#FF9800'; // Laranja
         if (percentage > 0) return '#FF5722'; // Vermelho claro

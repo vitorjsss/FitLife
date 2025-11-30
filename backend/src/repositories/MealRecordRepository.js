@@ -75,7 +75,7 @@ class MealRecordRepository {
       UPDATE MealRecord
       SET name = COALESCE($1, name),
           icon_path = COALESCE($2, icon_path),
-          checked = COALESCE($3, checked),
+          checked = CASE WHEN $3::boolean IS NOT NULL THEN $3::boolean ELSE checked END,
           updated_at = CURRENT_TIMESTAMP
       WHERE id = $4
       RETURNING *

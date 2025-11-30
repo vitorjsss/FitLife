@@ -202,7 +202,7 @@ const GerenciarTreinos: React.FC<GerenciarTreinosProps> = ({ navigation, route }
                 {workoutRecords.length > 0 && (
                     <View style={styles.workoutsList}>
                         <Text style={styles.workoutsListTitle}>Treinos do Dia</Text>
-                        <Text style={styles.helpText}>💡 Toque para adicionar exercícios ou segure para editar</Text>
+                        <Text style={styles.helpText}>Toque para adicionar exercícios ou segure para editar</Text>
                         <FlatList
                             data={workoutRecords}
                             keyExtractor={(item) => item.id || ''}

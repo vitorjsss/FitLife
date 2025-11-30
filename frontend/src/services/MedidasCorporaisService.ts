@@ -7,7 +7,16 @@ export interface MedidaCorporal {
   peso: number;
   altura: number;
   imc: number;
-  circunferencia?: number;
+  // Circunferências específicas
+  waist_circumference?: number | null;
+  hip_circumference?: number | null;
+  arm_circumference?: number | null;
+  thigh_circumference?: number | null;
+  calf_circumference?: number | null;
+  // Composição corporal
+  body_fat_percentage?: number | null;
+  muscle_mass?: number | null;
+  bone_mass?: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -18,7 +27,16 @@ export interface MedidaCorporalInput {
   peso: number;
   altura: number;
   imc?: number;
-  circunferencia?: number;
+  // Circunferências específicas
+  waist_circumference?: number | null;
+  hip_circumference?: number | null;
+  arm_circumference?: number | null;
+  thigh_circumference?: number | null;
+  calf_circumference?: number | null;
+  // Composição corporal
+  body_fat_percentage?: number | null;
+  muscle_mass?: number | null;
+  bone_mass?: number | null;
 }
 
 export interface EvolutionData {

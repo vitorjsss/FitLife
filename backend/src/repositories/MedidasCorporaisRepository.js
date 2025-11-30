@@ -5,25 +5,25 @@ class MedidasCorporaisRepository {
      * Criar nova medida corporal
      */
     async create(medidasData) {
-        const { 
-            patient_id, data, peso, altura, imc, circunferencia,
+        const {
+            patient_id, data, peso, altura, imc,
             waist_circumference, hip_circumference, arm_circumference,
             thigh_circumference, calf_circumference,
             body_fat_percentage, muscle_mass, bone_mass
         } = medidasData;
-        
+
         const query = `
             INSERT INTO medidas_corporais 
-            (patient_id, data, peso, altura, imc, circunferencia,
+            (patient_id, data, peso, altura, imc,
              waist_circumference, hip_circumference, arm_circumference,
              thigh_circumference, calf_circumference,
              body_fat_percentage, muscle_mass, bone_mass)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
             RETURNING *
         `;
-        
+
         const values = [
-            patient_id, data, peso, altura, imc, circunferencia,
+            patient_id, data, peso, altura, imc,
             waist_circumference, hip_circumference, arm_circumference,
             thigh_circumference, calf_circumference,
             body_fat_percentage, muscle_mass, bone_mass
@@ -41,7 +41,7 @@ class MedidasCorporaisRepository {
             WHERE patient_id = $1
             ORDER BY data DESC
         `;
-        
+
         const result = await pool.query(query, [patientId]);
         return result.rows;
     }
@@ -65,7 +65,7 @@ class MedidasCorporaisRepository {
             AND data BETWEEN $2 AND $3
             ORDER BY data DESC
         `;
-        
+
         const result = await pool.query(query, [patientId, dataInicio, dataFim]);
         return result.rows;
     }
@@ -80,7 +80,7 @@ class MedidasCorporaisRepository {
             ORDER BY data DESC
             LIMIT 1
         `;
-        
+
         const result = await pool.query(query, [patientId]);
         return result.rows[0];
     }
@@ -89,28 +89,27 @@ class MedidasCorporaisRepository {
      * Atualizar medida corporal
      */
     async update(id, medidasData) {
-        const { 
-            data, peso, altura, imc, circunferencia,
+        const {
+            data, peso, altura, imc,
             waist_circumference, hip_circumference, arm_circumference,
             thigh_circumference, calf_circumference,
             body_fat_percentage, muscle_mass, bone_mass
         } = medidasData;
-        
+
         const query = `
             UPDATE medidas_corporais
-            SET data = $1, peso = $2, altura = $3, imc = $4, 
-                circunferencia = $5,
-                waist_circumference = $6, hip_circumference = $7,
-                arm_circumference = $8, thigh_circumference = $9,
-                calf_circumference = $10, body_fat_percentage = $11,
-                muscle_mass = $12, bone_mass = $13,
+            SET data = $1, peso = $2, altura = $3, imc = $4,
+                waist_circumference = $5, hip_circumference = $6,
+                arm_circumference = $7, thigh_circumference = $8,
+                calf_circumference = $9, body_fat_percentage = $10,
+                muscle_mass = $11, bone_mass = $12,
                 updated_at = NOW()
-            WHERE id = $14
+            WHERE id = $13
             RETURNING *
         `;
-        
+
         const values = [
-            data, peso, altura, imc, circunferencia,
+            data, peso, altura, imc,
             waist_circumference, hip_circumference, arm_circumference,
             thigh_circumference, calf_circumference,
             body_fat_percentage, muscle_mass, bone_mass,
@@ -134,13 +133,13 @@ class MedidasCorporaisRepository {
      */
     async getEvolutionData(patientId, limit = 10) {
         const query = `
-            SELECT data, peso, altura, imc, circunferencia, created_at
+            SELECT data, peso, altura, imc, created_at
             FROM medidas_corporais
             WHERE patient_id = $1
             ORDER BY data DESC
             LIMIT $2
         `;
-        
+
         const result = await pool.query(query, [patientId, limit]);
         return result.rows;
     }

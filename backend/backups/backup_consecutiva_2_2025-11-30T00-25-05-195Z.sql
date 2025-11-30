@@ -1,0 +1,3 @@
+-- Backup simulado
+-- Records: 3
+-- Date: 2025-11-30T00:25:05.197Z

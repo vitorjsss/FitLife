@@ -347,7 +347,7 @@ const GerenciarRefeicoes: React.FC<GerenciarRefeicoesProps> = ({ navigation, rou
                     <View style={styles.mealsList}>
                         <Text style={styles.mealsListTitle}>Refeições do Dia</Text>
                         <Text style={styles.helpText}>
-                            💡 Toque para adicionar alimentos ou segure para editar
+                            Toque para adicionar alimentos ou segure para editar
                         </Text>
                         <FlatList
                             data={mealRecords}

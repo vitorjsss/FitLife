@@ -14,18 +14,27 @@ export const AuthController = {
     // ====================================
     // VALIDAÇÃO DE CREDENCIAIS
     // ====================================
-    const validation = validateRegisterCredentials({
-      username: user.username,
-      email: user.email,
-      password: user.password
-    });
+    const errors = {};
 
-    if (!validation.valid) {
-      console.log("[REGISTER] Validação falhou:", validation.errors);
+    // Validar apenas email e senha (username pode ser qualquer nome)
+    if (!user.username || user.username.trim().length < 3) {
+      errors.username = "Username deve ter no mínimo 3 caracteres";
+    }
+
+    if (!user.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(user.email)) {
+      errors.email = "Email inválido";
+    }
+
+    if (!user.password || user.password.length < 8) {
+      errors.password = "Senha deve ter no mínimo 8 caracteres";
+    }
+
+    if (Object.keys(errors).length > 0) {
+      console.log("[REGISTER] Validação falhou:", errors);
       await LogService.createLog({
         action: "REGISTER",
         logType: "VALIDATION_ERROR",
-        description: `Validação falhou: ${JSON.stringify(validation.errors)}`,
+        description: `Validação falhou: ${JSON.stringify(errors)}`,
         ip,
         oldValue: null,
         newValue: JSON.stringify({ email: user.email, username: user.username }),
@@ -34,13 +43,13 @@ export const AuthController = {
       });
       return res.status(400).json({
         message: "Dados inválidos",
-        errors: validation.errors
+        errors: errors
       });
     }
 
     // Normalizar dados
     user.email = normalizeEmail(user.email);
-    user.username = normalizeUsername(user.username);
+    user.username = user.username.trim();
 
     try {
       // Verifica se já existe usuário com mesmo username

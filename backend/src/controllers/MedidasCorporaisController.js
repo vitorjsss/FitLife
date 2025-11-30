@@ -13,7 +13,6 @@ class MedidasCorporaisController {
                 peso: req.body.peso,
                 altura: req.body.altura,
                 imc: req.body.imc,
-                circunferencia: req.body.circunferencia,
                 // Circunferências específicas
                 waist_circumference: req.body.waist_circumference,
                 hip_circumference: req.body.hip_circumference,
@@ -106,8 +105,8 @@ class MedidasCorporaisController {
             }
 
             const medidas = await MedidasCorporaisService.getMedidasByDateRange(
-                patientId, 
-                dataInicio, 
+                patientId,
+                dataInicio,
                 dataFim
             );
 
@@ -169,7 +168,6 @@ class MedidasCorporaisController {
                 peso: req.body.peso,
                 altura: req.body.altura,
                 imc: req.body.imc,
-                circunferencia: req.body.circunferencia,
                 // Circunferências específicas
                 waist_circumference: req.body.waist_circumference,
                 hip_circumference: req.body.hip_circumference,
@@ -183,8 +181,8 @@ class MedidasCorporaisController {
             };
 
             const medidaAtualizada = await MedidasCorporaisService.updateMedida(
-                id, 
-                medidasData, 
+                id,
+                medidasData,
                 req.user.id
             );
 

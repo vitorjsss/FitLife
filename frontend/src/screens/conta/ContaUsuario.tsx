@@ -225,38 +225,49 @@ const ContaUsuario: React.FC<{ navigation: any }> = ({ navigation }) => {
     };
 
     const handleChangePassword = async () => {
+        console.log('[handleChangePassword] Iniciando alteração de senha');
+
         // Validações
         if (!oldPassword) {
+            console.log('[handleChangePassword] Erro: senha atual não informada');
             setPasswordError('Digite sua senha atual');
             return;
         }
 
         const validation = validatePassword(newPassword);
+        console.log('[handleChangePassword] Validação da nova senha:', validation);
         if (!validation.valid) {
             setPasswordError(validation.error || 'A nova senha não atende aos requisitos de segurança');
             return;
         }
 
         if (newPassword !== confirmNewPassword) {
+            console.log('[handleChangePassword] Erro: senhas não coincidem');
             setPasswordError('As senhas não coincidem');
             return;
         }
 
         if (oldPassword === newPassword) {
+            console.log('[handleChangePassword] Erro: nova senha igual à atual');
             setPasswordError('A nova senha deve ser diferente da senha atual');
             return;
         }
 
+        console.log('[handleChangePassword] Validações passaram, iniciando requisição');
         setPasswordLoading(true);
         setPasswordError(null);
 
         try {
             const accessToken = await authService.getAccessToken?.();
+            console.log('[handleChangePassword] Token obtido:', accessToken ? 'sim' : 'não');
+
             if (!accessToken) {
                 throw new Error('Token de acesso não encontrado');
             }
 
-            await changePassword(oldPassword, newPassword, accessToken);
+            console.log('[handleChangePassword] Chamando changePassword...');
+            const response = await changePassword(oldPassword, newPassword, accessToken);
+            console.log('[handleChangePassword] Resposta:', response);
 
             setShowPasswordModal(false);
 
@@ -269,6 +280,12 @@ const ContaUsuario: React.FC<{ navigation: any }> = ({ navigation }) => {
             setSuccessMessage('Senha alterada com sucesso!');
             setShowSuccessModal(true);
         } catch (err: any) {
+            console.error('[handleChangePassword] Erro:', err);
+            console.error('[handleChangePassword] Erro detalhado:', {
+                response: err?.response,
+                data: err?.response?.data,
+                message: err?.message
+            });
             const message = err?.response?.data?.message || err.message || 'Erro ao alterar senha';
             setPasswordError(message);
         } finally {
@@ -685,7 +702,10 @@ const ContaUsuario: React.FC<{ navigation: any }> = ({ navigation }) => {
                                     <View style={styles.modalActions}>
                                         <TouchableOpacity
                                             style={[styles.modalButton, passwordLoading && styles.buttonDisabled]}
-                                            onPress={handleChangePassword}
+                                            onPress={() => {
+                                                console.log('[BUTTON] Botão Alterar Senha pressionado');
+                                                handleChangePassword();
+                                            }}
                                             disabled={passwordLoading}
                                         >
                                             <Text style={styles.modalButtonText}>

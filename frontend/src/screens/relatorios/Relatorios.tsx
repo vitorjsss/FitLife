@@ -48,10 +48,10 @@ export default function Relatorios() {
         const list = await MeasurementsService.list(user.id);
         console.log('[Relatorios] Dados recebidos:', list);
         console.log('[Relatorios] Tipo de dados:', typeof list, Array.isArray(list));
-        
+
         // Garantir que list é um array
         let measuresArray: MeasureRecord[] = [];
-        
+
         if (Array.isArray(list)) {
           measuresArray = list;
         } else if (list && typeof list === 'object') {
@@ -62,7 +62,7 @@ export default function Relatorios() {
           console.warn('[Relatorios] Formato de dados inesperado, usando array vazio');
           measuresArray = [];
         }
-        
+
         const sorted = measuresArray.sort((a, b) => {
           const dateA = a.data ? new Date(a.data).getTime() : 0;
           const dateB = b.data ? new Date(b.data).getTime() : 0;
@@ -100,7 +100,9 @@ export default function Relatorios() {
 
   const formatDateBR = (isoDate?: string) => {
     if (!isoDate) return '';
-    const [y, m, d] = isoDate.split('-');
+    // Remove horário se existir e pega apenas a parte da data
+    const dateOnly = isoDate.split('T')[0];
+    const [y, m, d] = dateOnly.split('-');
     return `${d}/${m}/${y}`;
   };
 
@@ -127,7 +129,7 @@ export default function Relatorios() {
   const generatePDFHTML = () => {
     const userName = user?.name || 'Usuário';
     const today = formatDateBR(new Date().toISOString().split('T')[0]);
-    
+
     const periodLabels = {
       '7days': 'Últimos 7 dias',
       '30days': 'Últimos 30 dias',
@@ -149,12 +151,12 @@ export default function Relatorios() {
     };
 
     let statsHTML = '';
-    (['peso', 'altura', 'waist_circumference', 'hip_circumference', 'arm_circumference', 
+    (['peso', 'altura', 'waist_circumference', 'hip_circumference', 'arm_circumference',
       'thigh_circumference', 'calf_circumference', 'body_fat_percentage', 'muscle_mass', 'bone_mass'] as const).forEach((field) => {
-      const stats = calculateStats(field as any);
-      if (stats) {
-        const label = measureLabels[field] || field;
-        statsHTML += `
+        const stats = calculateStats(field as any);
+        if (stats) {
+          const label = measureLabels[field] || field;
+          statsHTML += `
           <tr>
             <td>${label}</td>
             <td>${stats.first.toFixed(1)}</td>
@@ -167,8 +169,8 @@ export default function Relatorios() {
             <td>${stats.avg.toFixed(1)}</td>
           </tr>
         `;
-      }
-    });
+        }
+      });
 
     let recordsHTML = '';
     filteredRecords.forEach((record) => {
@@ -255,7 +257,7 @@ export default function Relatorios() {
           </style>
         </head>
         <body>
-          <h1>📊 Relatório de Evolução de Medidas Corporais</h1>
+          <h1>Relatório de Evolução de Medidas Corporais</h1>
           <div class="subtitle">FitLife - Seu Companheiro de Saúde</div>
           
           <div class="info">
@@ -265,7 +267,7 @@ export default function Relatorios() {
             <p><strong>Total de Registros:</strong> ${filteredRecords.length}</p>
           </div>
 
-          <div class="section-title">📈 Resumo Estatístico</div>
+          <div class="section-title">Estatísticas</div>
           <table>
             <thead>
               <tr>
@@ -283,7 +285,7 @@ export default function Relatorios() {
             </tbody>
           </table>
 
-          <div class="section-title">📋 Histórico Completo de Medidas</div>
+          <div class="section-title">Histórico Completo de Medidas</div>
           <table>
             <thead>
               <tr>
@@ -335,9 +337,9 @@ export default function Relatorios() {
             dialogTitle: 'Compartilhar Relatório de Medidas',
             UTI: 'com.adobe.pdf',
           });
-          
+
           Alert.alert(
-            'Sucesso! ✅',
+            'Sucesso!',
             'Relatório gerado com sucesso! Você pode compartilhá-lo ou salvá-lo.',
             [{ text: 'OK' }]
           );
@@ -421,67 +423,66 @@ export default function Relatorios() {
           <>
             <Text style={styles.sectionTitle}>Estatísticas do Período</Text>
             {(['peso', 'altura', 'waist_circumference', 'hip_circumference', 'arm_circumference',
-               'thigh_circumference', 'calf_circumference', 'body_fat_percentage', 'muscle_mass', 'bone_mass'] as const).map((field) => {
-              const stats = calculateStats(field as any);
-              if (!stats) return null;
+              'thigh_circumference', 'calf_circumference', 'body_fat_percentage', 'muscle_mass', 'bone_mass'] as const).map((field) => {
+                const stats = calculateStats(field as any);
+                if (!stats) return null;
 
-              const labels: Record<string, { title: string; unit: string; icon: string }> = {
-                peso: { title: 'Peso', unit: 'kg', icon: 'balance-scale' },
-                altura: { title: 'Altura', unit: 'm', icon: 'arrows-v' },
-                waist_circumference: { title: 'Cintura', unit: 'cm', icon: 'circle' },
-                hip_circumference: { title: 'Quadril', unit: 'cm', icon: 'circle-o' },
-                arm_circumference: { title: 'Braço', unit: 'cm', icon: 'hand-paper-o' },
-                thigh_circumference: { title: 'Coxa', unit: 'cm', icon: 'male' },
-                calf_circumference: { title: 'Panturrilha', unit: 'cm', icon: 'shoe-prints' },
-                body_fat_percentage: { title: '% Gordura', unit: '%', icon: 'percent' },
-                muscle_mass: { title: 'Massa Muscular', unit: 'kg', icon: 'heartbeat' },
-                bone_mass: { title: 'Massa Óssea', unit: 'kg', icon: 'chain' },
-              };
+                const labels: Record<string, { title: string; unit: string }> = {
+                  peso: { title: 'Peso', unit: 'kg' },
+                  altura: { title: 'Altura', unit: 'm' },
+                  waist_circumference: { title: 'Cintura', unit: 'cm' },
+                  hip_circumference: { title: 'Quadril', unit: 'cm' },
+                  arm_circumference: { title: 'Braço', unit: 'cm' },
+                  thigh_circumference: { title: 'Coxa', unit: 'cm' },
+                  calf_circumference: { title: 'Panturrilha', unit: 'cm' },
+                  body_fat_percentage: { title: '% Gordura', unit: '%' },
+                  muscle_mass: { title: 'Massa Muscular', unit: 'kg' },
+                  bone_mass: { title: 'Massa Óssea', unit: 'kg' },
+                };
 
-              const label = labels[field];
+                const label = labels[field];
 
-              return (
-                <View key={field} style={styles.statCard}>
-                  <View style={styles.statHeader}>
-                    <Icon name={label.icon} size={20} color="#1976D2" />
-                    <Text style={styles.statTitle}>{label.title}</Text>
+                return (
+                  <View key={field} style={styles.statCard}>
+                    <View style={styles.statHeader}>
+                      <Text style={styles.statTitle}>{label.title}</Text>
+                    </View>
+                    <View style={styles.statRow}>
+                      <View style={styles.statItem}>
+                        <Text style={styles.statLabel}>Atual</Text>
+                        <Text style={styles.statValue}>
+                          {stats.last.toFixed(1)} {label.unit}
+                        </Text>
+                      </View>
+                      <View style={styles.statItem}>
+                        <Text style={styles.statLabel}>Variação</Text>
+                        <Text
+                          style={[
+                            styles.statValue,
+                            {
+                              color:
+                                stats.diff > 0
+                                  ? '#f44336'
+                                  : stats.diff < 0
+                                    ? '#4caf50'
+                                    : '#666',
+                            },
+                          ]}
+                        >
+                          {stats.diff > 0 ? '+' : ''}
+                          {stats.diff.toFixed(1)} {label.unit}
+                        </Text>
+                      </View>
+                      <View style={styles.statItem}>
+                        <Text style={styles.statLabel}>Média</Text>
+                        <Text style={styles.statValue}>
+                          {stats.avg.toFixed(1)} {label.unit}
+                        </Text>
+                      </View>
+                    </View>
                   </View>
-                  <View style={styles.statRow}>
-                    <View style={styles.statItem}>
-                      <Text style={styles.statLabel}>Atual</Text>
-                      <Text style={styles.statValue}>
-                        {stats.last.toFixed(1)} {label.unit}
-                      </Text>
-                    </View>
-                    <View style={styles.statItem}>
-                      <Text style={styles.statLabel}>Variação</Text>
-                      <Text
-                        style={[
-                          styles.statValue,
-                          {
-                            color:
-                              stats.diff > 0
-                                ? '#f44336'
-                                : stats.diff < 0
-                                ? '#4caf50'
-                                : '#666',
-                          },
-                        ]}
-                      >
-                        {stats.diff > 0 ? '+' : ''}
-                        {stats.diff.toFixed(1)} {label.unit}
-                      </Text>
-                    </View>
-                    <View style={styles.statItem}>
-                      <Text style={styles.statLabel}>Média</Text>
-                      <Text style={styles.statValue}>
-                        {stats.avg.toFixed(1)} {label.unit}
-                      </Text>
-                    </View>
-                  </View>
-                </View>
-              );
-            })}
+                );
+              })}
           </>
         )}
 

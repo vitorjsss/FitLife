@@ -84,7 +84,14 @@ CREATE TABLE medidas_corporais (
     peso FLOAT,
     altura FLOAT,
     imc FLOAT,
-    circunferencia FLOAT,
+    waist_circumference FLOAT,
+    hip_circumference FLOAT,
+    arm_circumference FLOAT,
+    thigh_circumference FLOAT,
+    calf_circumference FLOAT,
+    body_fat_percentage FLOAT,
+    muscle_mass FLOAT,
+    bone_mass FLOAT,
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
 );
@@ -521,31 +528,31 @@ ALTER TABLE MealItem ADD CONSTRAINT check_carbs_max_limit CHECK (carbs IS NULL O
 -- Garantir que gorduras não excedam 500g por item
 ALTER TABLE MealItem ADD CONSTRAINT check_fats_max_limit CHECK (fats IS NULL OR fats <= 500);
 
--- Validação de consistência nutricional
-CREATE OR REPLACE FUNCTION validate_meal_item_calories()
-RETURNS TRIGGER AS $$
-DECLARE
-    calculated_calories NUMERIC;
-    difference NUMERIC;
-BEGIN
-    IF NEW.proteins IS NOT NULL AND NEW.carbs IS NOT NULL AND NEW.fats IS NOT NULL AND NEW.calories IS NOT NULL THEN
-        calculated_calories := (NEW.proteins * 4) + (NEW.carbs * 4) + (NEW.fats * 9);
-        difference := ABS(NEW.calories - calculated_calories);
-        
-        IF difference > (NEW.calories * 0.2) THEN
-            RAISE EXCEPTION 'Calorias inconsistentes: informado %, calculado % (diferença: %)', 
-                NEW.calories, calculated_calories, difference;
-        END IF;
-    END IF;
-    
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
+-- Validação de consistência nutricional (DESABILITADA)
+-- CREATE OR REPLACE FUNCTION validate_meal_item_calories()
+-- RETURNS TRIGGER AS $$
+-- DECLARE
+--     calculated_calories NUMERIC;
+--     difference NUMERIC;
+-- BEGIN
+--     IF NEW.proteins IS NOT NULL AND NEW.carbs IS NOT NULL AND NEW.fats IS NOT NULL AND NEW.calories IS NOT NULL THEN
+--         calculated_calories := (NEW.proteins * 4) + (NEW.carbs * 4) + (NEW.fats * 9);
+--         difference := ABS(NEW.calories - calculated_calories);
+--         
+--         IF difference > (NEW.calories * 0.2) THEN
+--             RAISE EXCEPTION 'Calorias inconsistentes: informado %, calculado % (diferença: %)', 
+--                 NEW.calories, calculated_calories, difference;
+--         END IF;
+--     END IF;
+--     
+--     RETURN NEW;
+-- END;
+-- $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trigger_validate_calories
-    BEFORE INSERT OR UPDATE ON MealItem
-    FOR EACH ROW
-    EXECUTE FUNCTION validate_meal_item_calories();
+-- CREATE TRIGGER trigger_validate_calories
+--     BEFORE INSERT OR UPDATE ON MealItem
+--     FOR EACH ROW
+--     EXECUTE FUNCTION validate_meal_item_calories();
 
 -- Índices para performance
 CREATE INDEX idx_meal_record_patient_date ON MealRecord(patient_id, date DESC);
@@ -1064,3 +1071,49 @@ BEGIN
     WHERE wr.checked IS DISTINCT FROM ll.checked;
 END;
 $$ LANGUAGE plpgsql;
+
+-- ================================================
+-- CONSTRAINTS DE VALIDAÇÃO - MEDIDAS CORPORAIS (RNF 2.0)
+-- ================================================
+
+-- Validação de Peso (0 < peso < 500 kg)
+ALTER TABLE medidas_corporais 
+ADD CONSTRAINT check_peso_valid CHECK (peso IS NULL OR (peso > 0 AND peso < 500));
+
+-- Validação de Altura (0.5m <= altura <= 2.5m)  
+ALTER TABLE medidas_corporais
+ADD CONSTRAINT check_altura_valid CHECK (altura IS NULL OR (altura >= 0.5 AND altura <= 2.5));
+
+-- Validações de Circunferências específicas (0 < valor < 500 cm)
+ALTER TABLE medidas_corporais
+ADD CONSTRAINT check_waist_circumference_valid CHECK (waist_circumference IS NULL OR (waist_circumference > 0 AND waist_circumference < 500));
+
+ALTER TABLE medidas_corporais
+ADD CONSTRAINT check_hip_circumference_valid CHECK (hip_circumference IS NULL OR (hip_circumference > 0 AND hip_circumference < 500));
+
+ALTER TABLE medidas_corporais
+ADD CONSTRAINT check_arm_circumference_valid CHECK (arm_circumference IS NULL OR (arm_circumference > 0 AND arm_circumference < 500));
+
+ALTER TABLE medidas_corporais
+ADD CONSTRAINT check_thigh_circumference_valid CHECK (thigh_circumference IS NULL OR (thigh_circumference > 0 AND thigh_circumference < 500));
+
+ALTER TABLE medidas_corporais
+ADD CONSTRAINT check_calf_circumference_valid CHECK (calf_circumference IS NULL OR (calf_circumference > 0 AND calf_circumference < 500));
+
+-- Validações de Composição Corporal (0 < percentual < 100, massa > 0)
+ALTER TABLE medidas_corporais
+ADD CONSTRAINT check_body_fat_percentage_valid CHECK (body_fat_percentage IS NULL OR (body_fat_percentage >= 0 AND body_fat_percentage <= 100));
+
+ALTER TABLE medidas_corporais
+ADD CONSTRAINT check_muscle_mass_valid CHECK (muscle_mass IS NULL OR (muscle_mass > 0 AND muscle_mass < 500));
+
+ALTER TABLE medidas_corporais
+ADD CONSTRAINT check_bone_mass_valid CHECK (bone_mass IS NULL OR (bone_mass > 0 AND bone_mass < 100));
+
+-- ================================================
+-- CONSTRAINTS DE VALIDAÇÃO - WORKOUT RECORD (RNF 2.0)
+-- ================================================
+
+-- Validação de data de treino (não pode ser mais de 1 ano no futuro)
+ALTER TABLE WorkoutRecord
+ADD CONSTRAINT check_workout_date_not_too_future CHECK (date <= CURRENT_DATE + INTERVAL '1 year');

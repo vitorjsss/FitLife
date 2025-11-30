@@ -9,6 +9,11 @@ web-build/
 
 # Docker
 *.env
+
+# Backups gerados pelo script de inicialização
+frontend/src/config/api.ts.backup
+test-results.log
+
 # --- Regras do frontend ---
 # dependencies
 frontend/node_modules/

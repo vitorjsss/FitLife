@@ -44,9 +44,23 @@ class AuthService {
     }
 
     async register(data: RegisterData): Promise<any> {
-        data.email = data.email.toLowerCase();
-        const response = await apiClient.post(API_CONFIG.ENDPOINTS.AUTH.REGISTER, data);
-        return response.data;
+        try {
+            console.log('🔵 [AuthService] Iniciando registro...');
+            console.log('🔵 [AuthService] URL:', API_CONFIG.BASE_URL + API_CONFIG.ENDPOINTS.AUTH.REGISTER);
+            console.log('🔵 [AuthService] Dados:', JSON.stringify(data, null, 2));
+
+            data.email = data.email.toLowerCase();
+
+            const response = await apiClient.post(API_CONFIG.ENDPOINTS.AUTH.REGISTER, data);
+
+            console.log('✅ [AuthService] Registro bem-sucedido:', response.data);
+            return response.data;
+        } catch (error: any) {
+            console.error('❌ [AuthService] Erro no registro:', error);
+            console.error('❌ [AuthService] Erro detalhes:', error.response?.data);
+            console.error('❌ [AuthService] Status:', error.response?.status);
+            throw error;
+        }
     }
 
     async login(data: { email: string; password: string }) {

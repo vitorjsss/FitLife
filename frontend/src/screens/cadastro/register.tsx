@@ -93,15 +93,16 @@ export default function RegisterScreen() {
             errors.name = 'Nome deve ter no mínimo 3 caracteres';
         }
 
-        // Validar credenciais com validationRules
-        const credValidation = validateRegisterCredentials({
-            username: data.name,
-            email: data.email,
-            password: data.password
-        });
+        // Validar email
+        const emailValidation = validateEmail(data.email);
+        if (!emailValidation.valid) {
+            errors.email = emailValidation.error || 'Email inválido';
+        }
 
-        if (!credValidation.valid) {
-            Object.assign(errors, credValidation.errors);
+        // Validar senha
+        const passwordValidation = validatePassword(data.password);
+        if (!passwordValidation.valid) {
+            errors.password = passwordValidation.error || 'Senha inválida';
         }
 
         // Validar confirmação de senha
@@ -134,11 +135,14 @@ export default function RegisterScreen() {
 
         if (Object.keys(errors).length > 0) {
             setValidationErrors(errors);
+            const firstError = Object.values(errors)[0];
+            Alert.alert('Erro de Validação', firstError);
             return;
         }
 
         setValidationErrors({});
         setLoading(true);
+
         try {
             // 1️⃣ Registrar usuário
             const registerData = {
@@ -147,11 +151,11 @@ export default function RegisterScreen() {
                 password: data.password,
                 user_type: data.userType,
             };
+
             const authRes = await authService.register(registerData);
             const auth_id = authRes?.id || authRes?.userId;
 
             if (!auth_id) throw new Error("Erro ao obter ID do usuário cadastrado");
-            console.log("Usuário Auth criado com ID:", auth_id);
 
             // 2️⃣ Logar para obter token
             const loginRes = await authService.login({
@@ -159,7 +163,6 @@ export default function RegisterScreen() {
                 password: data.password,
             });
             const token = loginRes.accessToken;
-            console.log("Token recebido:", token);
 
             if (!token) throw new Error("Erro ao obter token após login");
 

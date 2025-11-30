@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
     View,
     Text,
@@ -8,7 +8,7 @@ import {
     ScrollView,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { RootStackParamList } from "../../../App";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import Header from '../../components/Header';
@@ -32,6 +32,15 @@ export default function HomeScreen() {
         // Simula carregamento inicial
         setTimeout(() => setLoading(false), 500);
     }, []);
+
+    // Força re-render dos widgets quando a tela é focada
+    const [refreshKey, setRefreshKey] = useState(0);
+    useFocusEffect(
+        useCallback(() => {
+            // Incrementa a key para forçar re-render dos widgets sem loading visual
+            setRefreshKey(prev => prev + 1);
+        }, [])
+    );
 
     if (loading || userLoading) {
         return (
@@ -78,6 +87,7 @@ export default function HomeScreen() {
                 {/* Widget de Progresso Semanal */}
                 {user?.id && (
                     <WeeklyMealWidget
+                        key={`meal-${refreshKey}`}
                         userId={user.id}
                         onPress={() => navigation.navigate('CalendarioRefeicoes')}
                     />
@@ -86,6 +96,7 @@ export default function HomeScreen() {
                 {/* Widget de Progresso Semanal de Treinos */}
                 {user?.id && (
                     <WeeklyWorkoutWidget
+                        key={`workout-${refreshKey}`}
                         userId={user.id}
                         onPress={() => navigation.navigate('CalendarioTreinos')}
                     />
@@ -93,13 +104,13 @@ export default function HomeScreen() {
 
                 {/* Widget de Progresso das Medidas */}
                 {user?.id && (
-                    <MeasuresProgressWidget userId={user.id} />
+                    <MeasuresProgressWidget key={`measures-${refreshKey}`} userId={user.id} />
                 )}
             </ScrollView>
 
             {/* Bottom Navigation */}
             <View style={styles.bottomNav}>
-                <TouchableOpacity 
+                <TouchableOpacity
                     style={styles.navItem}
                     onPress={() => navigation.navigate('Refeicoes', user?.id ? { patientId: user.id } : {})}
                 >
@@ -107,7 +118,7 @@ export default function HomeScreen() {
                     <Text style={styles.navText}>Refeições</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity 
+                <TouchableOpacity
                     style={styles.navItem}
                     onPress={() => navigation.navigate('Treinos')}
                 >
@@ -129,7 +140,7 @@ export default function HomeScreen() {
                     <Text style={styles.navText}>Medidas</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity 
+                <TouchableOpacity
                     style={styles.navItem}
                     onPress={() => navigation.navigate('Relatorios')}
                 >

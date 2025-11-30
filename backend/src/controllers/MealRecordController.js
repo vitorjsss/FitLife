@@ -82,6 +82,15 @@ class MealRecordController {
       res.status(201).json(item);
     } catch (error) {
       console.error('Erro ao adicionar item:', error);
+
+      // Se for erro de validação de calorias do banco
+      if (error.code === 'P0001' && error.message.includes('Calorias inconsistentes')) {
+        return res.status(400).json({
+          error: 'Validação de calorias falhou',
+          message: error.message
+        });
+      }
+
       res.status(500).json({ error: 'Erro ao adicionar item' });
     }
   }
