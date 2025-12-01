@@ -10,10 +10,15 @@ services:
       - ./backend/db-init:/docker-entrypoint-initdb.d
     ports:
       - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fitlife"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   backend:
     build: ./backend
-    command: sh -c "npm install && npm start"
+    command: sh -c "npm ci --include=dev && npm start"
     volumes:
       - ./backend:/usr/src
       - backend-node-modules:/usr/src/node_modules
@@ -32,8 +37,10 @@ services:
       - SENDGRID_API_KEY=${SENDGRID_API_KEY:-}
       - SENDGRID_FROM_EMAIL=${SENDGRID_FROM_EMAIL:-}
       - SENDGRID_FROM_NAME=${SENDGRID_FROM_NAME:-FitLife}
+      - NODE_ENV=development
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
   frontend:
     image: node:18-alpine
