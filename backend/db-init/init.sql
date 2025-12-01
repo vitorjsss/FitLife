@@ -24,7 +24,9 @@ CREATE TABLE auth (
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW(),
     failed_attempts INT DEFAULT 0,
-    account_locked_until TIMESTAMP NULL
+    account_locked_until TIMESTAMP NULL,
+    twofa_code VARCHAR(10),
+    twofa_expires_at TIMESTAMP
 );
 
 -- ----------------------------

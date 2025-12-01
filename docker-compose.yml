@@ -47,7 +47,7 @@ services:
   frontend:
     image: node:18-alpine
     working_dir: /app
-    command: sh -c "npm install --prefer-offline --no-audit && npx expo start --lan --clear"
+    command: sh -c "npm install --prefer-offline --no-audit && npx expo start --tunnel --clear"
     volumes:
       - ./frontend:/app
       - frontend-node-modules:/app/node_modules
@@ -59,10 +59,8 @@ services:
     environment:
       - EXPO_DEVTOOLS_LISTEN_ADDRESS=0.0.0.0
       - NODE_ENV=development
-      - REACT_NATIVE_PACKAGER_HOSTNAME=192.168.10.5
       - EXPO_NO_DOTENV=1
       - WATCHMAN_DISABLE_CACHE=1
-      - EXPO_CLI_USE_UNVERSIONED=1
     stdin_open: true
     tty: true
     depends_on:
@@ -73,3 +71,9 @@ volumes:
   backend-node-modules:
   frontend-node-modules:
   backup-data:
+
+
+
+
+
+

@@ -12,11 +12,19 @@ echo   FitLife - Modo Otimizado (Windows)
 echo ================================================================
 echo.
 
-REM Detectar IP
+REM Detectar IP da rede WiFi (interface com Gateway configurado)
 echo Detectando IP da rede...
-for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /C:"IPv4" ^| findstr /V "127.0.0.1"') do (
+set "NETWORK_IP="
+for /f "tokens=*" %%a in ('powershell -NoProfile -Command "$adapters = Get-NetIPConfiguration | Where-Object {$_.IPv4DefaultGateway -ne $null -and $_.NetAdapter.Status -eq 'Up'}; if ($adapters) { ($adapters | Select-Object -First 1).IPv4Address.IPAddress } else { (Get-NetIPAddress -AddressFamily IPv4 | Where-Object {$_.IPAddress -notlike '127.*' -and $_.IPAddress -notlike '169.254.*' -and $_.IPAddress -notlike '172.*' -and $_.PrefixOrigin -eq 'Dhcp'} | Select-Object -First 1).IPAddress }"') do (
     set "NETWORK_IP=%%a"
-    goto :ip_found
+)
+
+REM Fallback para metodo antigo se PowerShell falhar
+if "%NETWORK_IP%"=="" (
+    for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /C:"IPv4" ^| findstr /V "127.0.0.1"') do (
+        set "NETWORK_IP=%%a"
+        goto :ip_found
+    )
 )
 
 :ip_found
@@ -30,24 +38,44 @@ if "%NETWORK_IP%"=="" (
 
 echo IP detectado: %NETWORK_IP%
 
-REM Criar .env
-echo Criando arquivo .env...
+REM Criar/Atualizar .env preservando SendGrid se existir
+echo Atualizando arquivo .env...
+
+REM Verifica se .env existe e tem SendGrid configurado
+set "SENDGRID_KEY="
+set "SENDGRID_EMAIL="
+set "SENDGRID_NAME="
+
+if exist .env (
+    for /f "tokens=1,* delims==" %%a in ('findstr "SENDGRID_API_KEY=" .env 2^>nul') do set "SENDGRID_KEY=%%b"
+    for /f "tokens=1,* delims==" %%a in ('findstr "SENDGRID_FROM_EMAIL=" .env 2^>nul') do set "SENDGRID_EMAIL=%%b"
+    for /f "tokens=1,* delims==" %%a in ('findstr "SENDGRID_FROM_NAME=" .env 2^>nul') do set "SENDGRID_NAME=%%b"
+)
+
 (
     echo # FitLife Environment Variables
     echo REACT_NATIVE_PACKAGER_HOSTNAME=%NETWORK_IP%
     echo JWT_SECRET=fitlife_secret_key_change_in_production_32chars
     echo JWT_REFRESH_SECRET=fitlife_refresh_secret_change_in_production_32chars
+    echo.
+    echo # SendGrid Configuration
+    if not "%SENDGRID_KEY%"=="" (
+        echo SENDGRID_API_KEY=%SENDGRID_KEY%
+        echo SENDGRID_FROM_EMAIL=%SENDGRID_EMAIL%
+        echo SENDGRID_FROM_NAME=%SENDGRID_NAME%
+    ) else (
+        echo # SENDGRID_API_KEY=sua_api_key_aqui
+        echo # SENDGRID_FROM_EMAIL=seu_email@exemplo.com
+        echo # SENDGRID_FROM_NAME=FitLife
+    )
 ) > .env
 
-echo Arquivo .env criado
+echo Arquivo .env atualizado
 
 REM Atualizar api.ts
 set "API_FILE=%~dp0frontend\src\config\api.ts"
 if exist "!API_FILE!" (
-    powershell -NoProfile -Command ^
-        "$content = Get-Content '!API_FILE!' -Raw; " ^
-        "$content = $content -replace '(BASE_URL:\s*\")[^\"]*\"', '$1http://%NETWORK_IP%:5001\"'; " ^
-        "Set-Content '!API_FILE!' $content"
+    powershell -NoProfile -ExecutionPolicy Bypass -Command "$ip='%NETWORK_IP%'; $file='!API_FILE!'; $content = Get-Content $file -Raw; $content = $content -replace '(BASE_URL:\s*\u0022)[^\u0022]*\u0022', ('$1http://' + $ip + ':5001\u0022'); Set-Content $file $content"
     echo api.ts atualizado
 )
 
@@ -55,10 +83,7 @@ REM Atualizar docker-compose.yml com o IP
 echo Atualizando docker-compose.yml...
 set "COMPOSE_FILE=%~dp0docker-compose.yml"
 if exist "!COMPOSE_FILE!" (
-    powershell -NoProfile -Command ^
-        "$content = Get-Content '!COMPOSE_FILE!' -Raw; " ^
-        "$content = $content -replace '(REACT_NATIVE_PACKAGER_HOSTNAME=)[0-9.]+', '$1%NETWORK_IP%'; " ^
-        "Set-Content '!COMPOSE_FILE!' $content"
+    powershell -NoProfile -ExecutionPolicy Bypass -Command "$ip='%NETWORK_IP%'; $file='!COMPOSE_FILE!'; $content = Get-Content $file -Raw; $content = $content -replace '(REACT_NATIVE_PACKAGER_HOSTNAME=)[0-9.]+', ('$1' + $ip); Set-Content $file $content"
     echo docker-compose.yml atualizado
 )
 

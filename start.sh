@@ -128,10 +128,9 @@ REACT_NATIVE_PACKAGER_HOSTNAME=${NETWORK_IP}
 JWT_SECRET=${JWT_SECRET}
 JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
 
-# SendGrid Configuration (opcional - para notificações por email)
-# Descomente e configure se necessário:
-# SENDGRID_API_KEY=your_sendgrid_api_key_here
-# SENDGRID_FROM_EMAIL=noreply@fitlife.com
+# SendGrid Configuration (descomente e configure se necessário)
+# SENDGRID_API_KEY=sua_api_key_aqui
+# SENDGRID_FROM_EMAIL=seu_email@exemplo.com
 # SENDGRID_FROM_NAME=FitLife
 EOF
 
