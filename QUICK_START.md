@@ -115,7 +115,9 @@ docker exec fitlife-backend-1 npm test
 .\run-tests.ps1  # Windows PowerShell
 ```
 
-**Erro comum:** Se você executar `npm test` diretamente na pasta `backend/` (fora do container), receberá erro `cross-env: command not found`. Sempre use o container Docker para executar testes.
+**Erros comuns:**
+- Se você executar `npm test` sem instalar dependências, receberá erro `cross-env: command not found`. Execute `npm install` primeiro.
+- Para evitar problemas de dependências, sempre use o container Docker para executar testes: `docker exec fitlife-backend-1 npm test`
 
 ## Configuração Manual
 
@@ -194,18 +196,30 @@ docker-compose ps
 
 ### Erro "cross-env: command not found" ao Executar Testes
 
-**Causa:** Você está tentando executar `npm test` diretamente na pasta `backend/` fora do container.
+**Causas:**
+1. Você está tentando executar `npm test` sem ter instalado as dependências
+2. Você está tentando executar fora do container Docker
 
-**Solução:** Os testes DEVEM ser executados dentro do container Docker:
+**Soluções:**
 
 ```bash
-# Forma correta - dentro do container
+# OPÇÃO 1: Instalar dependências localmente (não recomendado)
+cd backend
+npm install
+npm test
+
+# OPÇÃO 2: Usar o container Docker (RECOMENDADO)
 docker exec fitlife-backend-1 npm test
 
-# OU use os scripts automatizados
+# OPÇÃO 3: Usar os scripts automatizados (MELHOR)
 ./run-tests.sh  # macOS/Linux
 .\run-tests.ps1  # Windows
 ```
+
+**Por que usar o container?**
+- Ambiente isolado e consistente
+- Não precisa instalar dependências localmente
+- Mesmas condições do ambiente de produção
 
 ### Erro "secretOrPrivateKey must have a value"
 

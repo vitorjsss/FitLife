@@ -62,6 +62,7 @@ X = (Ttotal - Tindisponibilidade) / Ttotal
 
 ```bash
 cd backend
+npm install
 npm test -- tests/validation/availability.test.js
 ```
 
