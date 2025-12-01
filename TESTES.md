@@ -117,8 +117,8 @@ backend/tests/
 ## Métricas de Qualidade
 
 Os testes validam:
-- ✅ RNF 2.1: Confiabilidade do checklist (≥ 98%)
-- ✅ RNF 3.1: Criptografia de dados sensíveis (100%)
-- ✅ RNF 2.1: Consistência de relatórios (≥ 95%)
-- ✅ Integração de APIs
-- ✅ Controle de acesso e permissões
+- RNF 2.1: Confiabilidade do checklist (≥ 98%)
+- RNF 3.1: Criptografia de dados sensíveis (100%)
+- RNF 2.1: Consistência de relatórios (≥ 95%)
+- Integração de APIs
+- Controle de acesso e permissões

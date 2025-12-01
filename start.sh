@@ -99,6 +99,46 @@ rm -f "$COMPOSE_FILE.tmp"
 print_message "$GREEN" "docker-compose.yml atualizado"
 
 # ======================================================================
+# PASSO 2.6: Criar/Atualizar arquivo .env
+# ======================================================================
+print_message "$YELLOW" "Configurando variáveis de ambiente..."
+
+ENV_FILE="$PROJECT_DIR/.env"
+
+# Gera um JWT_SECRET aleatório se não existir
+if [ ! -f "$ENV_FILE" ] || ! grep -q "JWT_SECRET=" "$ENV_FILE" 2>/dev/null; then
+    JWT_SECRET=$(openssl rand -base64 32 2>/dev/null || cat /dev/urandom | LC_ALL=C tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1)
+    JWT_REFRESH_SECRET=$(openssl rand -base64 32 2>/dev/null || cat /dev/urandom | LC_ALL=C tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1)
+else
+    # Preserva os secrets existentes
+    JWT_SECRET=$(grep "JWT_SECRET=" "$ENV_FILE" 2>/dev/null | cut -d'=' -f2)
+    JWT_REFRESH_SECRET=$(grep "JWT_REFRESH_SECRET=" "$ENV_FILE" 2>/dev/null | cut -d'=' -f2)
+fi
+
+# Cria ou atualiza o arquivo .env
+cat > "$ENV_FILE" << EOF
+# FitLife Environment Variables
+# Gerado automaticamente por start.sh
+
+# Network IP - usado pelo Expo para exibir o endereço correto do Metro bundler
+REACT_NATIVE_PACKAGER_HOSTNAME=${NETWORK_IP}
+
+# JWT Secrets - usados para geração e validação de tokens
+# IMPORTANTE: Não compartilhe estes valores!
+JWT_SECRET=${JWT_SECRET}
+JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+
+# SendGrid Configuration (opcional - para notificações por email)
+# Descomente e configure se necessário:
+# SENDGRID_API_KEY=your_sendgrid_api_key_here
+# SENDGRID_FROM_EMAIL=noreply@fitlife.com
+# SENDGRID_FROM_NAME=FitLife
+EOF
+
+print_message "$GREEN" "Arquivo .env criado/atualizado com sucesso"
+print_message "$BLUE" "JWT secrets configurados"
+
+# ======================================================================
 # PASSO 3: Parar containers existentes (se houver)
 # ======================================================================
 print_message "$YELLOW" "Parando containers existentes..."

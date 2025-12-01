@@ -105,8 +105,29 @@ export const AuthController = {
     } catch (err) {
       console.error("[REGISTER] Erro ao registrar usuário:", err);
 
-      // Tratar erro de chave duplicada (email)
+      // Tratar erro de chave duplicada
       const pgError = err?.error || err;
+
+      // Username duplicado
+      if (pgError?.code === '23505' && pgError?.constraint === 'auth_username_key') {
+        try {
+          await LogService.createLog({
+            action: "REGISTER",
+            logType: "ERROR",
+            description: `Tentativa de registro falhou: username '${user.username}' já existe (constraint)`,
+            ip,
+            oldValue: null,
+            newValue: JSON.stringify(user),
+            status: "FAILURE",
+            userId: null
+          });
+        } catch (logErr) {
+          console.error("[REGISTER] Erro ao criar log de falha:", logErr);
+        }
+        return res.status(400).json({ message: "Username já existe" });
+      }
+
+      // Email duplicado
       if (pgError?.code === '23505' && pgError?.constraint === 'auth_email_key') {
         try {
           await LogService.createLog({

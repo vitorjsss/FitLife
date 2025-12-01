@@ -12,9 +12,11 @@ Este documento apresenta os procedimentos para inicialização automatizada do a
 
 ### Sistema Windows
 
-```bash
-.\start.bat
+```batch
+.\start-optimized.bat
 ```
+
+**Nota:** O script `start-optimized.bat` foi otimizado para resolver problemas de lentidão e timeout do Expo no Windows.
 
 ## Funcionalidades dos Scripts de Inicialização
 
@@ -102,10 +104,18 @@ docker-compose exec db psql -U fitlife -d fitlife
 
 ### Execução de Testes
 
+**IMPORTANTE:** Os testes devem ser executados **dentro do container Docker**, não localmente.
+
 ```bash
-# Executar testes do backend
+# Executar testes do backend (dentro do container)
 docker exec fitlife-backend-1 npm test
+
+# OU usar o script de testes automatizado
+./run-tests.sh  # macOS/Linux
+.\run-tests.ps1  # Windows PowerShell
 ```
+
+**Erro comum:** Se você executar `npm test` diretamente na pasta `backend/` (fora do container), receberá erro `cross-env: command not found`. Sempre use o container Docker para executar testes.
 
 ## Configuração Manual
 
@@ -182,6 +192,40 @@ docker-compose logs -f db
 docker-compose ps
 ```
 
+### Erro "cross-env: command not found" ao Executar Testes
+
+**Causa:** Você está tentando executar `npm test` diretamente na pasta `backend/` fora do container.
+
+**Solução:** Os testes DEVEM ser executados dentro do container Docker:
+
+```bash
+# Forma correta - dentro do container
+docker exec fitlife-backend-1 npm test
+
+# OU use os scripts automatizados
+./run-tests.sh  # macOS/Linux
+.\run-tests.ps1  # Windows
+```
+
+### Erro "secretOrPrivateKey must have a value"
+
+**Causa:** As variáveis JWT_SECRET e JWT_REFRESH_SECRET não estão configuradas.
+
+**Solução:** Este erro NÃO deve acontecer se você usar os scripts de inicialização (`start.sh` ou `start.bat`). Os scripts geram automaticamente os secrets necessários.
+
+Se encontrar este erro:
+
+```bash
+# Pare os containers
+docker-compose down
+
+# Execute o script de inicialização novamente
+./start.sh  # macOS/Linux
+.\start.bat  # Windows
+
+# O script criará automaticamente o arquivo .env com os secrets
+```
+
 ## Requisitos do Sistema
 
 - Docker
@@ -190,11 +234,19 @@ docker-compose ps
 
 ## Primeira Execução
 
-Durante a primeira execução, o script realizará:
-- Download das imagens Docker necessárias
-- Instalação das dependências do Node.js
-- Criação e configuração do banco de dados
-- Tempo estimado: alguns minutos
+Durante a primeira execução, o script realizará automaticamente:
+
+1. **Detecção do IP da rede WiFi**
+2. **Geração de JWT secrets aleatórios e seguros** (32+ caracteres cada)
+3. **Criação do arquivo `.env`** com todas as variáveis necessárias
+4. **Download das imagens Docker** necessárias
+5. **Instalação das dependências do Node.js**
+6. **Criação e configuração do banco de dados**
+7. **Inicialização de todos os serviços**
+
+**Tempo estimado:** 3-5 minutos (dependendo da velocidade da internet para download das imagens Docker)
+
+**Não é necessária nenhuma configuração manual!** Tudo é automatizado.
 
 ## Verificação do Sistema
 
@@ -242,3 +294,38 @@ git pull
 - A detecção de endereço IP é executada automaticamente a cada execução
 - Os serviços são reiniciados completamente para garantir consistência
 - Os volumes do banco de dados são preservados entre execuções (exceto quando explicitamente removidos)
+- **JWT secrets são gerados automaticamente** e salvos no arquivo `.env` na primeira execução
+- O arquivo `.env` contém variáveis sensíveis e **nunca deve ser commitado** no Git
+
+## Segurança - Variáveis de Ambiente
+
+### Geração Automática de Secrets
+
+Os scripts `start.sh` e `start.bat` geram automaticamente:
+
+- **JWT_SECRET**: String aleatória de 32+ caracteres para assinatura de tokens
+- **JWT_REFRESH_SECRET**: String aleatória de 32+ caracteres para refresh tokens
+
+Estes valores são únicos para cada instalação e garantem que:
+- O login funcione corretamente na primeira execução
+- Os tokens JWT sejam seguros
+- Não haja problemas de "secretOrPrivateKey must have a value"
+
+### Arquivo .env
+
+O arquivo `.env` é criado automaticamente contendo:
+
+```bash
+# Network IP (detectado automaticamente)
+REACT_NATIVE_PACKAGER_HOSTNAME=192.168.x.x
+
+# JWT Secrets (gerados aleatoriamente)
+JWT_SECRET=...
+JWT_REFRESH_SECRET=...
+
+# SendGrid (opcional - descomentado se necessário)
+# SENDGRID_API_KEY=...
+# SENDGRID_FROM_EMAIL=...
+```
+
+**IMPORTANTE:** O arquivo `.env` está no `.gitignore` e **nunca deve ser compartilhado ou commitado**.

@@ -68,36 +68,73 @@ if %errorlevel% neq 0 (
 echo Arquivo api.ts atualizado com IP: %NETWORK_IP%
 echo Backup salvo em: api.ts.backup
 
-REM Criar arquivo .env com a variavel do IP
-echo Criando arquivo .env...
-(
-    echo REACT_NATIVE_PACKAGER_HOSTNAME=%NETWORK_IP%
-) > .env
-
-echo Variavel de ambiente configurada: %NETWORK_IP%
-
 REM ======================================================================
-REM PASSO 3: Instalar dependências do Frontend localmente
+REM PASSO 2.5: Criar/Atualizar arquivo .env
 REM ======================================================================
-echo Instalando dependencias do frontend localmente...
+echo Configurando variaveis de ambiente...
 
-set "FRONTEND_DIR=%~dp0frontend"
+set "ENV_FILE=%~dp0.env"
 
-if exist "!FRONTEND_DIR!\package.json" (
-    cd /d "!FRONTEND_DIR!"
-    call npm install >nul 2>&1
-    if %errorlevel% equ 0 (
-        echo Dependencias do frontend instaladas com sucesso
-    ) else (
-        echo Aviso: Erro ao instalar dependencias do frontend localmente
-    )
-    cd /d "%~dp0"
+REM Gera JWT secrets aleatórios se não existirem
+if not exist "!ENV_FILE!" (
+    set "NEED_JWT_SECRETS=1"
 ) else (
-    echo Aviso: Arquivo package.json nao encontrado
+    findstr /C:"JWT_SECRET=" "!ENV_FILE!" >nul 2>&1
+    if !errorlevel! neq 0 (
+        set "NEED_JWT_SECRETS=1"
+    )
+)
+
+if defined NEED_JWT_SECRETS (
+    REM Gera strings aleatórias para JWT secrets
+    for /f "delims=" %%i in ('powershell -NoProfile -Command "[Convert]::ToBase64String((1..32 | ForEach-Object { Get-Random -Minimum 0 -Maximum 256 }))"') do set "JWT_SECRET=%%i"
+    for /f "delims=" %%i in ('powershell -NoProfile -Command "[Convert]::ToBase64String((1..32 | ForEach-Object { Get-Random -Minimum 0 -Maximum 256 }))"') do set "JWT_REFRESH_SECRET=%%i"
+) else (
+    REM Preserva os secrets existentes
+    for /f "tokens=2 delims==" %%a in ('findstr /C:"JWT_SECRET=" "!ENV_FILE!"') do set "JWT_SECRET=%%a"
+    for /f "tokens=2 delims==" %%a in ('findstr /C:"JWT_REFRESH_SECRET=" "!ENV_FILE!"') do set "JWT_REFRESH_SECRET=%%a"
+)
+
+REM Cria ou atualiza o arquivo .env
+(
+    echo # FitLife Environment Variables
+    echo # Gerado automaticamente por start.bat
+    echo.
+    echo # Network IP - usado pelo Expo para exibir o endereco correto do Metro bundler
+    echo REACT_NATIVE_PACKAGER_HOSTNAME=%NETWORK_IP%
+    echo.
+    echo # JWT Secrets - usados para geracao e validacao de tokens
+    echo # IMPORTANTE: Nao compartilhe estes valores!
+    echo JWT_SECRET=!JWT_SECRET!
+    echo JWT_REFRESH_SECRET=!JWT_REFRESH_SECRET!
+    echo.
+    echo # SendGrid Configuration ^(opcional - para notificacoes por email^)
+    echo # Descomente e configure se necessario:
+    echo # SENDGRID_API_KEY=your_sendgrid_api_key_here
+    echo # SENDGRID_FROM_EMAIL=noreply@fitlife.com
+    echo # SENDGRID_FROM_NAME=FitLife
+) > "!ENV_FILE!"
+
+echo Arquivo .env criado/atualizado com sucesso
+echo JWT secrets configurados
+
+REM ======================================================================
+REM PASSO 2.6: Atualizar docker-compose.yml com o IP
+REM ======================================================================
+echo Atualizando docker-compose.yml...
+
+set "COMPOSE_FILE=%~dp0docker-compose.yml"
+
+if exist "!COMPOSE_FILE!" (
+    powershell -NoProfile -Command ^
+        "$content = Get-Content '!COMPOSE_FILE!' -Raw; " ^
+        "$content = $content -replace '(REACT_NATIVE_PACKAGER_HOSTNAME=)[0-9.]+', '$1%NETWORK_IP%'; " ^
+        "Set-Content '!COMPOSE_FILE!' $content"
+    echo docker-compose.yml atualizado
 )
 
 REM ======================================================================
-REM PASSO 4: Parar containers existentes (se houver)
+REM PASSO 3: Parar containers existentes (se houver)
 REM ======================================================================
 echo Parando containers existentes...
 
