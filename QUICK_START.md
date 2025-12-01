@@ -13,7 +13,7 @@ Este documento apresenta os procedimentos para inicialização automatizada do a
 ### Sistema Windows
 
 ```bash
-start.bat
+.\start.bat
 ```
 
 ## Funcionalidades dos Scripts de Inicialização

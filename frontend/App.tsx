@@ -10,7 +10,7 @@ import RegisterScreen from './src/screens/cadastro/register';
 import HomeScreen from './src/screens/home/home';
 import NutricionistHomeScreen from './src/screens/home/NutricionistHome';
 import PhysicalEducatorHomeScreen from './src/screens/home/PhysicalEducatorHome';
-import Refeicoes from './src/screens/refeicoes/Refeicoes';
+import TelaRefeicoes from './src/screens/refeicoes/TelaRefeicoes';
 import GerenciarRefeicoes from './src/screens/refeicoes/GerenciarRefeicoes';
 import AdicionarAlimentos from './src/screens/refeicoes/AdicionarAlimentos';
 import CalendarioRefeicoes from './src/screens/refeicoes/CalendarioRefeicoes';
@@ -113,7 +113,7 @@ export default function App() {
           <Stack.Screen name="NutricionistHome" component={NutricionistHomeScreen} />
           <Stack.Screen name="PhysicalEducatorHome" component={PhysicalEducatorHomeScreen} />
           <Stack.Screen name="Checklist" component={ChecklistScreen} />
-          <Stack.Screen name="Refeicoes" component={Refeicoes} />
+          <Stack.Screen name="Refeicoes" component={TelaRefeicoes} />
           <Stack.Screen name="GerenciarRefeicoes" component={GerenciarRefeicoes} />
           <Stack.Screen name="AdicionarAlimentos" component={AdicionarAlimentos} />
           <Stack.Screen name="CalendarioRefeicoes" component={CalendarioRefeicoes} />
