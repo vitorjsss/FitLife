@@ -74,9 +74,9 @@ echo Arquivo .env atualizado
 
 REM Atualizar api.ts
 set "API_FILE=%~dp0frontend\src\config\api.ts"
+set "UPDATE_SCRIPT=%~dp0update-api-config.ps1"
 if exist "!API_FILE!" (
-    powershell -NoProfile -ExecutionPolicy Bypass -Command "$ip='%NETWORK_IP%'; $file='!API_FILE!'; $content = Get-Content $file -Raw; $content = $content -replace '(BASE_URL:\s*\u0022)[^\u0022]*\u0022', ('$1http://' + $ip + ':5001\u0022'); Set-Content $file $content"
-    echo api.ts atualizado
+    powershell -NoProfile -ExecutionPolicy Bypass -File "!UPDATE_SCRIPT!" -IpAddress "%NETWORK_IP%" -ApiFilePath "!API_FILE!"
 )
 
 REM Atualizar docker-compose.yml com o IP

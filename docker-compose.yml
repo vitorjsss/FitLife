@@ -47,7 +47,7 @@ services:
   frontend:
     image: node:18-alpine
     working_dir: /app
-    command: sh -c "npm install --prefer-offline --no-audit && npx expo start --tunnel --clear"
+    command: sh -c "npm install --prefer-offline --no-audit && npx expo start --lan --clear"
     volumes:
       - ./frontend:/app
       - frontend-node-modules:/app/node_modules
@@ -71,6 +71,25 @@ volumes:
   backend-node-modules:
   frontend-node-modules:
   backup-data:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

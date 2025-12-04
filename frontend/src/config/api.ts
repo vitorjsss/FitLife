@@ -1,6 +1,5 @@
 export const API_CONFIG = {
-    // BASE_URL: "http://192.168.18.9:5001",
-    BASE_URL: "http://192.168.18.9:5001",
+    BASE_URL: "http://192.168.0.4:5001",
     ENDPOINTS: {
         AUTH: {
             REGISTER: "/auth/register",
@@ -38,6 +37,11 @@ export const API_CONFIG = {
     TIMEOUT: 30000,
     IGNORE_SSL_ERRORS: true,
 };
+
+
+
+
+
 
 
 
